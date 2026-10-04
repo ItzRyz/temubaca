@@ -33,7 +33,7 @@ export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLET
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(), displayName: text().notNull(), preferences: jsonb(),
-    createdAt: createdAt(), updatedAt: updatedAt(),
+    createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 });
 
 export const books = pgTable('books', {
