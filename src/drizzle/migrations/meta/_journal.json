@@ -15,6 +15,27 @@
       "when": 1791085402048,
       "tag": "0001_wandering_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791170753000,
+      "tag": "0002_serious_toad",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791171132323,
+      "tag": "0003_motionless_vertigo",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791194994408,
+      "tag": "0004_confused_magus",
+      "breakpoints": true
     }
   ]
 }
