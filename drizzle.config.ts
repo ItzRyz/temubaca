@@ -1,15 +1,18 @@
+import { env } from "@/env";
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
     out: "./src/drizzle/migrations",
-    schema: "./src/drizzle/schema.ts",
+    schema: "./src/lib/db/schema.ts",
 
     dialect: "postgresql",
+
     dbCredentials: {
-        url: process.env.DATABASE_URL!,
+        url: env.DATABASE_URL,
     },
 
+    strict: true,
     extensionsFilters: ["postgis"],
     schemaFilter: "public",
     tablesFilter: "*",
