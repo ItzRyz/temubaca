@@ -9,6 +9,11 @@ import {
     paginationSchema,
 } from "../pagination";
 
+import {
+    communityReviewDecisions,
+    decisionRequiresNote,
+} from "@/features/verification/community-review";
+
 export const verificationTargetTypeSchema =
     z.enum(
         targetTypeValues,
@@ -64,3 +69,23 @@ export const verificationListQuerySchema =
                     .optional(),
         })
         .strict();
+
+/** Admin decision on a community; rejecting or suspending needs a reason (TB-031). */
+export const communityReviewSchema =
+    z
+        .object({
+            decision:
+                z.enum(communityReviewDecisions),
+
+            note:
+                z
+                    .string()
+                    .trim()
+                    .max(2_000)
+                    .optional(),
+        })
+        .strict()
+        .refine(
+            (input) => !decisionRequiresNote(input.decision) || (input.note?.length ?? 0) >= 3,
+            { message: "Alasan wajib diisi untuk menolak atau menangguhkan komunitas.", path: ["note"] },
+        );

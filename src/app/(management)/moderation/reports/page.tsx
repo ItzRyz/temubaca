@@ -5,7 +5,10 @@ import Link from "next/link";
 import { countCommunitiesByStatus, listCommunitiesForReview } from "@/lib/db/queries/communities";
 import { countReportsByStatus, listReports, resolveReportTargets } from "@/lib/db/queries/reports";
 import type { reportStatusValues, targetTypeValues } from "@/lib/db/schema";
+import { listCommunityVerifications } from "@/lib/db/queries/verifications";
 import { ReportDecisionPanel } from "@/features/reports/components/report-decision-panel";
+import { availableCommunityDecisions } from "@/features/verification/community-review";
+import { CommunityDecisionPanel } from "@/features/verification/components/community-decision-panel";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Peninjauan pengajuan & laporan" };
@@ -26,6 +29,14 @@ const communityViews = {
     PENDING: "Menunggu",
     VERIFIED: "Disetujui",
     REJECTED: "Ditolak",
+    SUSPENDED: "Ditangguhkan",
+} as const;
+
+const verificationLabels = {
+    PENDING: "Menunggu",
+    APPROVED: "Disetujui",
+    REJECTED: "Ditolak",
+    REVOKED: "Ditangguhkan",
 } as const;
 type CommunityView = keyof typeof communityViews;
 
@@ -59,10 +70,10 @@ export default async function ModerationPage({ searchParams }: PageProps) {
 
     const [reportCounts, communityCounts] = await Promise.all([
         Promise.all((["PENDING", "REVIEWING", "RESOLVED", "REJECTED"] as const).map((status) => countReportsByStatus(status))),
-        Promise.all((["PENDING", "VERIFIED", "REJECTED"] as const).map((status) => countCommunitiesByStatus(status))),
+        Promise.all((["PENDING", "VERIFIED", "REJECTED", "SUSPENDED"] as const).map((status) => countCommunitiesByStatus(status))),
     ]);
     const reportViewCounts: Record<ReportView, number> = { open: reportCounts[0] + reportCounts[1], resolved: reportCounts[2], rejected: reportCounts[3] };
-    const communityViewCounts: Record<CommunityView, number> = { PENDING: communityCounts[0], VERIFIED: communityCounts[1], REJECTED: communityCounts[2] };
+    const communityViewCounts: Record<CommunityView, number> = { PENDING: communityCounts[0], VERIFIED: communityCounts[1], REJECTED: communityCounts[2], SUSPENDED: communityCounts[3] };
 
     const hrefFor = (next: Record<string, string | undefined>) => {
         const search = new URLSearchParams();
@@ -231,6 +242,7 @@ async function ReportsTab({ view, query, selected, hrefFor }: TabProps<ReportVie
                     </div>
                     <ReportDecisionPanel
                         key={active.key}
+                        itemKey={active.key}
                         reportIds={active.reports.map((report) => report.id)}
                         initialOutcome={active.reports.find((report) => report.outcome)?.outcome ?? ""}
                     />
@@ -245,6 +257,7 @@ async function CommunitiesTab({ view, query, selected, hrefFor }: TabProps<Commu
     const rows = (await listCommunitiesForReview(view)).filter((row) =>
         !needle || `${row.name} ${row.ownerName}`.toLocaleLowerCase("id-ID").includes(needle));
     const active = rows.find((row) => row.id === selected) ?? rows[0];
+    const history = active ? await listCommunityVerifications(active.id) : [];
 
     return (
         <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_400px]">
@@ -291,9 +304,31 @@ async function CommunitiesTab({ view, query, selected, hrefFor }: TabProps<Commu
                             <dd className="mt-1 whitespace-pre-line text-foreground/85">{active.description || "Belum ada deskripsi."}</dd>
                         </div>
                     </dl>
-                    <p className="flex gap-2 bg-[#f1f0ea] p-5 text-xs leading-5 text-muted-foreground">
+                    <div className="border-t border-border p-5">
+                        <h3 className="font-sans text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Jejak audit</h3>
+                        {history.length > 0 ? (
+                            <ol className="mt-3 flex list-none flex-col gap-3 p-0">
+                                {history.map((entry) => (
+                                    <li key={entry.id} className="flex gap-3">
+                                        <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
+                                        <span className="text-sm">
+                                            <span className="block font-semibold">{verificationLabels[entry.status]}</span>
+                                            <span className="block text-xs text-muted-foreground">
+                                                {dateTime.format(entry.reviewedAt ?? entry.createdAt)} oleh {entry.reviewerName ?? "peninjau tidak diketahui"}
+                                            </span>
+                                            {entry.note && <span className="mt-1 block text-xs whitespace-pre-line text-foreground/80">{entry.note}</span>}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ol>
+                        ) : (
+                            <p className="mt-2 text-sm text-muted-foreground">Belum ada keputusan tercatat.</p>
+                        )}
+                    </div>
+                    <CommunityDecisionPanel key={active.id} communityId={active.id} decisions={availableCommunityDecisions(active.status)} />
+                    <p className="flex gap-2 border-t border-border p-5 text-xs leading-5 text-muted-foreground">
                         <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                        Persetujuan atau penolakan komunitas dari portal ini belum tersedia (TB-031). Bukti pengajuan, checklist SOP, dan jejak audit menunggu alur verifikasi tersebut.
+                        Verifikasi berarti profil telah ditinjau pengelola. Bukti pengajuan dan checklist SOP menunggu alur pengajuan komunitas (DEC-04).
                     </p>
                 </section>
             )}
