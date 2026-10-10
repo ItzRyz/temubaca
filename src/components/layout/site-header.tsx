@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
+import { ProfileMenu } from "@/components/navigation/profile-menu";
 import { PublicNavigation } from "@/components/navigation/public-navigation";
 
 function initialsOf(name: string) {
@@ -21,13 +22,7 @@ export async function SiteHeader() {
                 <PublicNavigation className="order-last col-span-2 -mx-3 mt-2 md:order-none md:mx-0 md:mt-0" />
                 <div className="flex items-center justify-end gap-4">
                     {user ? (
-                        <Link
-                            href="/dashboard"
-                            aria-label={`Dashboard ${user.displayName}`}
-                            className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                        >
-                            {initialsOf(user.displayName)}
-                        </Link>
+                        <ProfileMenu initials={initialsOf(user.displayName)} displayName={user.displayName} isAdmin={user.role === "ADMIN"} />
                     ) : (
                         <Link
                             href="/login"
