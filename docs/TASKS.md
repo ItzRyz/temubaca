@@ -186,3 +186,11 @@ Audit kode lokal pada 2026-10-10. Status berikut menunjukkan progres implementas
 - Sudah dijalankan ke Supabase dev di `.env` atas persetujuan pemilik proyek.
 - Temuan dan perbaikan drift: Supabase dev hanya mencatat migrasi `0000` di `drizzle.__drizzle_migrations__`, padahal efek `0001`–`0003` sudah ada (kemungkinan lewat `drizzle-kit push`). `0004` (default `now()` untuk `updatedAt` di 13 tabel) belum diterapkan, sehingga insert yang tidak mengisi `updatedAt` gagal. Atas persetujuan pemilik proyek, `0004` diterapkan dan `0001`–`0004` dicatat di jurnal (hash SHA-256 dicocokkan dengan baris `0000` yang ada) dalam satu transaksi. Setelahnya semua kolom `updatedAt` punya default dan RLS aktif di semua tabel. Lingkungan lain (staging/production) perlu dicek dengan cara yang sama sebelum `drizzle-kit migrate`.
 - Bug yang ditemukan lewat data dummy dan sudah diperbaiki: subquery agregat (`availableCopies`, `activeMemberCount`, `upcomingEventCount`) membandingkan kolom tanpa nama tabel, sehingga selalu menghasilkan 0.
+
+## Verifikasi teknis — 2026-10-10
+
+- Line ending: `.gitattributes` memaksa LF; working copy dinormalisasi (isi index tidak berubah).
+- Migrasi Supabase dev: jurnal berisi 5 baris (`0000`–`0004`), tidak ada migrasi tertunda; `drizzle-kit check` lulus.
+- Layout (data dummy, lebar 1280px dan 375px): `/`, `/books`, detail buku, `/communities`, profil komunitas, detail acara, detail merchandise, `/login`, `/register`, `/forgot-password` tidak memiliki overflow horizontal. Perbaikan: judul profil komunitas sebelumnya menimpa banner hijau 14px di desktop.
+- Audit aksesibilitas otomatis di 16 rute publik/auth: tiap halaman punya tepat satu `h1`, tidak ada `img` tanpa `alt`, tidak ada ID ganda, semua link/tombol dan input punya nama. Temuan pada checkbox Radix di login/register adalah positif palsu (nama dari `<label for>`, input tersembunyi `aria-hidden`).
+- Belum terverifikasi: alur yang butuh sesi login (bookmark, listing, dialog laporan, dashboard, admin), navigasi keyboard manual, pembaca layar, dan kontras warna terukur.

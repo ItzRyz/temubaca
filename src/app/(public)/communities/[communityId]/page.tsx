@@ -76,11 +76,11 @@ export default async function CommunityProfilePage({ params }: CommunityPageProp
                 <div aria-hidden="true" className="h-32 bg-[linear-gradient(135deg,#1b4d37,#3d7a5c_55%,#a9c7b2)] sm:h-48" />
                 <div className="px-5 pb-6 sm:px-8">
                     <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="flex items-end gap-4">
+                        <div className="flex items-start gap-4">
                             <span aria-hidden="true" className={`flex size-24 shrink-0 items-center justify-center rounded-xl border-4 border-card font-heading text-2xl text-white shadow-md sm:size-28 ${colorFor(community.id)}`}>
                                 {initialsOf(community.name)}
                             </span>
-                            <div className="pb-1">
+                            <div className="pt-14 sm:pt-16">
                                 <h1 className="font-heading text-2xl leading-tight font-semibold text-[#1f2924] sm:text-[32px]">{community.name}</h1>
                                 <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#e7efe8] px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
                                     <BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi
