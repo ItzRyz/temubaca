@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 type BookListingEditorProps = {
@@ -18,6 +19,7 @@ const conditions = [
 ] as const;
 
 export function BookListingEditor({ listingId, initialCondition, initialLocation, initialRules }: BookListingEditorProps) {
+    const router = useRouter();
     const [condition, setCondition] = useState(initialCondition);
     const [location, setLocation] = useState(initialLocation ?? "");
     const [rules, setRules] = useState(initialRules ?? "");
@@ -50,6 +52,7 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
             }
 
             setMessage("Perubahan berhasil disimpan.");
+            router.refresh();
         } catch {
             setError("Koneksi terputus. Coba lagi.");
         } finally {
@@ -58,7 +61,7 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
     }
 
     return (
-        <details className="mt-4 border-t border-border/70 pt-4">
+        <details className="mt-3 border-t border-border/70 pt-3">
             <summary className="cursor-pointer text-sm font-semibold text-primary">Ubah detail listing</summary>
             <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
                 <label className="grid gap-2 text-sm font-medium">

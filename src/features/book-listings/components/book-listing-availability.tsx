@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useId, useState } from "react";
 
 type BookListingAvailabilityProps = {
     listingId: string;
@@ -8,6 +9,8 @@ type BookListingAvailabilityProps = {
 };
 
 export function BookListingAvailability({ listingId, initialAvailability }: BookListingAvailabilityProps) {
+    const router = useRouter();
+    const labelId = useId();
     const [availability, setAvailability] = useState(initialAvailability);
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +35,7 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
             }
 
             setAvailability(nextAvailability);
+            router.refresh();
         } catch {
             setError("Koneksi terputus. Coba lagi.");
         } finally {
@@ -39,17 +43,31 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
         }
     }
 
+    const offered = availability === "AVAILABLE";
+    const locked = availability === "RESERVED";
+
     return (
-        <div className="mt-4">
-            <p className="text-sm text-muted-foreground">
-                Status: {availability === "AVAILABLE" ? "Tersedia" : availability === "RESERVED" ? "Dipesan" : "Tidak tersedia"}
-            </p>
-            {availability !== "RESERVED" && (
-                <button type="button" onClick={toggleAvailability} disabled={pending} className="mt-2 min-h-10 rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60">
-                    {pending ? "Memperbarui…" : availability === "AVAILABLE" ? "Tandai tidak tersedia" : "Tandai tersedia"}
+        <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-3">
+                <span className={`text-right text-sm font-medium ${locked ? "text-muted-foreground" : ""}`}>
+                    <span id={labelId}>Ditawarkan</span>
+                    <span aria-hidden="true" className={`block text-xs font-normal ${offered ? "text-primary" : "text-muted-foreground"}`}>
+                        {locked ? "Terkunci (dipesan)" : pending ? "Memperbarui…" : offered ? "Aktif" : "Nonaktif"}
+                    </span>
+                </span>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={offered}
+                    aria-labelledby={labelId}
+                    onClick={toggleAvailability}
+                    disabled={pending || locked}
+                    className={`relative h-6 w-12 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 ${offered ? "bg-primary" : "bg-[#d9ddd8]"}`}
+                >
+                    <span aria-hidden="true" className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-[left] ${offered ? "left-[26px]" : "left-0.5"}`} />
                 </button>
-            )}
-            {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
+            </div>
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
         </div>
     );
 }
