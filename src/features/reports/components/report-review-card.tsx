@@ -24,6 +24,7 @@ const statusLabels: Record<ReportStatus, string> = {
 
 export function ReportReviewCard({ report }: { report: Report }) {
     const [status, setStatus] = useState<ReportStatus>(report.status);
+    const [savedStatus, setSavedStatus] = useState<ReportStatus>(report.status);
     const [outcome, setOutcome] = useState(report.outcome ?? "");
     const [message, setMessage] = useState("");
     const [pending, setPending] = useState(false);
@@ -38,7 +39,9 @@ export function ReportReviewCard({ report }: { report: Report }) {
                 body: JSON.stringify({ status, outcome }),
             });
             const payload = await response.json() as { success?: boolean; error?: { message?: string } };
-            setMessage(response.ok && payload.success ? "Tinjauan disimpan." : payload.error?.message ?? "Perubahan belum dapat disimpan.");
+            const saved = response.ok && payload.success;
+            if (saved) setSavedStatus(status);
+            setMessage(saved ? "Tinjauan disimpan." : payload.error?.message ?? "Perubahan belum dapat disimpan.");
         } catch {
             setMessage("Perubahan belum dapat disimpan. Periksa koneksi lalu coba lagi.");
         } finally {
@@ -54,7 +57,7 @@ export function ReportReviewCard({ report }: { report: Report }) {
             </div>
             <p className="text-sm">Alasan: {report.reason}</p>
             {report.details && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{report.details}</p>}
-            <p className="text-xs text-muted-foreground">Pelapor: {report.reporter.displayName} · Status: {statusLabels[report.status]}</p>
+            <p className="text-xs text-muted-foreground">Pelapor: {report.reporter.displayName} · Status: {statusLabels[savedStatus]}</p>
             <label className="grid max-w-sm gap-1 text-sm font-medium">Status tinjauan
                 <select value={status} onChange={(event) => setStatus(event.target.value as ReportStatus)} className="min-h-10 rounded-lg border border-input bg-background px-3">
                     {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
