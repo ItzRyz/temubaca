@@ -318,3 +318,19 @@ export async function updateMembershipStatus(
 
     return membership ?? null;
 }
+
+/** Communities where the user has an ACTIVE membership, with only the fields shown on their own profile. */
+export async function listUserCommunities(userId: string, limit = 10) {
+    return db
+        .select({
+            id: communities.id,
+            name: communities.name,
+            status: communities.status,
+            role: communityMemberships.role,
+        })
+        .from(communityMemberships)
+        .innerJoin(communities, eq(communityMemberships.communityId, communities.id))
+        .where(and(eq(communityMemberships.userId, userId), eq(communityMemberships.status, "ACTIVE")))
+        .orderBy(desc(communityMemberships.createdAt))
+        .limit(Math.min(Math.max(limit, 1), 50));
+}
