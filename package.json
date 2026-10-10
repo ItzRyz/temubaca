@@ -6,30 +6,36 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "bun run typecheck && bun run lint && bun run test",
+    "db:seed": "bun scripts/seed-dummy.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8",
     "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.39.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "dotenv": "^18.0.5",
     "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.51.0",
     "next": "16.3.8",
-    "postgres": "^3.4.9",
+    "pg": "^8.23.1",
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.89.0",
-    "shadcn": "^4.21.1",
     "tw-animate-css": "^1.4.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.4.2",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
@@ -38,8 +44,13 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "pg-connection-string": "^2.14.1",
+    "shadcn": "^4.21.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "esbuild@~0.18.20": "0.25.12"
   },
   "packageManager": "bun@1.4.2",
   "ignoreScripts": [

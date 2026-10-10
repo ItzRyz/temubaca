@@ -1,18 +1,23 @@
+import "server-only";
+
 import { z } from "zod";
+import {
+    clientEnvironmentSchema,
+    httpsUrlSchema,
+    postgresConnectionUrlSchema,
+} from "@/lib/validation/schemas/environment.schema";
+import { getPostgresTlsQueryParameters } from "@/lib/db/connection";
 
 const serverSchema = z.object({
     NODE_ENV: z
         .enum(["development", "test", "production"])
         .default("development"),
 
-    DATABASE_URL: z
-        .string()
-        .min(1, "DATABASE_URL is required"),
+    DATABASE_URL: postgresConnectionUrlSchema,
 
-    DIRECT_URL: z
-        .string()
-        .min(1, "DIRECT_URL is required")
-        .optional(),
+    DATABASE_SSL_CA: z.string().trim().min(1).optional(),
+
+    DIRECT_URL: postgresConnectionUrlSchema.optional(),
 
     SUPABASE_SERVICE_ROLE_KEY: z
         .string()
@@ -39,25 +44,45 @@ const serverSchema = z.object({
         .string()
         .min(32, "INTERNAL_API_SECRET must be at least 32 characters")
         .optional(),
-});
 
-const clientSchema = z.object({
-    NEXT_PUBLIC_APP_URL: z.url(),
+    UPSTASH_REDIS_REST_URL: httpsUrlSchema.optional(),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+}).superRefine((values, context) => {
+    if (values.NODE_ENV !== "production") {
+        return;
+    }
 
-    NEXT_PUBLIC_SUPABASE_URL: z.url(),
+    const tlsQueryParameters = getPostgresTlsQueryParameters(values.DATABASE_URL);
+    if (tlsQueryParameters.length > 0) {
+        context.addIssue({
+            code: "custom",
+            path: ["DATABASE_URL"],
+            message: `Remove PostgreSQL TLS query options (${tlsQueryParameters.join(", ")}) from DATABASE_URL in production; TLS is configured and verified by the application.`,
+        });
+    }
 
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z
-        .string()
-        .min(
-            1,
-            "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required",
-        ),
+    if (!values.UPSTASH_REDIS_REST_URL) {
+        context.addIssue({
+            code: "custom",
+            path: ["UPSTASH_REDIS_REST_URL"],
+            message: "Required in production because API routes use rate limiting.",
+        });
+    }
+
+    if (!values.UPSTASH_REDIS_REST_TOKEN) {
+        context.addIssue({
+            code: "custom",
+            path: ["UPSTASH_REDIS_REST_TOKEN"],
+            message: "Required in production because API routes use rate limiting.",
+        });
+    }
 });
 
 const serverEnv = serverSchema.safeParse({
     NODE_ENV: process.env.NODE_ENV,
 
     DATABASE_URL: process.env.DATABASE_URL,
+    DATABASE_SSL_CA: process.env.DATABASE_SSL_CA,
     DIRECT_URL: process.env.DIRECT_URL,
 
     SUPABASE_SERVICE_ROLE_KEY:
@@ -77,9 +102,16 @@ const serverEnv = serverSchema.safeParse({
 
     INTERNAL_API_SECRET:
         process.env.INTERNAL_API_SECRET,
+
+    UPSTASH_REDIS_REST_URL:
+        process.env.UPSTASH_REDIS_REST_URL,
+
+    UPSTASH_REDIS_REST_TOKEN:
+        process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-const clientEnv = clientSchema.safeParse({
+const clientEnv = clientEnvironmentSchema.safeParse({
+    NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_APP_URL:
         process.env.NEXT_PUBLIC_APP_URL,
 

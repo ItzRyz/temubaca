@@ -1,16 +1,31 @@
-import { env } from "@/env";
 import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
+import { createDrizzlePostgresCredentials } from "./src/lib/db/drizzle-connection";
+
+const databaseUrl =
+    process.env.DIRECT_URL?.trim() ||
+    process.env.DATABASE_URL?.trim();
+
+if (!databaseUrl) {
+    throw new Error(
+        "Set DIRECT_URL (recommended for migrations) or DATABASE_URL before running Drizzle Kit.",
+    );
+}
+
+const dbCredentials = createDrizzlePostgresCredentials(
+    databaseUrl,
+    process.env.DATABASE_SSL_CA,
+    process.env.NODE_ENV === "production" ? "production" : "development",
+);
+
 export default defineConfig({
-    out: "./src/drizzle/migrations",
+    out: "./drizzle/migrations",
     schema: "./src/lib/db/schema.ts",
 
     dialect: "postgresql",
 
-    dbCredentials: {
-        url: env.DATABASE_URL,
-    },
+    dbCredentials,
 
     strict: true,
     extensionsFilters: ["postgis"],
