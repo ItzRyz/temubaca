@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "../client";
-import { bookmarks } from "../schema";
+import { bookmarks, books } from "../schema";
 
 export async function findBookmark(
     userId: string,
@@ -135,4 +135,29 @@ export async function toggleBookmark(
     return {
         bookmarked: true,
     } as const;
+}
+
+/** Saved books with public book fields and the number of AVAILABLE shared copies. */
+export async function listSavedBooks(userId: string, limit = 100) {
+    return db
+        .select({
+            bookmarkId: bookmarks.id,
+            savedAt: bookmarks.createdAt,
+            id: books.id,
+            title: books.title,
+            authors: books.authors,
+            publisher: books.publisher,
+            categories: books.categories,
+            coverUrl: books.coverUrl,
+            // Qualified names: bare column refs inside sql`` would bind to the subquery table.
+            availableCopies: sql<number>`(
+                select count(*)::int from "book_listings"
+                where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
+            )`,
+        })
+        .from(bookmarks)
+        .innerJoin(books, eq(bookmarks.bookId, books.id))
+        .where(eq(bookmarks.userId, userId))
+        .orderBy(desc(bookmarks.createdAt))
+        .limit(Math.min(Math.max(limit, 1), 100));
 }
