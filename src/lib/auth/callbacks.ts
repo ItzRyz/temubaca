@@ -10,17 +10,23 @@ export type CreateProfileInput = {
     displayName: string;
 };
 
+export function getProfileDisplayName(metadata: unknown): string {
+    if (
+        typeof metadata === "object" &&
+        metadata !== null &&
+        "display_name" in metadata &&
+        typeof metadata.display_name === "string" &&
+        metadata.display_name.trim().length > 0
+    ) {
+        return metadata.display_name.trim().slice(0, 100);
+    }
+
+    return "Pembaca";
+}
+
 export async function ensureUserProfile(
     input: CreateProfileInput,
 ) {
-    const existing = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.id, input.id),
-    });
-
-    if (existing) {
-        return existing;
-    }
-
     const [profile] = await db
         .insert(userProfiles)
         .values({
@@ -29,9 +35,22 @@ export async function ensureUserProfile(
             role: "MEMBER",
             preferences: {},
         })
+        .onConflictDoNothing({ target: userProfiles.id })
         .returning();
 
-    return profile;
+    if (profile) {
+        return profile;
+    }
+
+    const existing = await db.query.userProfiles.findFirst({
+        where: eq(userProfiles.id, input.id),
+    });
+
+    if (!existing) {
+        throw new Error("Unable to create or load the user profile.");
+    }
+
+    return existing;
 }
 
 export async function updateUserProfile(

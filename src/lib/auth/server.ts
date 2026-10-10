@@ -1,10 +1,8 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
-
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
+import { ForbiddenError, UnauthorizedError } from "@/lib/api/errors";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUserProfile, getProfileDisplayName } from "./callbacks";
 
 import type { UserProfile } from "./session";
 
@@ -20,22 +18,17 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
         return null;
     }
 
-    const profile = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.id, user.id),
+    return ensureUserProfile({
+        id: user.id,
+        displayName: getProfileDisplayName(user.user_metadata),
     });
-
-    if (!profile) {
-        return null;
-    }
-
-    return profile;
 }
 
 export async function requireUser(): Promise<UserProfile> {
     const user = await getCurrentUser();
 
     if (!user) {
-        throw new Error("Unauthorized");
+        throw new UnauthorizedError();
     }
 
     return user;
@@ -73,7 +66,7 @@ export async function requireRole(
     const user = await requireUser();
 
     if (user.role !== role) {
-        throw new Error("Forbidden");
+        throw new ForbiddenError();
     }
 
     return user;

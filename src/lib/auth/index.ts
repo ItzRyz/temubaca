@@ -19,6 +19,7 @@ export {
 
 export {
     ensureUserProfile,
+    getProfileDisplayName,
     updateUserProfile,
     deleteUserProfile,
 } from "./callbacks";

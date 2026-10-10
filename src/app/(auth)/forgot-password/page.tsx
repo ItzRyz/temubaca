@@ -1,9 +1,13 @@
-import { ForgotPasswordCard } from "@/components/auth/PasswordRecoveryCard";
+import { AuthLayout } from "@/features/auth/components/auth-layout";
+import { ForgotPasswordCard } from "@/features/auth/components/PasswordRecoveryCard";
 
 export default function ForgotPasswordPage() {
     return (
-        <main className="flex min-h-screen w-full items-center justify-center bg-primary-foreground p-6">
+        <AuthLayout
+            title="Akses Kembali Rak Bukumu"
+            description="Masukkan email terdaftar. Kami akan mengirimkan tautan untuk mengatur ulang kata sandimu."
+        >
             <ForgotPasswordCard />
-        </main>
+        </AuthLayout>
     );
 }

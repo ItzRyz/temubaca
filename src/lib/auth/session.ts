@@ -1,12 +1,10 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
-
-import { db } from "@/lib/db";
-import { userProfiles } from "@/lib/db/schema";
+import { userRoles, userProfiles } from "@/lib/db/schema";
 import { createClient } from "@/lib/supabase/server";
+import { ensureUserProfile, getProfileDisplayName } from "./callbacks";
 
-export type UserRole = "MEMBER" | "ADMIN";
+export type UserRole = (typeof userRoles)[number];
 
 export type UserProfile = typeof userProfiles.$inferSelect;
 
@@ -36,13 +34,10 @@ export async function getSession(): Promise<AuthSession | null> {
         return null;
     }
 
-    const profile = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.id, user.id),
+    const profile = await ensureUserProfile({
+        id: user.id,
+        displayName: getProfileDisplayName(user.user_metadata),
     });
-
-    if (!profile) {
-        return null;
-    }
 
     return {
         session: {

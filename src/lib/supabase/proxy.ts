@@ -30,20 +30,9 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  const { data } = await supabase.auth.getClaims()
-  const user = data?.claims
+  // Refresh Supabase claims/cookies here; public routes stay public.
+  // Protected pages and mutations must enforce authorization server-side.
+  await supabase.auth.getClaims()
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/forgot-password' &&
-    request.nextUrl.pathname !== '/verify-email' &&
-    request.nextUrl.pathname !== '/oauth/consent'
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth'
-    return NextResponse.redirect(url)
-  }
   return supabaseResponse
 }

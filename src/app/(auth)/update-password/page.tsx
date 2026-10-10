@@ -1,9 +1,13 @@
-import { UpdatePasswordCard } from "@/components/auth/PasswordRecoveryCard";
+import { AuthLayout } from "@/features/auth/components/auth-layout";
+import { UpdatePasswordCard } from "@/features/auth/components/PasswordRecoveryCard";
 
 export default function UpdatePasswordPage() {
     return (
-        <main className="flex min-h-screen w-full items-center justify-center bg-primary-foreground p-6">
+        <AuthLayout
+            title="Atur Ulang Kata Sandi"
+            description="Buat kata sandi baru yang kuat agar rak bukumu tetap aman."
+        >
             <UpdatePasswordCard />
-        </main>
+        </AuthLayout>
     );
 }

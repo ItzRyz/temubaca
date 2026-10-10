@@ -1,6 +1,7 @@
+import { MailCheck, MailWarning } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+
+import { AuthLayout, AuthPanel, authPrimaryButtonClass } from "@/features/auth/components/auth-layout";
 
 type VerifyEmailPageProps = {
     searchParams: Promise<{ error?: string }>;
@@ -8,24 +9,27 @@ type VerifyEmailPageProps = {
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
     const { error } = await searchParams;
+    const Icon = error ? MailWarning : MailCheck;
 
     return (
-        <main className="flex min-h-screen w-full items-center justify-center bg-primary-foreground p-6">
-            <Card className="w-full max-w-lg p-8 sm:p-10">
-                <CardContent className="flex flex-col items-center gap-5 p-0 text-center">
-                    <h1 className="text-2xl font-semibold text-foreground">
-                        {error ? "Tautan verifikasi tidak berlaku" : "Periksa email kamu"}
-                    </h1>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                        {error
-                            ? "Tautan mungkin sudah digunakan atau kedaluwarsa. Coba daftar kembali atau masuk jika akunmu sudah aktif."
-                            : "Kami sudah memproses pendaftaranmu. Buka email konfirmasi dari Supabase untuk mengaktifkan akun. Periksa juga folder spam."}
-                    </p>
-                    <Button asChild className="mt-2">
-                        <Link href="/auth">Kembali ke halaman masuk</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </main>
+        <AuthLayout
+            title="Satu Langkah Lagi"
+            description="Kami perlu memastikan email ini milikmu sebelum akun TemuBaca aktif."
+        >
+            <AuthPanel className="items-center text-center">
+                <span className={`flex size-10 items-center justify-center rounded-full ${error ? "bg-destructive/10 text-destructive" : "bg-[#e7efe8] text-primary"}`}>
+                    <Icon aria-hidden="true" className="size-4" />
+                </span>
+                <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">
+                    {error ? "Tautan verifikasi tidak berlaku" : "Periksa email kamu"}
+                </h2>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-[#6e7870]">
+                    {error
+                        ? "Tautan mungkin sudah digunakan atau kedaluwarsa. Coba daftar kembali atau masuk jika akunmu sudah aktif."
+                        : "Buka email konfirmasi yang kami kirim untuk mengaktifkan akun. Periksa juga folder spam."}
+                </p>
+                <Link href="/login" className={`${authPrimaryButtonClass} mt-6`}>Kembali ke halaman masuk</Link>
+            </AuthPanel>
+        </AuthLayout>
     );
 }

@@ -1,8 +1,9 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { env } from "@/env";
 import { createClient } from "@/lib/supabase/server";
 import { REMEMBER_ME_COOKIE } from "@/lib/supabase/session-cookies";
 import {
@@ -11,6 +12,10 @@ import {
     type SignInInput,
     type SignUpInput,
 } from "@/lib/validation/auth";
+import {
+    forgotPasswordSchema,
+    resetPasswordSchema,
+} from "@/lib/validation/schemas/auth.schema";
 
 type AuthActionResult<Field extends string> =
     | { success: true; redirectTo?: string }
@@ -20,33 +25,22 @@ type AuthActionResult<Field extends string> =
           message?: string;
       };
 
-function signUpErrorMessage(error: { code?: string; message: string }) {
-    const message = error.message.toLowerCase();
-
-    if (
-        error.code === "email_exists" ||
-        error.code === "user_already_exists" ||
-        message.includes("already registered")
-    ) {
-        return "Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.";
-    }
-    if (error.code === "over_email_send_rate_limit" || message.includes("rate limit")) {
+function signUpErrorMessage(error: { code?: string }) {
+    if (error.code === "over_email_send_rate_limit") {
         return "Terlalu banyak permintaan email. Tunggu sebentar lalu coba lagi.";
     }
-    if (error.code === "signup_disabled" || message.includes("signups not allowed")) {
-        return "Pendaftaran email sedang dinonaktifkan di konfigurasi Supabase.";
+    if (error.code === "signup_disabled") {
+        return "Pendaftaran belum tersedia saat ini.";
     }
-    if (message.includes("database error saving new user")) {
-        return "Supabase gagal menyimpan akun baru. Periksa trigger dan tabel profil di database.";
-    }
-    if (message.includes("email address is invalid")) {
+    if (error.code === "email_address_invalid") {
         return "Alamat email tidak dapat digunakan. Periksa kembali alamat emailmu.";
     }
-    if (error.code === "weak_password" || message.includes("password should")) {
+    if (error.code === "weak_password") {
         return "Kata sandi belum memenuhi persyaratan keamanan.";
     }
 
-    return error.message;
+    // Provider errors may contain account-existence or infrastructure details.
+    return "Pendaftaran belum dapat diproses. Periksa kembali data atau coba lagi nanti.";
 }
 
 export async function signUp(
@@ -64,10 +58,10 @@ export async function signUp(
 
     try {
         const supabase = await createClient();
-        const origin = (await headers()).get("origin");
-        const emailRedirectTo = origin
-            ? new URL("/auth/callback", origin).toString()
-            : undefined;
+        const emailRedirectTo = new URL(
+            "/auth/callback",
+            env.NEXT_PUBLIC_APP_URL,
+        ).toString();
 
         const { data: signUpData, error } = await supabase.auth.signUp({
             email: parsed.data.email.trim(),
@@ -115,7 +109,14 @@ export async function signIn(
             password: parsed.data.password,
         });
 
-        if (error) return { success: false, message: error.message };
+        if (error) {
+            return {
+                success: false,
+                message: (error.status ?? 0) >= 500
+                    ? "Masuk belum dapat diproses saat ini. Coba lagi nanti."
+                    : "Email atau kata sandi salah. Periksa lagi atau atur ulang kata sandi.",
+            };
+        }
 
         const cookieStore = await cookies();
         cookieStore.set(REMEMBER_ME_COOKIE, rememberMe ? "persistent" : "session", {
@@ -138,21 +139,22 @@ export async function signIn(
 export async function requestPasswordReset(
     email: string,
 ): Promise<AuthActionResult<"email">> {
-    const parsed = z.email().safeParse(email.trim());
+    const parsed = forgotPasswordSchema.safeParse({ email });
     if (!parsed.success) {
+        const errors = z.flattenError(parsed.error);
         return {
             success: false,
-            fieldErrors: { email: ["Masukkan alamat email yang valid."] },
+            fieldErrors: { email: errors.fieldErrors.email ?? ["Masukkan alamat email yang valid."] },
         };
     }
 
     try {
         const supabase = await createClient();
-        const origin = (await headers()).get("origin");
-        const redirectTo = origin
-            ? new URL("/auth/callback?next=/update-password", origin).toString()
-            : undefined;
-        const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
+        const redirectTo = new URL(
+            "/auth/callback?next=/update-password",
+            env.NEXT_PUBLIC_APP_URL,
+        ).toString();
+        const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
             redirectTo,
         });
 
@@ -176,17 +178,18 @@ export async function requestPasswordReset(
 export async function updatePassword(
     password: string,
 ): Promise<AuthActionResult<"password">> {
-    const parsed = z.string().min(8, "Kata sandi minimal 8 karakter.").safeParse(password);
+    const parsed = resetPasswordSchema.safeParse({ password });
     if (!parsed.success) {
+        const errors = z.flattenError(parsed.error);
         return {
             success: false,
-            fieldErrors: { password: [parsed.error.issues[0]?.message ?? "Kata sandi tidak valid."] },
+            fieldErrors: { password: errors.fieldErrors.password ?? ["Kata sandi tidak valid."] },
         };
     }
 
     try {
         const supabase = await createClient();
-        const { error } = await supabase.auth.updateUser({ password: parsed.data });
+        const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
         if (error) {
             return {
                 success: false,
@@ -207,5 +210,5 @@ export async function signOut() {
     await supabase.auth.signOut();
     const cookieStore = await cookies();
     cookieStore.delete(REMEMBER_ME_COOKIE);
-    redirect("/auth");
+    redirect("/login");
 }
