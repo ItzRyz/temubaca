@@ -13,7 +13,9 @@ const decisions: { value: Decision; label: string; description: string }[] = [
 ];
 
 /** Applies one decision to every open report about the same item through the batch endpoint. */
-export function ReportDecisionPanel({ reportIds, initialOutcome }: { reportIds: string[]; initialOutcome: string }) {
+const viewForDecision: Record<Decision, string> = { REVIEWING: "open", REJECTED: "rejected", RESOLVED: "resolved" };
+
+export function ReportDecisionPanel({ reportIds, initialOutcome, itemKey }: { reportIds: string[]; initialOutcome: string; itemKey: string }) {
     const router = useRouter();
     const noteId = useId();
     const [decision, setDecision] = useState<Decision | null>(null);
@@ -46,7 +48,8 @@ export function ReportDecisionPanel({ reportIds, initialOutcome }: { reportIds: 
                 return;
             }
             setMessage({ tone: "ok", text: `Keputusan diterapkan ke ${payload.data?.updated ?? reportIds.length} laporan.` });
-            router.refresh();
+            // Closed reports move to another status filter; follow them so the result stays visible.
+            router.replace(`/moderation/reports?view=${viewForDecision[decision]}&item=${encodeURIComponent(itemKey)}`, { scroll: false });
         } catch {
             setMessage({ tone: "error", text: "Keputusan belum dapat disimpan. Periksa koneksi lalu coba lagi." });
         } finally {
