@@ -51,7 +51,7 @@ export function AuthLayout({ eyebrow, title, description, showBenefits = false, 
                                 )}
                                 <div className="flex flex-col gap-3">
                                     <h1 className="font-heading text-[32px] leading-[1.2] font-semibold tracking-[-0.8px] text-[#1f2924] sm:text-[38px]">{title}</h1>
-                                    <p className="text-base leading-[26px] text-[#6e7870]">{description}</p>
+                                    <p className="text-base leading-[26px] text-muted-foreground">{description}</p>
                                 </div>
                                 {showBenefits && (
                                     <ul aria-label="Manfaat akun TemuBaca" className="flex w-full list-none flex-col gap-3.5 p-0 pt-2">
@@ -62,7 +62,7 @@ export function AuthLayout({ eyebrow, title, description, showBenefits = false, 
                                                 </span>
                                                 <span>
                                                     <span className="block text-sm leading-5 font-semibold text-[#1f2924]">{benefitTitle}</span>
-                                                    <span className="block pt-0.5 text-[13px] leading-[19px] text-[#6e7870]">{benefitDescription}</span>
+                                                    <span className="block pt-0.5 text-[13px] leading-[19px] text-muted-foreground">{benefitDescription}</span>
                                                 </span>
                                             </li>
                                         ))}
@@ -75,7 +75,7 @@ export function AuthLayout({ eyebrow, title, description, showBenefits = false, 
                 </div>
             </main>
             <footer className="border-t border-border bg-[#fcfbf7] py-6">
-                <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-6 text-xs leading-4 text-[#6e7870] sm:flex-row sm:items-center sm:justify-between">
+                <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-6 text-xs leading-4 text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                     <p>© {new Date().getFullYear()} TemuBaca. Komunitas Berbagi &amp; Pinjam Buku Indonesia.</p>
                     <nav aria-label="Tautan bantuan" className="flex gap-6">
                         <Link href="/about" className="hover:text-foreground">Tentang TemuBaca</Link>

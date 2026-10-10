@@ -8,7 +8,7 @@ export function SectionHeader({ id, title, description }: {
     return (
         <div>
             <h2 id={id} className="font-heading text-[26px] leading-10 font-bold text-[#1f2924] sm:text-[32px]">{title}</h2>
-            <p className="mt-1 text-sm leading-[22px] text-[#6e7870]">{description}</p>
+            <p className="mt-1 text-sm leading-[22px] text-muted-foreground">{description}</p>
         </div>
     );
 }

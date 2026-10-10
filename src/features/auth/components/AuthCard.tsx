@@ -166,13 +166,13 @@ function SignInForm() {
             </div>
             <div className="flex items-center gap-2.5 pt-5">
                 <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
-                <label htmlFor="remember-me" className="cursor-pointer text-sm text-[#6e7870]">Ingat saya</label>
+                <label htmlFor="remember-me" className="cursor-pointer text-sm text-muted-foreground">Ingat saya</label>
             </div>
             {serverError && <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{serverError}</p>}
             <button type="submit" disabled={isPending} className={cn(authPrimaryButtonClass, "mt-4")}>
                 {isPending ? "Memproses..." : "Masuk"}
             </button>
-            <p className="pt-6 text-center text-xs leading-[18px] text-[#6e7870]">
+            <p className="pt-6 text-center text-xs leading-[18px] text-muted-foreground">
                 Dengan masuk, kamu menyetujui Ketentuan Layanan dan Kebijakan Privasi TemuBaca.
             </p>
             <SwitchRow question="Belum punya akun?" href="/register" label="Daftar" />
@@ -240,7 +240,7 @@ function SignUpForm() {
             />
             <div className="flex items-start gap-2.5">
                 <Checkbox id="sign-up-agreement" className="mt-0.5" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
-                <label htmlFor="sign-up-agreement" className="cursor-pointer text-xs leading-[18px] text-[#6e7870]">
+                <label htmlFor="sign-up-agreement" className="cursor-pointer text-xs leading-[18px] text-muted-foreground">
                     Saya berjanji merawat buku pinjaman, mengembalikannya tepat waktu, dan saling menghargai sesama warga TemuBaca.
                 </label>
             </div>

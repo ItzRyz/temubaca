@@ -7,7 +7,7 @@ export function HomeHero() {
                 <h1 className="max-w-[802px] pt-2 font-heading text-[32px] leading-[1.25] font-normal tracking-[-1.05px] text-[#1f2924] sm:text-[42px]">
                     Temukan Buku Favorit &amp; Kawan Baca di Sekitarmu.
                 </h1>
-                <p className="mt-2 max-w-[672px] pb-6 text-base leading-[26px] text-[#6e7870]">
+                <p className="mt-2 max-w-[672px] pb-6 text-base leading-[26px] text-muted-foreground">
                     Jelajahi rak buku terdekat, buat titik temu di kedai kopi atau taman kota, dan rasakan kembali kehangatan bertukar cerita secara langsung.
                 </p>
                 <form action="/books" method="get" role="search" className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 sm:flex-row">

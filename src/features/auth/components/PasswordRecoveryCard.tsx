@@ -15,7 +15,7 @@ function PanelHeader({ title, description }: { title: string; description: strin
                 <KeyRound aria-hidden="true" className="size-4" />
             </span>
             <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">{title}</h2>
-            <p className="mt-1 text-xs leading-[18px] text-[#6e7870]">{description}</p>
+            <p className="mt-1 text-xs leading-[18px] text-muted-foreground">{description}</p>
         </header>
     );
 }

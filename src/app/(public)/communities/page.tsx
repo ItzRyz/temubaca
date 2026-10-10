@@ -62,7 +62,7 @@ export default async function CommunitiesPage({ searchParams }: CommunitiesPageP
                     <h1 className="max-w-[720px] font-heading text-[32px] leading-[1.25] font-normal tracking-[-1.05px] text-[#1f2924] sm:text-[42px]">
                         Temukan Lingkaran Baca &amp; Acara Literasi di Sekitarmu.
                     </h1>
-                    <p className="mt-3 max-w-[600px] text-base leading-[26px] text-[#6e7870]">
+                    <p className="mt-3 max-w-[600px] text-base leading-[26px] text-muted-foreground">
                         Jelajahi komunitas baca terverifikasi dan agenda diskusi buku di ruang publik yang aman dan ramah.
                     </p>
                     <form action="/communities" method="get" role="search" className="mt-6 flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 sm:flex-row">

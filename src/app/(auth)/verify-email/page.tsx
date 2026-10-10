@@ -23,7 +23,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
                 <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">
                     {error ? "Tautan verifikasi tidak berlaku" : "Periksa email kamu"}
                 </h2>
-                <p className="mt-2 max-w-sm text-sm leading-6 text-[#6e7870]">
+                <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                     {error
                         ? "Tautan mungkin sudah digunakan atau kedaluwarsa. Coba daftar kembali atau masuk jika akunmu sudah aktif."
                         : "Buka email konfirmasi yang kami kirim untuk mengaktifkan akun. Periksa juga folder spam."}
