@@ -14,6 +14,7 @@ import {
     communities,
     communityMemberships,
     events,
+    userProfiles,
 } from "../schema";
 
 /** Public profile projection for a VERIFIED community; never loads members, owner, or private fields. */
@@ -333,4 +334,31 @@ export async function listUserCommunities(userId: string, limit = 10) {
         .where(and(eq(communityMemberships.userId, userId), eq(communityMemberships.status, "ACTIVE")))
         .orderBy(desc(communityMemberships.createdAt))
         .limit(Math.min(Math.max(limit, 1), 50));
+}
+
+/** Admin-only queue of community submissions by status, with the owner's display name. */
+export async function listCommunitiesForReview(status: (typeof communities.$inferSelect)["status"], limit = 50) {
+    return db
+        .select({
+            id: communities.id,
+            name: communities.name,
+            description: communities.description,
+            publicLocation: communities.publicLocation,
+            status: communities.status,
+            createdAt: communities.createdAt,
+            ownerName: userProfiles.displayName,
+        })
+        .from(communities)
+        .innerJoin(userProfiles, eq(communities.ownerId, userProfiles.id))
+        .where(eq(communities.status, status))
+        .orderBy(desc(communities.createdAt))
+        .limit(Math.min(Math.max(limit, 1), 100));
+}
+
+export async function countCommunitiesByStatus(status: (typeof communities.$inferSelect)["status"]) {
+    const [result] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(communities)
+        .where(eq(communities.status, status));
+    return result?.total ?? 0;
 }
