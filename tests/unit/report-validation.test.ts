@@ -4,6 +4,7 @@ import {
     createReportSchema,
     reportIdParamSchema,
     reportListQuerySchema,
+    updateReportBatchSchema,
     updateReportSchema,
 } from "@/lib/validation/schemas/report.schema";
 
@@ -34,5 +35,20 @@ describe("report validation", () => {
         expect(reportListQuerySchema.safeParse({ status: "UNKNOWN" }).success).toBe(false);
         expect(reportIdParamSchema.safeParse({ reportId: "7f441928-4950-498c-8418-3c2197640227" }).success).toBe(true);
         expect(updateReportSchema.safeParse({ status: "RESOLVED", outcome: "Ditinjau" }).success).toBe(true);
+    });
+
+    test("batch review accepts unique report IDs with a decision", () => {
+        const id = "7f441928-4950-498c-8418-3c2197640227";
+        const parsed = updateReportBatchSchema.parse({ reportIds: [id], status: "REJECTED", outcome: "  Sesuai aturan  " });
+        expect(parsed.outcome).toBe("Sesuai aturan");
+    });
+
+    test("batch review rejects empty, duplicate, oversized, or unknown input", () => {
+        const id = "7f441928-4950-498c-8418-3c2197640227";
+        expect(updateReportBatchSchema.safeParse({ reportIds: [], status: "REJECTED" }).success).toBe(false);
+        expect(updateReportBatchSchema.safeParse({ reportIds: [id, id], status: "REJECTED" }).success).toBe(false);
+        expect(updateReportBatchSchema.safeParse({ reportIds: Array.from({ length: 51 }, () => crypto.randomUUID()), status: "REJECTED" }).success).toBe(false);
+        expect(updateReportBatchSchema.safeParse({ reportIds: [id], status: "REJECTED", hide: true }).success).toBe(false);
+        expect(updateReportBatchSchema.safeParse({ reportIds: ["not-a-uuid"], status: "REJECTED" }).success).toBe(false);
     });
 });

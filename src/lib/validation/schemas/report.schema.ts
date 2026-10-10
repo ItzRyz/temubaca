@@ -58,6 +58,18 @@ export const updateReportSchema =
         })
         .strict();
 
+export const updateReportBatchSchema =
+    updateReportSchema
+        .extend({
+            reportIds:
+                z
+                    .array(z.uuid())
+                    .min(1)
+                    .max(50)
+                    .refine((ids) => new Set(ids).size === ids.length, "Duplicate report IDs."),
+        })
+        .strict();
+
 export const reportListQuerySchema =
     paginationSchema
         .extend({
