@@ -1,8 +1,10 @@
 import "server-only";
 
 import {
+    and,
     desc,
     eq,
+    inArray,
 } from "drizzle-orm";
 
 import { db } from "../client";
@@ -194,9 +196,14 @@ export async function listUserBorrowings(
             },
         },
 
-        where: eq(
-            borrowings.status,
-            "ACTIVE",
+        where: and(
+            eq(borrowings.status, "ACTIVE"),
+            inArray(
+                borrowings.requestId,
+                db.select({ id: borrowRequests.id })
+                    .from(borrowRequests)
+                    .where(eq(borrowRequests.requesterId, userId)),
+            ),
         ),
 
         orderBy: [

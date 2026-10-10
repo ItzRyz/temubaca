@@ -1,34 +1,39 @@
 import "server-only";
 
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
 import { databaseConfig } from "./config";
 import * as schema from "./schema";
 
 const globalForDatabase = globalThis as unknown as {
-    postgresClient?: ReturnType<typeof postgres>;
+    postgresPool?: Pool;
     db?: ReturnType<typeof drizzle<typeof schema>>;
 };
 
-const client =
-    globalForDatabase.postgresClient ??
-    postgres(databaseConfig.url, {
+const pool =
+    globalForDatabase.postgresPool ??
+    new Pool({
+        connectionString: databaseConfig.url,
         max: databaseConfig.maxConnections,
-        connect_timeout: Math.floor(
-            databaseConfig.connectionTimeout / 1000,
-        ),
-        idle_timeout: databaseConfig.idleTimeout,
-        prepare: databaseConfig.prepare,
+        connectionTimeoutMillis: databaseConfig.connectionTimeout,
+        idleTimeoutMillis: databaseConfig.idleTimeout * 1000,
+        ssl: databaseConfig.ssl,
     });
+
+if (!globalForDatabase.postgresPool) {
+    pool.on("error", (error: Error) => {
+        console.error("[DATABASE_POOL_ERROR]", {
+            errorName: error.name,
+        });
+    });
+}
 
 export const db =
     globalForDatabase.db ??
-    drizzle(client, {
-        schema,
-    });
+    drizzle({ client: pool, schema });
 
 if (process.env.NODE_ENV !== "production") {
-    globalForDatabase.postgresClient = client;
+    globalForDatabase.postgresPool = pool;
     globalForDatabase.db = db;
 }

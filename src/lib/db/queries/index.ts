@@ -2,4 +2,8 @@ export * from "./users";
 export * from "./books";
 export * from "./bookmarks";
 export * from "./communities";
+export * from "./events";
+export * from "./merchandise";
 export * from "./borrowing";
+export * from "./interests";
+export * from "./reports";

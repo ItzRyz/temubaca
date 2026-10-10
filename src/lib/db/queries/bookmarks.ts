@@ -4,6 +4,7 @@ import {
     and,
     desc,
     eq,
+    sql,
 } from "drizzle-orm";
 
 import { db } from "../client";
@@ -56,6 +57,14 @@ export async function listUserBookmarks(
 
         offset: Math.max(offset, 0),
     });
+}
+
+export async function countUserBookmarks(userId: string) {
+    const [result] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(bookmarks)
+        .where(eq(bookmarks.userId, userId));
+    return result?.total ?? 0;
 }
 
 export async function createBookmark(

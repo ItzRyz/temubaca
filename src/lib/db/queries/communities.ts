@@ -5,6 +5,7 @@ import {
     desc,
     eq,
     ilike,
+    sql,
 } from "drizzle-orm";
 
 import { db } from "../client";
@@ -12,7 +13,29 @@ import { db } from "../client";
 import {
     communities,
     communityMemberships,
+    events,
 } from "../schema";
+
+/** Public profile projection for a VERIFIED community; never loads members, owner, or private fields. */
+export async function findPublicCommunityProfile(communityId: string) {
+    const [community] = await db
+        .select({
+            id: communities.id,
+            name: communities.name,
+            description: communities.description,
+            publicLocation: communities.publicLocation,
+            createdAt: communities.createdAt,
+            activeMemberCount: sql<number>`(
+                select count(*)::int from ${communityMemberships}
+                where "community_memberships"."communityId" = "communities"."id"
+                and "community_memberships"."status" = 'ACTIVE'
+            )`,
+        })
+        .from(communities)
+        .where(and(eq(communities.id, communityId), eq(communities.status, "VERIFIED")))
+        .limit(1);
+    return community ?? null;
+}
 
 export async function findCommunityById(
     communityId: string,
@@ -54,10 +77,29 @@ export async function listCommunities(
         offset?: number;
     },
 ) {
-    const query = options?.query?.trim();
+    const rawQuery = options?.query?.trim();
+    const query = rawQuery?.replace(/[\\%_]/g, "\\$&");
 
     return db
-        .select()
+        .select({
+            id: communities.id,
+            name: communities.name,
+            description: communities.description,
+            publicLocation: communities.publicLocation,
+            status: communities.status,
+            createdAt: communities.createdAt,
+            activeMemberCount: sql<number>`(
+                select count(*)::int from ${communityMemberships}
+                where "community_memberships"."communityId" = "communities"."id"
+                and "community_memberships"."status" = 'ACTIVE'
+            )`,
+            upcomingEventCount: sql<number>`(
+                select count(*)::int from ${events}
+                where "events"."communityId" = "communities"."id"
+                and "events"."publicationStatus" = 'PUBLISHED'
+                and "events"."startsAt" >= now()
+            )`,
+        })
         .from(communities)
         .where(
             and(
@@ -84,11 +126,20 @@ export async function listCommunities(
             ),
         )
         .offset(
-            Math.max(
-                options?.offset ?? 0,
-                0,
-            ),
+            Math.max(options?.offset ?? 0, 0),
         );
+}
+
+export async function countPublicCommunities(query?: string) {
+    const normalized = query?.trim().replace(/[\\%_]/g, "\\$&");
+    const [result] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(communities)
+        .where(and(
+            eq(communities.status, "VERIFIED"),
+            normalized ? ilike(communities.name, `%${normalized}%`) : undefined,
+        ));
+    return result?.total ?? 0;
 }
 
 export async function listOwnedCommunities(

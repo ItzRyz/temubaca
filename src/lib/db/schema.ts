@@ -16,16 +16,19 @@ import {
     check,
     unique,
     index,
+    type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 import { relations } from "drizzle-orm";
 
 
-const enumText = (values: readonly string[]) => text({ enum: [...values] as [string, ...string[]] });
-const enumCheck = (column: any, values: readonly string[]) => {
-    const literals = values.map(value => `'${value.replaceAll("'", "''")}'`).join(', ');
-    return check(`${column.name}_enum_check`, sql`${column} in (${sql.raw(literals)})`);
-};
+const enumText = <T extends readonly [string, ...string[]]>(values: T) =>
+    text({ enum: [...values] as [T[number], ...T[number][]] });
+const enumCheck = (column: AnyPgColumn, values: readonly string[]) =>
+    check(
+        `${column.name}_enum_check`,
+        sql`${column} in (${sql.join(values.map(value => sql`${value}`), sql`, `)})`,
+    );
 const createdAt = () => timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow();
 const updatedAt = () => timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow();
 const nowDate = () => timestamp({ withTimezone: true, mode: 'date' });
