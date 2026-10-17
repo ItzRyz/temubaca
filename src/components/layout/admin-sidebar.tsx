@@ -6,17 +6,23 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-type NavItem = { href: string | null; label: string; icon: LucideIcon; badge?: number };
+type NavItem = { href: string | null; label: string; icon: LucideIcon; badge?: number; badgeDetail?: string };
 
 function initialsOf(name: string) {
     return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "TB";
 }
 
 /** Admin portal navigation (Figma "Peninjauan" 143:807). Items without a page yet are shown as unavailable. */
-export function AdminSidebar({ displayName, pendingCount }: { displayName: string; pendingCount: number }) {
+export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number } }) {
     const pathname = usePathname();
     const items: NavItem[] = [
-        { href: "/moderation/reports", label: "Peninjauan", icon: CircleCheck, badge: pendingCount },
+        {
+            href: "/moderation/reports",
+            label: "Peninjauan",
+            icon: CircleCheck,
+            badge: pending.reports + pending.communities,
+            badgeDetail: `${pending.reports} laporan dan ${pending.communities} pengajuan komunitas menunggu`,
+        },
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: "/admin/books", label: "Data Buku", icon: BookOpen },
         { href: "/admin/users", label: "Data Pengguna", icon: UserRound },
@@ -29,7 +35,7 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
             <nav aria-label="Portal administrator" className="min-w-0">
                 <p className="mb-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Portal Administrator</p>
                 <ul className="flex max-w-full list-none gap-1 overflow-x-auto p-0 [scrollbar-width:none] lg:flex-col">
-                    {items.map(({ href, label, icon: Icon, badge }) => (
+                    {items.map(({ href, label, icon: Icon, badge, badgeDetail }) => (
                         <li key={label} className="shrink-0">
                             {href ? (
                                 <Link
@@ -43,8 +49,9 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
                                     <Icon aria-hidden="true" className="size-4" />
                                     <span className="flex-1">{label}</span>
                                     {badge !== undefined && badge > 0 && (
-                                        <span className="rounded-full bg-[#c9ecd6] px-2 text-xs text-primary">
-                                            {badge}<span className="sr-only"> menunggu</span>
+                                        <span title={badgeDetail} className="rounded-full bg-[#c9ecd6] px-2 text-xs text-primary">
+                                            <span aria-hidden="true">{badge}</span>
+                                            <span className="sr-only">{badgeDetail ?? `${badge} menunggu`}</span>
                                         </span>
                                     )}
                                 </Link>

@@ -18,7 +18,7 @@ export default async function ManagementLayout({ children }: LayoutProps<"/">) {
 
     return (
         <div className="flex min-h-screen flex-col bg-background lg:flex-row">
-            <AdminSidebar displayName={user.displayName} pendingCount={pendingReports + reviewingReports + pendingCommunities} />
+            <AdminSidebar displayName={user.displayName} pending={{ reports: pendingReports + reviewingReports, communities: pendingCommunities }} />
             <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
