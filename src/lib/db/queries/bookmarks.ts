@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "../client";
-import { bookmarks, books } from "../schema";
+import { bookmarks, books, userInterests } from "../schema";
 
 export async function findBookmark(
     userId: string,
@@ -162,4 +162,13 @@ export async function listSavedBooks(userId: string, limit = 100) {
         .where(eq(bookmarks.userId, userId))
         .orderBy(desc(bookmarks.createdAt))
         .limit(Math.min(Math.max(limit, 1), 100));
+}
+
+/** Clears every bookmark and interest of one user in a single transaction; the account and listings stay. */
+export async function clearBookmarksAndInterests(userId: string) {
+    return db.transaction(async (tx) => {
+        const removedBookmarks = await tx.delete(bookmarks).where(eq(bookmarks.userId, userId)).returning({ id: bookmarks.id });
+        const removedInterests = await tx.delete(userInterests).where(eq(userInterests.userId, userId)).returning({ id: userInterests.id });
+        return { bookmarks: removedBookmarks.length, interests: removedInterests.length };
+    });
 }

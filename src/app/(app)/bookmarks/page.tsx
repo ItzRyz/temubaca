@@ -9,6 +9,7 @@ import { listBookFacets } from "@/lib/db/queries/books";
 import { listUserInterests } from "@/lib/db/queries/interests";
 import { getBookRecommendations } from "@/features/recommendations/queries";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
+import { ClearDataDialog } from "@/features/bookmarks/components/clear-data-dialog";
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { cn } from "@/lib/utils";
 
@@ -259,9 +260,10 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                     <h2 id="data-title" className="font-heading text-xl font-semibold">Kendali Data Saya</h2>
                     <ul className="mt-4 flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-foreground/85">
                         <li>Bookmark dan minat hanya terlihat olehmu dan dipakai untuk rekomendasi dasar di TemuBaca.</li>
-                        <li>Hapus bookmark lewat tombol di tab Buku Disimpan, dan hapus minat lewat tab Minat &amp; Preferensi.</li>
+                        <li>Hapus satu bookmark lewat tab Buku Disimpan dan satu minat lewat tab Minat &amp; Preferensi, atau hapus semuanya sekaligus di bawah ini.</li>
                         <li>Penghapusan akun dan pengaturan retensi data belum tersedia; kebijakannya masih menunggu keputusan DEC-11.</li>
                     </ul>
+                    <ClearDataDialog bookmarkCount={saved.length} interestCount={interests.length} />
                 </section>
             )}
 
