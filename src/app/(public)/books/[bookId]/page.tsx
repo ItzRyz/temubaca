@@ -25,9 +25,9 @@ type BookPageProps = {
 
 const conditionLabels: Record<(typeof bookConditionValues)[number], string> = {
     NEW: "Baru",
-    LIKE_NEW: "Seperti baru",
+    LIKE_NEW: "Sangat baik",
     GOOD: "Baik",
-    FAIR: "Cukup baik",
+    FAIR: "Layak baca",
     POOR: "Perlu perhatian",
 };
 

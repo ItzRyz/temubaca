@@ -27,7 +27,7 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 type Provider = (typeof bookProviderValues)[number];
 
 const providerLabels: Record<Provider, string> = { OPEN_LIBRARY: "Open Library", GOOGLE_BOOKS: "Google Books", MANUAL: "Manual", OTHER: "Lainnya" };
-const conditionLabels: Record<string, string> = { NEW: "Baru", LIKE_NEW: "Seperti baru", GOOD: "Baik", FAIR: "Cukup baik", POOR: "Perlu perhatian" };
+const conditionLabels: Record<string, string> = { NEW: "Baru", LIKE_NEW: "Sangat baik", GOOD: "Baik", FAIR: "Layak baca", POOR: "Perlu perhatian" };
 
 const listingStatusUi: Record<ListingAdminStatus, { label: string; icon: LucideIcon; className: string }> = {
     AVAILABLE: { label: "Tersedia", icon: CircleCheck, className: "bg-[#d6efdf] text-primary" },

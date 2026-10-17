@@ -306,6 +306,7 @@ export async function listUserBookListings(userId: string) {
                     authors: true,
                     categories: true,
                     publishedAt: true,
+                    publisher: true,
                     coverUrl: true,
                 },
             },

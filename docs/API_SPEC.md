@@ -22,6 +22,7 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `PATCH` | `/api/book-listings/[listingId]` | Pemilik listing | Mengubah kondisi, ketersediaan, lokasi publik, atau aturan |
 | `DELETE` | `/api/book-listings/[listingId]` | Pemilik listing | Menghapus listing permanen; `409` bila `RESERVED` atau punya riwayat permintaan pinjam |
 | `GET` | `/api/books/external?q=` | Publik | Mencari Open Library/Google Books sesuai urutan di Pengaturan (min. 2 karakter); hasil di-cache 10 menit, ditandai `localBookId` bila sudah ada di katalog; 30 per menit per IP |
+| `POST` | `/api/books/manual` | Wajib login | `{ title, author, category, publishedAt?, publisher?, isbn? }`; membuat buku manual (`201`) atau mengembalikan buku yang sudah ada dengan ISBN atau judul + penulis pertama yang sama (`200`); 5 per menit per akun |
 | `POST` | `/api/books/import` | Wajib login | `{ provider, providerId }`; mengambil ulang data dari provider lalu menambahkannya ke katalog (`201`), atau mengembalikan buku yang sudah ada dengan provider id/ISBN sama (`200`); 10 per menit per akun |
 | `POST` | `/api/reports` | Wajib login | Membuat laporan untuk buku, listing, komunitas, acara, merchandise, atau akun yang ada; 5 kiriman per menit per akun |
 | `GET` | `/api/admin/reports?page=&limit=&status=&targetType=` | Admin | Daftar laporan dengan pagination; detail pelapor hanya ditampilkan pada konsol admin |

@@ -205,3 +205,21 @@ export const externalBookSearchQuerySchema =
             q: z.string().trim().min(2).max(200),
         })
         .strict();
+
+export const manualBookSchema =
+    z
+        .object({
+            title: z.string().trim().min(1, { error: "Judul wajib diisi." }).max(255),
+
+            author: z.string().trim().min(2, { error: "Penulis wajib diisi." }).max(255),
+
+            publishedAt:
+                z.string().trim().regex(/^\d{4}$/, { error: "Tahun terbit 4 digit, mis. 2015." }).optional(),
+
+            publisher: z.string().trim().max(255).optional(),
+
+            isbn: isbnSchema.optional(),
+
+            category: z.string().trim().min(2, { error: "Genre wajib dipilih." }).max(100),
+        })
+        .strict();

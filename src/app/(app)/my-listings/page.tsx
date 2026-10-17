@@ -1,8 +1,9 @@
-import { BookOpen, EyeOff, Library, Lock, MapPin, Plus, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeftRight, BookOpen, ChevronLeft, ChevronRight, EyeOff, HandHeart, Lock, MapPin, Search, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AddBookDialog } from "@/features/book-listings/components/add-book-dialog";
 import { BookListingAvailability } from "@/features/book-listings/components/book-listing-availability";
 import { BookListingDelete } from "@/features/book-listings/components/book-listing-delete";
 import { BookListingEditor } from "@/features/book-listings/components/book-listing-editor";
@@ -18,25 +19,30 @@ type MyListingsPageProps = {
 
 const conditionLabels: Record<string, string> = {
     NEW: "Baru",
-    LIKE_NEW: "Seperti baru",
+    LIKE_NEW: "Sangat baik",
     GOOD: "Baik",
-    FAIR: "Cukup baik",
+    FAIR: "Layak baca",
     POOR: "Perlu perhatian",
 };
 
 const statusBadge = {
     AVAILABLE: { label: "Tersedia", note: "Siap dipinjam kawan", className: "bg-[#c9ecd6] text-primary" },
     RESERVED: { label: "Dipesan", note: "Sedang dipesan peminjam", className: "bg-[#fbe7c6] text-[#7a4b00]" },
-    UNAVAILABLE: { label: "Tidak Ditawarkan", note: "Tidak muncul di halaman buku publik", className: "bg-[#f1f0ea] text-foreground/80" },
-    HIDDEN: { label: "Disembunyikan Admin", note: "Tidak muncul di halaman buku publik", className: "bg-destructive/10 text-destructive" },
+    UNAVAILABLE: { label: "Tidak Ditawarkan", note: "Disimpan sebagai arsip bacaan pribadi", className: "bg-[#f1f0ea] text-foreground/80" },
+    HIDDEN: { label: "Disembunyikan Moderator", note: "Tidak muncul di halaman buku publik", className: "bg-destructive/10 text-destructive" },
 } as const;
 
 const filters = [
     { value: "all", label: "Semua" },
     { value: "AVAILABLE", label: "Tersedia" },
+    { value: "RESERVED", label: "Dipesan" },
     { value: "UNAVAILABLE", label: "Tidak Ditawarkan" },
+    { value: "HIDDEN", label: "Disembunyikan" },
 ] as const;
 type Filter = (typeof filters)[number]["value"];
+const sorts = { newest: "Terbaru", title: "Judul A–Z" } as const;
+type Sort = keyof typeof sorts;
+const PAGE_SIZE = 10;
 
 function single(value: string | string[] | undefined) {
     return typeof value === "string" ? value : undefined;
@@ -50,32 +56,44 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     const filter: Filter = filters.some((item) => item.value === params.filter) ? (params.filter as Filter) : "all";
     const query = (single(params.q) ?? "").trim().slice(0, 100);
     const needle = query.toLocaleLowerCase("id-ID");
+    const sort: Sort = single(params.sort) === "title" ? "title" : "newest";
+    const requestedPage = Number.parseInt(single(params.page) ?? "1", 10);
 
     const listings = await listUserBookListings(user.id);
-    const counts = {
+    const statusOf = (listing: (typeof listings)[number]) => (listing.hiddenAt ? "HIDDEN" : listing.availability);
+    const counts: Record<Filter, number> = {
         all: listings.length,
-        AVAILABLE: listings.filter((listing) => listing.availability === "AVAILABLE").length,
-        RESERVED: listings.filter((listing) => listing.availability === "RESERVED").length,
-        UNAVAILABLE: listings.filter((listing) => listing.availability === "UNAVAILABLE").length,
+        AVAILABLE: listings.filter((listing) => statusOf(listing) === "AVAILABLE").length,
+        RESERVED: listings.filter((listing) => statusOf(listing) === "RESERVED").length,
+        UNAVAILABLE: listings.filter((listing) => statusOf(listing) === "UNAVAILABLE").length,
+        HIDDEN: listings.filter((listing) => statusOf(listing) === "HIDDEN").length,
     };
-    const visible = listings.filter((listing) =>
-        (filter === "all" || listing.availability === filter) &&
-        (!needle || listing.book.title.toLocaleLowerCase("id-ID").includes(needle) || listing.book.authors.some((author) => author.toLocaleLowerCase("id-ID").includes(needle))),
-    );
+    const matching = listings
+        .filter((listing) =>
+            (filter === "all" || statusOf(listing) === filter) &&
+            (!needle || listing.book.title.toLocaleLowerCase("id-ID").includes(needle) || listing.book.authors.some((author) => author.toLocaleLowerCase("id-ID").includes(needle))),
+        )
+        .sort((a, b) => (sort === "title" ? a.book.title.localeCompare(b.book.title, "id-ID") : b.createdAt.getTime() - a.createdAt.getTime()));
+    const totalPages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
+    const page = Number.isFinite(requestedPage) ? Math.min(Math.max(requestedPage, 1), totalPages) : 1;
+    const visible = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    const hrefFor = (nextFilter: Filter) => {
+    const hrefFor = (next: { filter?: Filter; page?: number }) => {
         const search = new URLSearchParams();
+        const nextFilter = next.filter ?? filter;
         if (nextFilter !== "all") search.set("filter", nextFilter);
         if (query) search.set("q", query);
+        if (sort !== "newest") search.set("sort", sort);
+        if ((next.page ?? 1) > 1) search.set("page", String(next.page));
         const value = search.toString();
         return value ? `/my-listings?${value}` : "/my-listings";
     };
 
     const stats = [
         { icon: BookOpen, value: counts.all, unit: "Buku", label: "Buku Terdaftar", tone: "bg-[#e7efe8] text-primary" },
-        { icon: Library, value: counts.AVAILABLE, unit: "Buku", label: "Tersedia", tone: "bg-[#c9ecd6] text-primary" },
-        { icon: Lock, value: counts.RESERVED, unit: "Buku", label: "Dipesan", tone: "bg-[#fbe7c6] text-[#7a4b00]" },
-        { icon: EyeOff, value: counts.UNAVAILABLE, unit: "Buku", label: "Tidak Ditawarkan", tone: "bg-[#f1f0ea] text-foreground" },
+        { icon: HandHeart, value: counts.AVAILABLE, unit: "Buku", label: "Tersedia", tone: "bg-[#c9ecd6] text-primary" },
+        { icon: ArrowLeftRight, value: counts.RESERVED, unit: "Dipesan", label: "Sedang Dipesan", tone: "bg-[#fbe7c6] text-[#7a4b00]" },
+        { icon: Lock, value: counts.UNAVAILABLE, unit: "Arsip", label: "Disimpan Pribadi", tone: "bg-[#f1f0ea] text-foreground" },
     ];
 
     return (
@@ -87,9 +105,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                         Kelola koleksi buku fisik yang kamu bagikan dengan kawan pembaca di titik temu publik yang disepakati.
                     </p>
                 </div>
-                <Link href="/books" className="flex h-11 shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-                    <Plus aria-hidden="true" className="size-4" /> Tambah Buku
-                </Link>
+                <AddBookDialog />
             </header>
 
             <dl className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -104,12 +120,20 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                 ))}
             </dl>
 
-            <div className="mt-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 md:flex-row md:items-center md:justify-between">
+            <nav aria-label="Bagian Buku Saya" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
+                <span aria-current="page" className="rounded-lg bg-card px-4 py-2 text-sm font-semibold shadow-sm">Koleksi</span>
+                {/* Borrow requests and loans wait on DEC-02. */}
+                <span aria-disabled="true" title="Belum tersedia" className="flex items-center gap-1.5 px-4 py-2 text-sm text-muted-foreground">
+                    Peminjaman <span className="rounded-full bg-card px-1.5 text-[10px] tracking-wide uppercase">Segera</span>
+                </span>
+            </nav>
+
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap gap-2">
                     {filters.map((item) => (
                         <Link
                             key={item.value}
-                            href={hrefFor(item.value)}
+                            href={hrefFor({ filter: item.value })}
                             aria-current={filter === item.value ? "true" : undefined}
                             className={cn(
                                 "rounded-lg border px-4 py-2 text-sm font-semibold",
@@ -120,13 +144,18 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                         </Link>
                     ))}
                 </div>
-                <form action="/my-listings" method="get" role="search" className="flex md:w-72">
+                <form action="/my-listings" method="get" role="search" className="flex flex-col gap-2 sm:flex-row lg:w-[420px]">
                     {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
-                    <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari judul atau penulis</span>
                         <input name="q" type="search" maxLength={100} defaultValue={query} placeholder="Cari judul atau penulis..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
                     </label>
+                    <label className="sr-only" htmlFor="listing-sort">Urutkan</label>
+                    <select id="listing-sort" name="sort" defaultValue={sort} className="h-11 rounded-lg border border-input bg-card px-3 text-sm">
+                        {(Object.keys(sorts) as Sort[]).map((value) => <option key={value} value={value}>{sorts[value]}</option>)}
+                    </select>
+                    <button type="submit" className="h-11 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5">Terapkan</button>
                 </form>
             </div>
 
@@ -146,14 +175,14 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                     <div className="min-w-0">
                                         <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                             {listing.book.categories[0] && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{listing.book.categories[0]}</span>}
-                                            {listing.book.publishedAt}
+                                            {[listing.book.publishedAt, listing.book.publisher].filter(Boolean).join(" • ")}
                                         </p>
                                         <h2 className="mt-1 font-heading text-lg font-semibold">
                                             <Link href={`/books/${listing.book.id}`} className="hover:underline">{listing.book.title}</Link>
                                         </h2>
                                         <p className="text-sm text-muted-foreground">{listing.book.authors.join(", ") || "Penulis belum tercatat"}</p>
                                         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                                            {listing.availability === "UNAVAILABLE" ? (
+                                            {listing.availability === "UNAVAILABLE" || listing.hiddenAt ? (
                                                 <><EyeOff aria-hidden="true" className="size-3.5" /> Tidak muncul di halaman buku publik</>
                                             ) : (
                                                 <><MapPin aria-hidden="true" className="size-3.5" /> {listing.publicLocation ? `Titik temu: ${listing.publicLocation}` : "Lokasi publik belum diisi"}</>
@@ -167,7 +196,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                         </p>
                                         {listing.hiddenAt && (
                                             <p className="mt-1 text-destructive">
-                                                Alasan admin: {listing.hiddenReason ?? "tidak dicantumkan"}. Hubungi admin bila menurutmu ini keliru.
+                                                Alasan: {listing.hiddenReason ?? "tidak dicantumkan"}. Hubungi admin bila menurutmu ini keliru; pengajuan banding belum tersedia.
                                             </p>
                                         )}
                                         <p className="mt-1">Kondisi: {conditionLabels[listing.condition] ?? listing.condition}</p>
@@ -189,20 +218,33 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                 <section className="mt-4 rounded-xl border border-dashed border-border p-8 text-center">
                     <h2 className="font-heading text-xl font-semibold">{listings.length > 0 ? "Tidak ada buku yang cocok" : "Belum ada buku yang kamu bagikan"}</h2>
                     <p className="mt-2 text-sm text-muted-foreground">
-                        {listings.length > 0 ? "Ubah filter atau kata kunci pencarian." : "Pilih buku dari katalog, lalu tawarkan salinan yang kamu miliki dari halaman detailnya."}
+                        {listings.length > 0 ? "Ubah filter atau kata kunci pencarian." : "Tekan Tambah Buku untuk mencari buku di katalog atau mengisi datanya sendiri."}
                     </p>
-                    {listings.length === 0 && (
-                        <Link href="/books" className="mt-5 inline-flex rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Cari buku</Link>
-                    )}
                 </section>
             )}
 
-            <section className="mt-8 flex gap-4 rounded-xl bg-[#e7efe8] p-5">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-card text-primary"><ShieldCheck aria-hidden="true" className="size-5" /></span>
-                <div>
-                    <h2 className="font-heading text-lg font-semibold">Keamanan &amp; Etika Pinjam Buku</h2>
-                    <p className="text-sm text-foreground/80">Cantumkan hanya lokasi publik umum, jangan alamat rumah. Lakukan serah terima di titik temu yang ramai.</p>
+            {totalPages > 1 && (
+                <nav aria-label="Halaman" className="mt-4 flex items-center justify-end gap-2">
+                    <Link aria-label="Halaman sebelumnya" aria-disabled={page === 1} href={hrefFor({ page: page - 1 })} className={cn("flex size-10 items-center justify-center rounded-lg border border-border bg-card", page === 1 && "pointer-events-none opacity-40")}><ChevronLeft aria-hidden="true" className="size-4" /></Link>
+                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => (
+                        <Link key={number} href={hrefFor({ page: number })} aria-current={number === page ? "page" : undefined}
+                            className={cn("flex size-10 items-center justify-center rounded-lg border text-sm font-semibold", number === page ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:bg-muted")}>
+                            {number}
+                        </Link>
+                    ))}
+                    <Link aria-label="Halaman berikutnya" aria-disabled={page === totalPages} href={hrefFor({ page: page + 1 })} className={cn("flex size-10 items-center justify-center rounded-lg border border-border bg-card", page === totalPages && "pointer-events-none opacity-40")}><ChevronRight aria-hidden="true" className="size-4" /></Link>
+                </nav>
+            )}
+
+            <section className="mt-8 flex flex-col gap-3 rounded-xl bg-[#e7efe8] p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex gap-4">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-card text-primary"><ShieldCheck aria-hidden="true" className="size-5" /></span>
+                    <div>
+                        <h2 className="font-heading text-lg font-semibold">Keamanan &amp; Etika Pinjam Buku di TemuBaca</h2>
+                        <p className="text-sm text-foreground/80">Cantumkan hanya lokasi publik umum, jangan alamat rumah. Lakukan serah terima di titik temu yang ramai, dan laporkan akun yang mencurigakan.</p>
+                    </div>
                 </div>
+                <Link href="/about" className="inline-flex min-h-10 shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">Baca tentang TemuBaca <ChevronRight aria-hidden="true" className="size-4" /></Link>
             </section>
         </main>
     );
