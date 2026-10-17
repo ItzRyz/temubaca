@@ -37,7 +37,7 @@ describe("database migrations", () => {
             "select count(*)::int as count from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity",
         );
 
-        expect(tables.rows[0]?.count).toBe(19);
-        expect(rlsTables.rows[0]?.count).toBe(19);
+        expect(tables.rows[0]?.count).toBe(20);
+        expect(rlsTables.rows[0]?.count).toBe(20);
     });
 });

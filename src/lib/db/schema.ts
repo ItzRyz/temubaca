@@ -53,14 +53,25 @@ export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', '
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
     displayName: text().notNull(),
     role: enumText(userRoles).notNull().default('MEMBER'),
     preferences: jsonb(),
+    // App-level suspension: the account can still sign in, but every write is refused (see requireUser).
+    suspendedAt: nowDate(), suspendedReason: text(),
+    suspendedById: uuid().references((): AnyPgColumn => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }).enableRLS();
+
+/** Admin actions on accounts that are not verifications: suspension, role changes, revealing a full email. */
+export const adminAuditLogs = pgTable('admin_audit_logs', {
+    id: id(), actorId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    action: enumText(adminAuditActionValues).notNull(), targetType: enumText(targetTypeValues).notNull(), targetId: uuid().notNull(),
+    note: text(), metadata: jsonb(), createdAt: createdAt(),
+}, t => [index('admin_audit_logs_target_idx').on(t.targetType, t.targetId, t.createdAt), enumCheck(t.action, adminAuditActionValues), enumCheck(t.targetType, targetTypeValues)]).enableRLS();
 
 export const books = pgTable('books', {
     id: id(), provider: enumText(bookProviderValues).notNull().default('OTHER'), providerId: text().notNull(),

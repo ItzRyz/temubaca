@@ -11,6 +11,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <SiteHeader />
+            {user.suspendedAt && (
+                <div role="alert" className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:px-8">
+                    <p className="mx-auto max-w-[1280px]">
+                        <strong>Akunmu sedang ditangguhkan admin.</strong> Kamu tetap dapat membaca, tetapi belum dapat membuat atau mengubah data, dan listing bukumu tidak tampil di halaman publik.
+                        {user.suspendedReason ? ` Alasan: ${user.suspendedReason}` : ""}
+                    </p>
+                </div>
+            )}
             <div className="flex-1">{children}</div>
             <SiteFooter />
         </div>

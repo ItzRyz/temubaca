@@ -25,6 +25,7 @@ Gunakan PostgreSQL relasional. Skema pada `ERD.md` adalah rancangan, bukan hasil
 - Jangan jalankan migrasi terhadap production dari build atau startup aplikasi; jalankan sebagai langkah rilis eksplisit terhadap target yang diverifikasi.
 - Untuk DB dev, `bun run db:migrate:dev` menampilkan migrasi pending dan `bun run db:migrate:dev -- --apply` menerapkannya dengan TLS yang sama seperti runtime dev, mencatat hash SHA-256 dan `when` jurnal di `drizzle.__drizzle_migrations__`. Script menolak berjalan saat `NODE_ENV=production`.
 - `book_listings.hiddenAt/hiddenReason/hiddenById` menandai listing yang disembunyikan admin; semua query publik mengecualikannya. `books.syncedAt` dan tabel `book_sync_logs` mencatat sinkron katalog (migrasi 0005).
+- `user_profiles.suspendedAt/suspendedReason/suspendedById` menandai akun yang ditangguhkan admin (migrasi 0006). Penangguhan berlaku di aplikasi: `requireUser`/`requireApiUser` menolak setiap aksi, dan listing akun tersebut dikecualikan dari query publik; login Supabase tidak diblokir. `admin_audit_logs` mencatat penangguhan, pemulihan, perubahan peran, dan setiap kali email lengkap ditampilkan.
 
 ## Akses pinjam dan ketersediaan perpustakaan
 

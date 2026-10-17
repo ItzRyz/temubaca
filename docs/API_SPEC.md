@@ -25,6 +25,9 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `GET` | `/api/admin/reports?page=&limit=&status=&targetType=` | Admin | Daftar laporan dengan pagination; detail pelapor hanya ditampilkan pada konsol admin |
 | `PATCH` | `/api/admin/reports/[reportId]` | Admin | Mengubah status tinjauan dan catatan hasil internal |
 | `PATCH` | `/api/admin/book-listings/[listingId]/visibility` | Admin | `{ hidden, reason }`; menyembunyikan listing dari halaman publik (alasan wajib, tampil ke pemilik) atau memulihkannya; tercatat di `verifications` |
+| `PATCH` | `/api/admin/users/[userId]/status` | Admin | `{ suspended, reason }`; menangguhkan (alasan wajib) atau memulihkan akun; ditolak `409` untuk akun sendiri atau akun admin; tercatat di `admin_audit_logs` |
+| `PATCH` | `/api/admin/users/[userId]/role` | Admin | `{ role: MEMBER\|ADMIN }`; tidak dapat mengubah peran sendiri (`409`); tercatat dengan peran lama dan baru |
+| `POST` | `/api/admin/users/[userId]/email` | Admin | Mengembalikan email lengkap dari Supabase Auth (butuh `SUPABASE_SERVICE_ROLE_KEY`); setiap permintaan dicatat di `admin_audit_logs`; 10 per menit |
 | `POST` | `/api/admin/books/[bookId]/sync` | Admin | Sinkron ulang satu rekaman dari Open Library/Google Books; maks. 6 per menit per admin; setiap percobaan tercatat di `book_sync_logs` |
 | `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
 

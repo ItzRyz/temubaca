@@ -19,16 +19,16 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
         { href: "/moderation/reports", label: "Peninjauan", icon: CircleCheck, badge: pendingCount },
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: "/admin/books", label: "Data Buku", icon: BookOpen },
-        { href: null, label: "Data Pengguna", icon: UserRound },
+        { href: "/admin/users", label: "Data Pengguna", icon: UserRound },
         { href: null, label: "Pengaturan", icon: Settings2 },
     ];
 
     return (
-        <aside className="flex flex-col gap-4 border-b border-border bg-[#fcfbf7] p-4 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
+        <aside className="flex min-w-0 flex-col gap-4 border-b border-border bg-[#fcfbf7] p-4 lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r lg:border-b-0">
             <Link href="/" className="font-heading text-[26px] leading-none text-[#21523d] lowercase">temubaca.</Link>
-            <nav aria-label="Portal administrator">
+            <nav aria-label="Portal administrator" className="min-w-0">
                 <p className="mb-2 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Portal Administrator</p>
-                <ul className="flex list-none gap-1 overflow-x-auto p-0 [scrollbar-width:none] lg:flex-col">
+                <ul className="flex max-w-full list-none gap-1 overflow-x-auto p-0 [scrollbar-width:none] lg:flex-col">
                     {items.map(({ href, label, icon: Icon, badge }) => (
                         <li key={label} className="shrink-0">
                             {href ? (

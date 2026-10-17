@@ -9,6 +9,7 @@ import {
     isNull,
     or,
     sql,
+    type AnyColumn,
 } from "drizzle-orm";
 
 import {
@@ -23,6 +24,11 @@ import {
     bookListings,
     borrowRequests,
 } from "../schema";
+
+/** Public listings exclude owners an admin has suspended. */
+function ownerNotSuspended(ownerId: AnyColumn) {
+    return sql`${ownerId} not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null)`;
+}
 
 /** Fields safe and useful for public catalog responses; omits raw provider metadata and internal timestamps. */
 export const publicBookColumns = {
@@ -72,7 +78,7 @@ export async function findBookById(
                 },
 
                 where: (listing, { and, eq, isNull }) =>
-                    and(eq(listing.availability, "AVAILABLE"), isNull(listing.hiddenAt)),
+                    and(eq(listing.availability, "AVAILABLE"), isNull(listing.hiddenAt), ownerNotSuspended(listing.ownerId)),
 
                 orderBy: (table, { desc }) => [
                     desc(table.createdAt),
@@ -156,6 +162,7 @@ export async function browseBooks(filters: BookBrowseFilters, limit = 10, offset
         select count(*)::int from ${bookListings}
         where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
         and "book_listings"."hiddenAt" is null
+        and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null)
     )`; // Qualified names: drizzle renders bare column refs unqualified inside sql``, which would bind to the subquery table.
 
     const [items, [countRow]] = await Promise.all([
@@ -268,8 +275,9 @@ export async function listBookListings(
                 bookListings.availability,
                 "AVAILABLE",
             ),
-            // Listings hidden by an admin never reach public pages.
+            // Listings hidden by an admin, or owned by a suspended account, never reach public pages.
             isNull(bookListings.hiddenAt),
+            ownerNotSuspended(bookListings.ownerId),
         ),
 
         with: {
@@ -345,8 +353,9 @@ export async function findAvailableBookListings(
                 bookListings.availability,
                 "AVAILABLE",
             ),
-            // Listings hidden by an admin never reach public pages.
+            // Listings hidden by an admin, or owned by a suspended account, never reach public pages.
             isNull(bookListings.hiddenAt),
+            ownerNotSuspended(bookListings.ownerId),
         ),
 
         with: {

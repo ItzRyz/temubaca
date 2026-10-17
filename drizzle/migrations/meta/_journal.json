@@ -43,6 +43,13 @@
       "when": 1792213523374,
       "tag": "0005_catalog_sync_and_listing_moderation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792214515711,
+      "tag": "0006_account_suspension_and_admin_audit",
+      "breakpoints": true
     }
   ]
 }

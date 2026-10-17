@@ -24,11 +24,18 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     });
 }
 
+export const SUSPENDED_ACCOUNT_MESSAGE = "Akun kamu sedang ditangguhkan admin, jadi perubahan belum dapat disimpan.";
+
 export async function requireUser(): Promise<UserProfile> {
     const user = await getCurrentUser();
 
     if (!user) {
         throw new UnauthorizedError();
+    }
+
+    // Suspended accounts may still sign in and read, but every guarded action is refused.
+    if (user.suspendedAt) {
+        throw new ForbiddenError(SUSPENDED_ACCOUNT_MESSAGE);
     }
 
     return user;
