@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Kode konfirmasi email baru TemuBaca</title>
+</head>
+<body style="margin:0;padding:0;background-color:#faf7f0;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Kode konfirmasi perubahan email TemuBaca: {{ .Token }}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf7f0;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+          <tr>
+            <td style="padding:0 4px 20px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:bold;color:#1b4d37;">
+              TemuBaca
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;border:1px solid #e3e3db;border-radius:20px;padding:36px 32px;">
+              <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;line-height:32px;font-weight:bold;color:#1f2924;">
+                Konfirmasi email barumu
+              </h1>
+              <p style="margin:0 0 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#5d6760;">
+                Kami menerima permintaan untuk mengganti email akun <strong style="color:#1f2924;">{{ .Email }}</strong> menjadi <strong style="color:#1f2924;">{{ .NewEmail }}</strong>. Masukkan kode berikut untuk mengonfirmasi perubahan.
+              </p>
+              <!-- Email clients block scripts, so "copy" selects the whole code in one tap instead. -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" style="background-color:#e7efe8;border-radius:14px;padding:20px 12px 16px;">
+                    <span style="display:inline-block;background-color:#ffffff;border:2px dashed #1b4d37;border-radius:10px;padding:10px 18px;font-family:'Courier New',Courier,monospace;font-size:34px;line-height:40px;font-weight:bold;letter-spacing:10px;color:#1b4d37;-webkit-user-select:all;user-select:all;cursor:copy;">{{ .Token }}</span>
+                    <p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#1b4d37;">
+                      <strong>Salin kode:</strong> ketuk atau tekan lama kode di atas, lalu pilih <strong>Salin</strong>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#5d6760;">
+                Kode ini hanya berlaku sementara dan hanya bisa dipakai sekali. Jangan berikan kode ini kepada siapa pun, termasuk orang yang mengaku dari TemuBaca.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 4px 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#5d6760;">
+              Kalau kamu tidak meminta perubahan email, abaikan email ini dan segera ganti kata sandimu. Email akun tidak akan berubah tanpa kode di atas.
+              <br><br>
+              TemuBaca &middot; Komunitas Berbagi &amp; Pinjam Buku Indonesia
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
