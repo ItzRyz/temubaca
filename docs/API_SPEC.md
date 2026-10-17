@@ -20,6 +20,7 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `GET` | `/api/book-listings` | Wajib login | Listing milik pengguna |
 | `POST` | `/api/book-listings` | Wajib login | Membuat listing untuk buku yang sudah ada |
 | `PATCH` | `/api/book-listings/[listingId]` | Pemilik listing | Mengubah kondisi, ketersediaan, lokasi publik, atau aturan |
+| `DELETE` | `/api/book-listings/[listingId]` | Pemilik listing | Menghapus listing permanen; `409` bila `RESERVED` atau punya riwayat permintaan pinjam |
 | `POST` | `/api/reports` | Wajib login | Membuat laporan untuk buku, listing, komunitas, acara, merchandise, atau akun yang ada; 5 kiriman per menit per akun |
 | `GET` | `/api/admin/reports?page=&limit=&status=&targetType=` | Admin | Daftar laporan dengan pagination; detail pelapor hanya ditampilkan pada konsol admin |
 | `PATCH` | `/api/admin/reports/[reportId]` | Admin | Mengubah status tinjauan dan catatan hasil internal |

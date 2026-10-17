@@ -2,6 +2,7 @@ import "server-only";
 
 import {
     and,
+    count,
     desc,
     eq,
     ilike,
@@ -9,11 +10,17 @@ import {
     sql,
 } from "drizzle-orm";
 
+import {
+    listingDeletionBlocker,
+    type ListingDeletionBlocker,
+} from "@/features/book-listings/listing-deletion";
+
 import { db } from "../client";
 
 import {
     books,
     bookListings,
+    borrowRequests,
 } from "../schema";
 
 /** Fields safe and useful for public catalog responses; omits raw provider metadata and internal timestamps. */
@@ -440,4 +447,41 @@ export async function updateBookListing(
         .returning();
 
     return listing ?? null;
+}
+
+export type DeleteBookListingResult =
+    | { status: "deleted"; id: string }
+    | { status: "not_found" }
+    | { status: "blocked"; reason: ListingDeletionBlocker };
+
+export async function deleteBookListing(
+    listingId: string,
+    ownerId: string,
+): Promise<DeleteBookListingResult> {
+    return db.transaction(async (tx) => {
+        const [listing] = await tx
+            .select({ id: bookListings.id, availability: bookListings.availability })
+            .from(bookListings)
+            .where(and(
+                eq(bookListings.id, listingId),
+                eq(bookListings.ownerId, ownerId),
+            ))
+            .for("update");
+
+        if (!listing) return { status: "not_found" };
+
+        const [{ requestCount }] = await tx
+            .select({ requestCount: count() })
+            .from(borrowRequests)
+            .where(eq(borrowRequests.listingId, listingId));
+
+        const blocker = listingDeletionBlocker({
+            availability: listing.availability,
+            borrowRequestCount: requestCount,
+        });
+        if (blocker) return { status: "blocked", reason: blocker };
+
+        await tx.delete(bookListings).where(eq(bookListings.id, listingId));
+        return { status: "deleted", id: listingId };
+    });
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BookListingAvailability } from "@/features/book-listings/components/book-listing-availability";
+import { BookListingDelete } from "@/features/book-listings/components/book-listing-delete";
 import { BookListingEditor } from "@/features/book-listings/components/book-listing-editor";
 import { getCurrentUser } from "@/lib/auth";
 import { listUserBookListings } from "@/lib/db/queries/books";
@@ -173,6 +174,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                     initialLocation={listing.publicLocation}
                                     initialRules={listing.borrowingRules}
                                 />
+                                <BookListingDelete listingId={listing.id} bookTitle={listing.book.title} availability={listing.availability} />
                             </li>
                         );
                     })}
