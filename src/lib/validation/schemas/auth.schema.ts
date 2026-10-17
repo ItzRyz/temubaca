@@ -52,6 +52,37 @@ export const forgotPasswordSchema =
         })
         .strict();
 
+export const OTP_LENGTH = 6;
+
+/** Matches Supabase's default minimum interval between auth emails per user. */
+export const OTP_RESEND_COOLDOWN_SECONDS = 60;
+
+export const otpTokenSchema =
+    z
+        .string()
+        .trim()
+        .regex(new RegExp(`^\\d{${OTP_LENGTH}}$`), {
+            error:
+                `Kode harus ${OTP_LENGTH} digit angka.`,
+        });
+
+export const pendingOtpPurposeSchema =
+    z.enum(["signup", "recovery"]);
+
+export const pendingOtpSchema =
+    z
+        .object({
+            email: emailSchema,
+
+            purpose: pendingOtpPurposeSchema,
+
+            sentAt: z.number().int().nonnegative(),
+        })
+        .strict();
+
+export type PendingOtpPurpose = z.infer<typeof pendingOtpPurposeSchema>;
+export type PendingOtp = z.infer<typeof pendingOtpSchema>;
+
 export const resetPasswordSchema =
     z
         .object({

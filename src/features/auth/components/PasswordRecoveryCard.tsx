@@ -1,18 +1,19 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, Mail, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
 
 import { requestPasswordReset, updatePassword } from "@/features/auth/actions";
 
 import { AuthPanel, authFieldShellClass, authInputClass, authPrimaryButtonClass } from "./auth-layout";
 
-function PanelHeader({ title, description }: { title: string; description: string }) {
+function PanelHeader({ title, description, icon: Icon = KeyRound }: { title: string; description: string; icon?: LucideIcon }) {
     return (
         <header className="flex flex-col items-center text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary">
-                <KeyRound aria-hidden="true" className="size-4" />
+                <Icon aria-hidden="true" className="size-4" />
             </span>
             <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">{title}</h2>
             <p className="mt-1 text-xs leading-[18px] text-muted-foreground">{description}</p>
@@ -34,10 +35,10 @@ function ErrorMessage({ message }: { message: string | null }) {
 }
 
 export function ForgotPasswordCard() {
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [sent, setSent] = useState(false);
 
     const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -45,8 +46,11 @@ export function ForgotPasswordCard() {
         setError(null);
         try {
             const result = await requestPasswordReset(email);
-            if (result.success) setSent(true);
-            else setError(result.fieldErrors?.email?.[0] ?? result.message ?? "Permintaan gagal.");
+            if (result.success) {
+                router.replace(result.redirectTo ?? "/verify-email");
+                return;
+            }
+            setError(result.fieldErrors?.email?.[0] ?? result.message ?? "Permintaan gagal.");
         } catch {
             setError("Permintaan reset kata sandi gagal. Silakan coba lagi.");
         } finally {
@@ -56,36 +60,30 @@ export function ForgotPasswordCard() {
 
     return (
         <AuthPanel>
-            <PanelHeader title="Lupa Kata Sandi?" description="Kirim tautan atur ulang ke email kamu." />
-            {sent ? (
-                <p role="status" className="mt-6 rounded-lg bg-[#e7efe8] p-4 text-sm leading-6 text-secondary-foreground">
-                    Jika alamat tersebut terdaftar, email berisi tautan atur ulang akan segera dikirim. Periksa juga folder spam.
-                </p>
-            ) : (
-                <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="recovery-email" className="text-sm font-medium text-foreground">Email Terdaftar</label>
-                        <div className={`${authFieldShellClass} ${error ? "border-destructive" : "border-input"}`}>
-                            <Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                            <input
-                                id="recovery-email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                placeholder="nama@email.com"
-                                value={email}
-                                onChange={(event) => setEmail(event.target.value)}
-                                className={authInputClass}
-                            />
-                        </div>
+            <PanelHeader title="Lupa Kata Sandi?" description="Kirim kode verifikasi ke email kamu." icon={LockKeyhole} />
+            <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                    <label htmlFor="recovery-email" className="text-sm font-medium text-foreground">Email Terdaftar</label>
+                    <div className={`${authFieldShellClass} ${error ? "border-destructive" : "border-input"}`}>
+                        <Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                        <input
+                            id="recovery-email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            placeholder="nama@email.com"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            className={authInputClass}
+                        />
                     </div>
-                    <ErrorMessage message={error} />
-                    <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
-                        {pending ? "Mengirim..." : "Kirim Tautan Reset"}
-                        {!pending && <ArrowRight aria-hidden="true" className="size-4" />}
-                    </button>
-                </form>
-            )}
+                </div>
+                <ErrorMessage message={error} />
+                <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
+                    {pending ? "Mengirim..." : "Kirim Kode Verifikasi"}
+                    {!pending && <ArrowRight aria-hidden="true" className="size-4" />}
+                </button>
+            </form>
             <BackToLogin />
         </AuthPanel>
     );
@@ -121,7 +119,7 @@ export function UpdatePasswordCard() {
             if (result.success) setUpdated(true);
             else setError(result.fieldErrors?.password?.[0] ?? result.message ?? "Pembaruan gagal.");
         } catch {
-            setError("Kata sandi belum dapat diperbarui. Minta tautan reset yang baru.");
+            setError("Kata sandi belum dapat diperbarui. Minta kode reset yang baru.");
         } finally {
             setPending(false);
         }
@@ -136,10 +134,10 @@ export function UpdatePasswordCard() {
         <AuthPanel>
             <PanelHeader
                 title={updated ? "Kata Sandi Diperbarui" : "Buat Kata Sandi Baru"}
-                description={updated ? "Kamu sekarang dapat masuk dengan kata sandi yang baru." : "Gunakan kata sandi minimal 8 karakter."}
+                description={updated ? "Kata sandi baru sudah aktif dan kamu sudah masuk." : "Gunakan kata sandi minimal 8 karakter."}
             />
             {updated ? (
-                <Link href="/login" className={`${authPrimaryButtonClass} mt-6`}>Masuk</Link>
+                <Link href="/" className={`${authPrimaryButtonClass} mt-6`}>Lanjut ke beranda</Link>
             ) : (
                 <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
                     {fields.map((field) => (

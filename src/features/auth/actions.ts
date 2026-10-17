@@ -12,10 +12,19 @@ import {
     type SignInInput,
     type SignUpInput,
 } from "@/lib/validation/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import {
     forgotPasswordSchema,
+    otpTokenSchema,
     resetPasswordSchema,
 } from "@/lib/validation/schemas/auth.schema";
+
+import {
+    clearPendingOtp,
+    readPendingOtp,
+    secondsUntilResend,
+    writePendingOtp,
+} from "./pending-otp";
 
 type AuthActionResult<Field extends string> =
     | { success: true; redirectTo?: string }
@@ -76,10 +85,12 @@ export async function signUp(
             return { success: false, message: signUpErrorMessage(error) };
         }
 
-        return {
-            success: true,
-            redirectTo: signUpData.session ? "/" : "/verify-email",
-        };
+        if (signUpData.session) {
+            return { success: true, redirectTo: "/" };
+        }
+
+        await writePendingOtp(parsed.data.email, "signup");
+        return { success: true, redirectTo: "/verify-email" };
     } catch {
         return {
             success: false,
@@ -165,8 +176,9 @@ export async function requestPasswordReset(
             };
         }
 
-        // Keep the response generic so the form does not reveal whether an email has an account.
-        return { success: true };
+        // Always continue to the code step so the form does not reveal whether an email has an account.
+        await writePendingOtp(parsed.data.email, "recovery");
+        return { success: true, redirectTo: "/verify-email" };
     } catch {
         return {
             success: false,
@@ -193,16 +205,100 @@ export async function updatePassword(
         if (error) {
             return {
                 success: false,
-                message: "Kata sandi belum dapat diperbarui. Minta tautan reset yang baru lalu coba lagi.",
+                message: "Kata sandi belum dapat diperbarui. Minta kode reset yang baru lalu coba lagi.",
             };
         }
         return { success: true };
     } catch {
         return {
             success: false,
-            message: "Kata sandi belum dapat diperbarui. Minta tautan reset yang baru lalu coba lagi.",
+            message: "Kata sandi belum dapat diperbarui. Minta kode reset yang baru lalu coba lagi.",
         };
     }
+}
+
+const OTP_EXPIRED_MESSAGE = "Sesi verifikasi sudah berakhir. Mulai lagi dari halaman daftar atau lupa kata sandi.";
+
+export async function verifyEmailOtp(
+    token: string,
+): Promise<AuthActionResult<"token">> {
+    const parsed = otpTokenSchema.safeParse(token);
+    if (!parsed.success) {
+        return { success: false, fieldErrors: { token: [parsed.error.issues[0]?.message ?? "Kode tidak valid."] } };
+    }
+
+    const pending = await readPendingOtp();
+    if (!pending) {
+        return { success: false, message: OTP_EXPIRED_MESSAGE };
+    }
+
+    try {
+        const rateLimit = await enforceRateLimit(`otp-verify:${pending.email}`, 10, 10 * 60);
+        if (!rateLimit.success) {
+            return { success: false, message: "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi." };
+        }
+
+        const supabase = await createClient();
+        const { error } = await supabase.auth.verifyOtp({
+            email: pending.email,
+            token: parsed.data,
+            type: pending.purpose === "signup" ? "email" : "recovery",
+        });
+
+        if (error) {
+            return {
+                success: false,
+                fieldErrors: (error.status ?? 0) >= 500
+                    ? undefined
+                    : { token: ["Kode salah atau sudah kedaluwarsa. Periksa lagi atau kirim ulang kode."] },
+                message: (error.status ?? 0) >= 500
+                    ? "Verifikasi belum dapat diproses saat ini. Coba lagi nanti."
+                    : undefined,
+            };
+        }
+    } catch {
+        return { success: false, message: "Verifikasi belum dapat diproses. Periksa koneksi lalu coba lagi." };
+    }
+
+    await clearPendingOtp();
+    return { success: true, redirectTo: pending.purpose === "signup" ? "/" : "/update-password" };
+}
+
+export async function resendEmailOtp(): Promise<AuthActionResult<never> & { retryAfter?: number }> {
+    const pending = await readPendingOtp();
+    if (!pending) {
+        return { success: false, message: OTP_EXPIRED_MESSAGE };
+    }
+
+    const wait = secondsUntilResend(pending);
+    if (wait > 0) {
+        return { success: false, message: `Tunggu ${wait} detik sebelum mengirim ulang kode.`, retryAfter: wait };
+    }
+
+    try {
+        const supabase = await createClient();
+        const { error } = pending.purpose === "signup"
+            ? await supabase.auth.resend({ type: "signup", email: pending.email })
+            : await supabase.auth.resetPasswordForEmail(pending.email);
+
+        if (error) {
+            return {
+                success: false,
+                message: error.code === "over_email_send_rate_limit"
+                    ? "Terlalu banyak permintaan email. Tunggu sebentar lalu coba lagi."
+                    : "Kode belum dapat dikirim ulang. Coba lagi nanti.",
+            };
+        }
+    } catch {
+        return { success: false, message: "Kode belum dapat dikirim ulang. Periksa koneksi lalu coba lagi." };
+    }
+
+    await writePendingOtp(pending.email, pending.purpose);
+    return { success: true };
+}
+
+export async function cancelEmailOtp(): Promise<void> {
+    await clearPendingOtp();
 }
 
 export async function signOut() {

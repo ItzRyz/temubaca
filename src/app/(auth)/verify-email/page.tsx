@@ -1,34 +1,51 @@
-import { MailCheck, MailWarning } from "lucide-react";
+import { MailWarning } from "lucide-react";
 import Link from "next/link";
 
 import { AuthLayout, AuthPanel, authPrimaryButtonClass } from "@/features/auth/components/auth-layout";
+import { OtpVerificationCard } from "@/features/auth/components/OtpVerificationCard";
+import { readPendingOtp, secondsUntilResend } from "@/features/auth/pending-otp";
 
 type VerifyEmailPageProps = {
     searchParams: Promise<{ error?: string }>;
 };
 
-export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-    const { error } = await searchParams;
-    const Icon = error ? MailWarning : MailCheck;
+const layoutCopy = {
+    title: "Verifikasi Kode Keamanan",
+    description: "Kami mengirimkan 6 digit kode ke email kamu untuk memastikan rak buku dan jejak interaksi wargamu tetap aman.",
+};
 
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+    const [{ error }, pending] = await Promise.all([searchParams, readPendingOtp()]);
+
+    if (pending && !error) {
+        return (
+            <AuthLayout {...layoutCopy}>
+                <OtpVerificationCard
+                    email={pending.email}
+                    purpose={pending.purpose}
+                    initialResendIn={secondsUntilResend(pending)}
+                />
+            </AuthLayout>
+        );
+    }
+
+    // No pending code: the session expired, or an older email link failed in /auth/callback.
     return (
-        <AuthLayout
-            title="Satu Langkah Lagi"
-            description="Kami perlu memastikan email ini milikmu sebelum akun TemuBaca aktif."
-        >
+        <AuthLayout {...layoutCopy}>
             <AuthPanel className="items-center text-center">
-                <span className={`flex size-10 items-center justify-center rounded-full ${error ? "bg-destructive/10 text-destructive" : "bg-[#e7efe8] text-primary"}`}>
-                    <Icon aria-hidden="true" className="size-4" />
+                <span className="flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                    <MailWarning aria-hidden="true" className="size-4" />
                 </span>
                 <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">
-                    {error ? "Tautan verifikasi tidak berlaku" : "Periksa email kamu"}
+                    {error ? "Tautan verifikasi tidak berlaku" : "Tidak ada kode yang menunggu"}
                 </h2>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
                     {error
-                        ? "Tautan mungkin sudah digunakan atau kedaluwarsa. Coba daftar kembali atau masuk jika akunmu sudah aktif."
-                        : "Buka email konfirmasi yang kami kirim untuk mengaktifkan akun. Periksa juga folder spam."}
+                        ? "Tautan mungkin sudah digunakan atau kedaluwarsa. Masuk jika akunmu sudah aktif, atau minta kode baru."
+                        : "Sesi verifikasi sudah berakhir. Daftar kembali atau minta kode atur ulang kata sandi yang baru."}
                 </p>
                 <Link href="/login" className={`${authPrimaryButtonClass} mt-6`}>Kembali ke halaman masuk</Link>
+                <Link href="/forgot-password" className="mt-4 text-[13px] font-semibold text-primary hover:underline">Lupa kata sandi?</Link>
             </AuthPanel>
         </AuthLayout>
     );
