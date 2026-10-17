@@ -20,7 +20,7 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: "/admin/books", label: "Data Buku", icon: BookOpen },
         { href: "/admin/users", label: "Data Pengguna", icon: UserRound },
-        { href: null, label: "Pengaturan", icon: Settings2 },
+        { href: "/admin/settings", label: "Pengaturan", icon: Settings2 },
     ];
 
     return (

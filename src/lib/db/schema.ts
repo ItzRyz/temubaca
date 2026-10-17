@@ -53,7 +53,7 @@ export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', '
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
@@ -80,6 +80,13 @@ export const books = pgTable('books', {
     categories: text().array().notNull().default(sql`'{}'::text[]`), coverUrl: text(), metadata: jsonb(),
     syncedAt: nowDate(), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [unique('books_provider_provider_id_key').on(t.provider, t.providerId), index('books_title_idx').on(t.title), index('books_isbn_idx').on(t.isbn), enumCheck(t.provider, bookProviderValues)]).enableRLS();
+
+/** Platform settings edited in the admin portal, one JSON document per section (e.g. `catalog`). */
+export const appSettings = pgTable('app_settings', {
+    key: text().primaryKey(), value: jsonb().notNull(),
+    updatedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    updatedAt: updatedAt(),
+}).enableRLS();
 
 /** Every provider refresh of a stored catalog record, for the admin "Riwayat sinkron" trail. */
 export const bookSyncLogs = pgTable('book_sync_logs', {

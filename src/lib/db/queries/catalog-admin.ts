@@ -161,3 +161,14 @@ export async function countVisibleListings(availability: "AVAILABLE" | "RESERVED
         .where(and(eq(bookListings.availability, availability), isNull(bookListings.hiddenAt)));
     return row?.total ?? 0;
 }
+
+/** External providers that supplied this record's data, for the public attribution line. */
+export async function listBookDataSources(book: { id: string; provider: string }) {
+    const rows = await db
+        .selectDistinct({ provider: bookSyncLogs.provider })
+        .from(bookSyncLogs)
+        .where(and(eq(bookSyncLogs.bookId, book.id), eq(bookSyncLogs.status, "SUCCESS"), sql`cardinality(${bookSyncLogs.changedFields}) > 0`));
+    const sources = new Set<string>(rows.map((row) => row.provider));
+    if (book.provider === "OPEN_LIBRARY" || book.provider === "GOOGLE_BOOKS") sources.add(book.provider);
+    return [...sources].filter((provider): provider is "OPEN_LIBRARY" | "GOOGLE_BOOKS" => provider === "OPEN_LIBRARY" || provider === "GOOGLE_BOOKS");
+}

@@ -6,9 +6,7 @@ import { createGoogleBooksProvider } from "./google-books";
 import { createOpenLibraryProvider } from "./open-library";
 import type { BookCatalogProvider, ExternalBookProvider } from "./provider";
 
-/** Open Library is the primary catalog; Google Books complements it (owner decision, see DEC-06). */
-export const PRIMARY_BOOK_PROVIDER: ExternalBookProvider = "OPEN_LIBRARY";
-
+/** Both adapters (owner decision, see DEC-06); which one leads is an admin setting (`catalog` in app_settings). */
 let providers: Record<ExternalBookProvider, BookCatalogProvider> | undefined;
 
 export function getBookProviders() {

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { CatalogSyncButton } from "@/features/catalog/components/catalog-sync-button";
 import { ListingVisibilityPanel } from "@/features/catalog/components/listing-visibility-panel";
-import { catalogRecordStatus, CATALOG_STALE_DAYS, listingAdminStatus, type CatalogRecordStatus, type ListingAdminStatus } from "@/features/catalog/catalog-status";
+import { catalogRecordStatus, listingAdminStatus, type CatalogRecordStatus, type ListingAdminStatus } from "@/features/catalog/catalog-status";
 import {
     countHiddenListings,
     countVisibleListings,
@@ -15,6 +15,7 @@ import {
     listListingsForAdmin,
 } from "@/lib/db/queries/catalog-admin";
 import type { bookProviderValues } from "@/lib/db/schema";
+import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { hasGoogleBooksKey } from "@/lib/external/books/registry";
 import { cn } from "@/lib/utils";
 
@@ -305,10 +306,10 @@ async function ListingsTab({ view, query, selected, hrefFor }: TabProps<ListingV
 
 async function CatalogTab({ view, query, selected, hrefFor }: TabProps<CatalogView>) {
     const now = new Date();
-    const [records, activity] = await Promise.all([listCatalogRecords({ query }), latestProviderActivity()]);
+    const [records, activity, { settings }] = await Promise.all([listCatalogRecords({ query }), latestProviderActivity(), getCatalogSettings()]);
     const withStatus = records.map((record) => ({
         ...record,
-        recordStatus: catalogRecordStatus({ createdAt: record.createdAt, syncedAt: record.syncedAt, lastSyncFailed: record.lastSyncStatus === "FAILED", duplicateCount: record.duplicateCount }, now),
+        recordStatus: catalogRecordStatus({ createdAt: record.createdAt, syncedAt: record.syncedAt, lastSyncFailed: record.lastSyncStatus === "FAILED", duplicateCount: record.duplicateCount }, now, settings.staleAfterDays),
     }));
     const rows = withStatus.filter((row) => view === "all" || row.recordStatus === view);
     const active = rows.find((row) => row.id === selected) ?? rows[0];
@@ -319,7 +320,17 @@ async function CatalogTab({ view, query, selected, hrefFor }: TabProps<CatalogVi
     const googleBooks = activity.get("GOOGLE_BOOKS");
     const externalUrl = active ? providerUrl(active.provider, active.providerId) : null;
 
-    const providerCard = (name: string, role: string, entry: typeof openLibrary, note: string) => (
+    const roleOf = (provider: "OPEN_LIBRARY" | "GOOGLE_BOOKS") =>
+        settings.primaryProvider === provider ? "Utama" : settings.fallbackEnabled ? "Cadangan" : "Nonaktif";
+    const providerCard = (name: string, role: string, entry: typeof openLibrary, note: string) => role === "Nonaktif" ? (
+        <li className="flex flex-col justify-center gap-1 rounded-xl border border-border bg-card p-4">
+            <p className="flex flex-wrap items-center gap-2">
+                <span className="font-heading text-lg font-semibold">{name}</span>
+                <span className="rounded-full bg-[#ebe9e1] px-2 py-0.5 text-xs font-semibold text-foreground/80">Nonaktif</span>
+            </p>
+            <p className="text-xs text-muted-foreground">Provider cadangan dimatikan di Pengaturan.</p>
+        </li>
+    ) : (
         <li className="flex flex-col justify-center gap-1 rounded-xl border border-border bg-card p-4">
             <p className="flex flex-wrap items-center gap-2">
                 <span className="font-heading text-lg font-semibold">{name}</span>
@@ -337,8 +348,8 @@ async function CatalogTab({ view, query, selected, hrefFor }: TabProps<CatalogVi
     return (
         <>
             <ul aria-label="Sumber katalog" className="mt-6 grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 xl:grid-cols-4">
-                {providerCard("Open Library", "Utama", openLibrary, "data dimiliki sumber, sampul dari covers.openlibrary.org")}
-                {providerCard("Google Books", "Pelengkap", googleBooks, hasGoogleBooksKey() ? "dengan API key" : "tanpa API key (kuota bersama)")}
+                {providerCard("Open Library", roleOf("OPEN_LIBRARY"), openLibrary, "data dimiliki sumber, sampul dari covers.openlibrary.org")}
+                {providerCard("Google Books", roleOf("GOOGLE_BOOKS"), googleBooks, hasGoogleBooksKey() ? "dengan API key" : "tanpa API key (kuota bersama)")}
                 <li className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
                     <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#fbecc4] text-[#7a5300]"><Clock className="size-4" /></span>
                     <span><span className="block font-heading text-2xl leading-none font-semibold">{staleCount}</span><span className="mt-1 block text-sm text-muted-foreground">Data Usang</span></span>
@@ -408,7 +419,7 @@ async function CatalogTab({ view, query, selected, hrefFor }: TabProps<CatalogVi
                             </dl>
                             <p className="mt-3 flex gap-2 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-muted-foreground">
                                 <Database aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                                Data berasal dari provider dan dapat tidak lengkap. Rekaman berlabel usang bila tidak disinkronkan lebih dari {CATALOG_STALE_DAYS} hari. Provider lain hanya mengisi kolom yang masih kosong.
+                                Data berasal dari provider dan dapat tidak lengkap. Rekaman berlabel usang bila tidak disinkronkan lebih dari {settings.staleAfterDays} hari. Provider lain hanya mengisi kolom yang masih kosong.
                             </p>
                             {active.duplicateCount > 0 && (
                                 <p className="mt-3 flex gap-2 text-xs leading-5 text-[#24407a]">

@@ -2,7 +2,9 @@ import "server-only";
 
 import { eq } from "drizzle-orm";
 
+import { providerOrder } from "@/features/settings/catalog-settings";
 import { db } from "@/lib/db";
+import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { books, bookSyncLogs } from "@/lib/db/schema";
 import { BookProviderError, mergeBookMetadata, type ExternalBookProvider } from "@/lib/external/books";
 import { getBookProviders } from "@/lib/external/books/registry";
@@ -49,6 +51,9 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
     if (!book) return { status: "not_found" };
 
     const providers = getBookProviders();
+    const { settings } = await getCatalogSettings();
+    // Admin setting: primary first; the other provider only when "Provider cadangan" is on.
+    const order: readonly ExternalBookProvider[] = providerOrder(settings);
     const ownProvider = externalProviders.includes(book.provider as ExternalBookProvider) ? book.provider as ExternalBookProvider : null;
     const notes: string[] = [];
     let primary: ExternalBook | null = null;
@@ -66,9 +71,24 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
     let isbn = book.isbn ?? primary?.isbn ?? null;
     const complements: ExternalBook[] = [];
 
+    // The record's own provider failed: with a fallback and an ISBN, still fill gaps from the other one.
+    const fallbackFor = ownProvider && failed && isbn && settings.fallbackEnabled ? order.find((value) => value !== ownProvider) : undefined;
+    if (fallbackFor && isbn) {
+        try {
+            const match = await providers[fallbackFor].findByIsbn(isbn);
+            if (match) {
+                complements.push(match);
+                notes.push(`${failed} Data dilengkapi dari ${providerNames[fallbackFor]}.`);
+                failed = null;
+            }
+        } catch (error) {
+            notes.push(failureText(fallbackFor, error));
+        }
+    }
+
     // Manual records often lack an ISBN: find the book by exact title + author first, then use its ISBN.
     if (!failed && !ownProvider && !isbn) {
-        for (const provider of externalProviders) {
+        for (const provider of order) {
             try {
                 const { items } = await providers[provider].search({ query: `${book.title} ${book.authors[0] ?? ""}`.trim(), limit: 5, offset: 0 });
                 const match = items.find((item) => isSameBook(item, book.title, book.authors[0]));
@@ -86,7 +106,7 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
 
     if (!failed) {
         if (isbn) {
-            for (const provider of externalProviders.filter((value) => value !== ownProvider && !complements.some((item) => item.provider === value))) {
+            for (const provider of order.filter((value) => value !== ownProvider && !complements.some((item) => item.provider === value))) {
                 try {
                     const match = await providers[provider].findByIsbn(isbn);
                     if (match) complements.push(match);

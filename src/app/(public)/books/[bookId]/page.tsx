@@ -8,6 +8,8 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import { listBookListings, publicBookColumns } from "@/lib/db/queries/books";
 import { hasBookmark } from "@/lib/db/queries/bookmarks";
+import { listBookDataSources } from "@/lib/db/queries/catalog-admin";
+import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { bookConditionValues, books } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { uuidSchema } from "@/lib/validation/common";
@@ -27,6 +29,9 @@ const conditionLabels: Record<(typeof bookConditionValues)[number], string> = {
     FAIR: "Cukup baik",
     POOR: "Perlu perhatian",
 };
+
+const sourceNames = { OPEN_LIBRARY: "Open Library", GOOGLE_BOOKS: "Google Books" } as const;
+const sourceLinks = { OPEN_LIBRARY: "https://openlibrary.org", GOOGLE_BOOKS: "https://books.google.com" } as const;
 
 const updatedFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
 
@@ -48,9 +53,11 @@ export default async function BookDetailPage({ params }: BookPageProps) {
     const book = await findPublicBook((await params).bookId);
     if (!book) notFound();
 
-    const [user, listings] = await Promise.all([
+    const [user, listings, { settings }, sources] = await Promise.all([
         getCurrentUser(),
         listBookListings(book.id),
+        getCatalogSettings(),
+        listBookDataSources(book),
     ]);
     const isBookmarked = user ? await hasBookmark(user.id, book.id) : false;
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
@@ -121,6 +128,18 @@ export default async function BookDetailPage({ params }: BookPageProps) {
                             <p className="mt-4 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-foreground/80">
                                 Tercatat di <strong>{listings.length} salinan warga</strong> yang sedang tersedia.
                             </p>
+                            {settings.showAttribution && sources.length > 0 && (
+                                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                                    Sumber data:{" "}
+                                    {sources.map((source, index) => (
+                                        <span key={source}>
+                                            {index > 0 && ", "}
+                                            <a href={sourceLinks[source]} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{sourceNames[source]}</a>
+                                        </span>
+                                    ))}
+                                    . Data dapat tidak lengkap.
+                                </p>
+                            )}
                         </section>
                     )}
                 </div>
