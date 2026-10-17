@@ -40,6 +40,12 @@ export const newPasswordRules = [
         label: "Mengandung angka dan huruf",
         test: (value: string) => /\p{L}/u.test(value) && /\d/.test(value),
     },
+    {
+        id: "symbol",
+        label: "Mengandung simbol (mis. ! @ # ?)",
+        // Anything that is not a letter, digit, or whitespace counts as a symbol.
+        test: (value: string) => /[^\p{L}\p{N}\s]/u.test(value),
+    },
 ] as const;
 
 export const newPasswordSchema =
@@ -47,6 +53,10 @@ export const newPasswordSchema =
         .refine(newPasswordRules[1].test, {
             error:
                 "Kata sandi harus mengandung angka dan huruf.",
+        })
+        .refine(newPasswordRules[2].test, {
+            error:
+                "Kata sandi harus mengandung simbol, misalnya ! @ # ?",
         });
 
 export const signInSchema =
