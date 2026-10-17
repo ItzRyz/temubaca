@@ -16,6 +16,7 @@ import {
     check,
     unique,
     index,
+    uniqueIndex,
     type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
@@ -40,7 +41,9 @@ export const bookProviderValues = ['GOOGLE_BOOKS', 'OPEN_LIBRARY', 'MANUAL', 'OT
 export const bookConditionValues = ['NEW', 'LIKE_NEW', 'GOOD', 'FAIR', 'POOR'] as const;
 export const listingAvailabilityValues = ['AVAILABLE', 'UNAVAILABLE', 'RESERVED'] as const;
 export const borrowRequestStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
-export const borrowingStatusValues = ['ACTIVE', 'OVERDUE', 'RETURNED', 'LOST', 'CANCELLED'] as const;
+// OVERDUE is derived from dueAt at read time and never stored; DISPUTED waits for an admin decision (DEC-02).
+export const borrowingStatusValues = ['ACTIVE', 'OVERDUE', 'RETURNED', 'LOST', 'CANCELLED', 'DISPUTED'] as const;
+export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED'] as const;
 export const bookAccessStatusValues = ['ACTIVE', 'REVOKED', 'EXPIRED'] as const;
 export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'] as const;
 export const membershipRoleValues = ['OWNER', 'MANAGER', 'MEMBER'] as const;
@@ -53,7 +56,7 @@ export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', '
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
@@ -116,8 +119,26 @@ export const borrowRequests = pgTable('borrow_requests', {
     id: id(), listingId: uuid().notNull().references(() => bookListings.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     requesterId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     status: enumText(borrowRequestStatusValues).notNull().default('PENDING'), note: text(),
+    // Chosen from the owner's public meeting points; the loan period is capped by the listing rules.
+    meetingPoint: text(), loanDays: integer().notNull().default(14), preferredTime: text(),
+    rejectionReason: text(), responseNote: text(),
+    // Handover needs both parties (DEC-02); the borrowing starts once both timestamps are set.
+    ownerHandoverAt: nowDate(), requesterHandoverAt: nowDate(),
+    cancelledById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     requestedAt: createdAt(), updatedAt: updatedAt(), respondedAt: nowDate(),
-}, t => [index('borrow_requests_listing_id_status_idx').on(t.listingId, t.status), index('borrow_requests_requester_id_status_idx').on(t.requesterId, t.status), enumCheck(t.status, borrowRequestStatusValues)]).enableRLS();
+}, t => [
+    index('borrow_requests_listing_id_status_idx').on(t.listingId, t.status), index('borrow_requests_requester_id_status_idx').on(t.requesterId, t.status), enumCheck(t.status, borrowRequestStatusValues),
+    check('borrow_requests_loan_days_check', sql`${t.loanDays} between 1 and 60`),
+    // One open request per reader per copy, and at most one accepted request per copy.
+    uniqueIndex('borrow_requests_open_per_requester_idx').on(t.listingId, t.requesterId).where(sql`${t.status} in ('PENDING', 'APPROVED')`),
+    uniqueIndex('borrow_requests_one_approved_idx').on(t.listingId).where(sql`${t.status} = 'APPROVED'`),
+]).enableRLS();
+
+export const borrowEvents = pgTable('borrow_events', {
+    id: id(), requestId: uuid().notNull().references(() => borrowRequests.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+    actorId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    type: enumText(borrowEventTypeValues).notNull(), note: text(), createdAt: createdAt(),
+}, t => [index('borrow_events_request_id_idx').on(t.requestId, t.createdAt), enumCheck(t.type, borrowEventTypeValues)]).enableRLS();
 
 export const bookAccesses = pgTable('book_accesses', {
     id: id(), requestId: uuid().notNull().unique().references(() => borrowRequests.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
@@ -137,7 +158,13 @@ export const bookListings = pgTable('book_listings', {
 export const borrowings = pgTable('borrowings', {
     id: id(), requestId: uuid().notNull().unique().references(() => borrowRequests.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     status: enumText(borrowingStatusValues).notNull().default('ACTIVE'), handedOverAt: nowDate(), dueAt: nowDate(), returnedAt: nowDate(),
-    handoverProof: jsonb(), returnProof: jsonb(), note: text(), createdAt: createdAt(), updatedAt: updatedAt(),
+    handoverProof: jsonb(), returnProof: jsonb(), note: text(),
+    ownerReturnAt: nowDate(), requesterReturnAt: nowDate(), lastReminderAt: nowDate(),
+    disputedAt: nowDate(), disputeReason: text(), disputeDetails: text(),
+    disputedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    resolvedAt: nowDate(), resolutionNote: text(),
+    resolvedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues)]).enableRLS();
 
 export const communities = pgTable('communities', {
@@ -208,7 +235,8 @@ export const bookSyncLogsRelations = relations(bookSyncLogs, ({ one }) => ({ boo
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({ user: one(userProfiles, { fields: [bookmarks.userId], references: [userProfiles.id] }), book: one(books, { fields: [bookmarks.bookId], references: [books.id] }) }));
 export const userInterestsRelations = relations(userInterests, ({ one }) => ({ user: one(userProfiles, { fields: [userInterests.userId], references: [userProfiles.id] }) }));
 export const bookListingsRelations = relations(bookListings, ({ one, many }) => ({ ownerUser: one(userProfiles, { fields: [bookListings.ownerId], references: [userProfiles.id] }), book: one(books, { fields: [bookListings.bookId], references: [books.id] }), requests: many(borrowRequests) }));
-export const borrowRequestsRelations = relations(borrowRequests, ({ one }) => ({ listing: one(bookListings, { fields: [borrowRequests.listingId], references: [bookListings.id] }), requester: one(userProfiles, { fields: [borrowRequests.requesterId], references: [userProfiles.id] }), borrowing: one(borrowings), access: one(bookAccesses) }));
+export const borrowRequestsRelations = relations(borrowRequests, ({ one, many }) => ({ listing: one(bookListings, { fields: [borrowRequests.listingId], references: [bookListings.id] }), requester: one(userProfiles, { fields: [borrowRequests.requesterId], references: [userProfiles.id] }), borrowing: one(borrowings), access: one(bookAccesses), events: many(borrowEvents) }));
+export const borrowEventsRelations = relations(borrowEvents, ({ one }) => ({ request: one(borrowRequests, { fields: [borrowEvents.requestId], references: [borrowRequests.id] }) }));
 export const bookAccessesRelations = relations(bookAccesses, ({ one }) => ({ request: one(borrowRequests, { fields: [bookAccesses.requestId], references: [borrowRequests.id] }) }));
 export const borrowingsRelations = relations(borrowings, ({ one }) => ({ request: one(borrowRequests, { fields: [borrowings.requestId], references: [borrowRequests.id] }) }));
 export const communitiesRelations = relations(communities, ({ one, many }) => ({ owner: one(userProfiles, { fields: [communities.ownerId], references: [userProfiles.id] }), memberships: many(communityMemberships), events: many(events), merchandise: many(merchandiseListings) }));

@@ -33,6 +33,10 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `POST` | `/api/admin/users/[userId]/email` | Admin | Mengembalikan email lengkap dari Supabase Auth (butuh `SUPABASE_SERVICE_ROLE_KEY`); setiap permintaan dicatat di `admin_audit_logs`; 10 per menit |
 | `PUT` | `/api/admin/settings/catalog` | Admin | Menyimpan pengaturan Katalog Buku (`primaryProvider`, `fallbackEnabled`, `staleAfterDays` 7/14/30/60/90, `showAttribution`); kolom yang berubah dicatat di `admin_audit_logs` |
 | `POST` | `/api/admin/books/[bookId]/sync` | Admin | Sinkron ulang satu rekaman dari Open Library/Google Books; maks. 6 per menit per admin; setiap percobaan tercatat di `book_sync_logs` |
+| `POST` | `/api/borrow-requests` | Wajib login | `{ listingId, meetingPoint?, loanDays, preferredTime?, note?, agreed: true }`; `201`. Ditolak untuk salinan sendiri (`403`), salinan tersembunyi/pemilik ditangguhkan (`404`), salinan tidak `AVAILABLE`, lama pinjam di atas aturan pemilik, titik temu di luar daftar pemilik, atau permintaan aktif ganda (`409`) |
+| `PATCH` | `/api/borrow-requests/[requestId]` | Pemilik listing atau peminjam | `{ action }`: `approve` dan `reject` (`reason` dari daftar tetap, `note` wajib untuk "Lainnya", `markUnavailable?`) hanya untuk pemilik saat `PENDING`; `cancel` oleh peminjam saat `PENDING` atau oleh siapa pun saat `APPROVED`; `confirm_handover` oleh masing-masing pihak saat `APPROVED`. Menerima satu permintaan membuat listing `RESERVED` dan menolak permintaan lain yang menunggu |
+| `PATCH` | `/api/borrowings/[borrowingId]` | Pemilik listing atau peminjam | `{ action }`: `confirm_return` (keduanya; listing kembali `AVAILABLE` setelah dua konfirmasi), `remind` (pemilik, hanya saat terlambat, sekali per 24 jam), `report_problem` (`reason`, `details` 10–500 karakter; pinjaman menjadi `DISPUTED`) |
+| `PATCH` | `/api/admin/borrowings/[borrowingId]` | Admin | `{ outcome: RETURNED\|LOST, note }`; memutus sengketa (`409` bila sudah diputus). `RETURNED` membuat listing `AVAILABLE`, `LOST` membuat listing `UNAVAILABLE`; tercatat di riwayat pinjaman dan `admin_audit_logs` |
 | `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
 
 Rute kompatibilitas lama `/api/me/bookmarks/[bookId]` dan `/api/me/book-listings...` masih diarahkan ke handler yang sama.
@@ -53,6 +57,6 @@ Endpoint rekomendasi memakai baseline kecocokan kategori/minat lokal pada TB-040
 
 ## Belum menjadi kontrak aktif
 
-Belum ada endpoint perpustakaan/akses buku, permintaan pinjam, borrowing, CRUD komunitas/acara, penulisan merchandise/order, atau verifikasi. Endpoint baca publik komunitas/acara/merchandise dan rekomendasi baseline sudah aktif sebagaimana dirinci di atas. Siklus pinjam menunggu `DEC-02`; integrasi katalog eksternal menunggu `DEC-06`; transaksi merchandise menunggu `DEC-03`.
+Belum ada endpoint perpustakaan/akses buku, CRUD komunitas/acara, penulisan merchandise/order, atau verifikasi. Endpoint baca publik komunitas/acara/merchandise dan rekomendasi baseline sudah aktif sebagaimana dirinci di atas. Siklus pinjam mengikuti `DEC-02` (lihat `docs/DECISIONS.md`); perpanjangan pinjaman belum diputuskan. Integrasi katalog eksternal menunggu `DEC-06`; transaksi merchandise menunggu `DEC-03`.
 
 Halaman `/libraries` saat ini hanya menjelaskan bahwa inventaris buku perpustakaan belum dapat disajikan. Tidak ada endpoint ketersediaan perpustakaan sampai sumber data, pemilik pembaruan, status, dan kesegaran disepakati pada `DEC-13`.

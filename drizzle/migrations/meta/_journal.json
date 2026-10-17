@@ -57,6 +57,13 @@
       "when": 1792231599421,
       "tag": "0007_app_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792257265298,
+      "tag": "0008_borrowing_lifecycle",
+      "breakpoints": true
     }
   ]
 }

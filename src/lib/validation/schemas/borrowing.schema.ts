@@ -5,133 +5,75 @@ import {
     borrowingStatusValues,
     bookAccessStatusValues,
 } from "@/lib/db/schema";
+import { problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
 
 import {
-    listingIdParamSchema,
     requestIdParamSchema,
+    uuidSchema,
 } from "../common";
 
-import {
-    noteSchema,
-} from "../strings";
+export const borrowRequestStatusSchema = z.enum(borrowRequestStatusValues);
+export const borrowingStatusSchema = z.enum(borrowingStatusValues);
+export const bookAccessStatusSchema = z.enum(bookAccessStatusValues);
 
-export const borrowRequestStatusSchema =
-    z.enum(
-        borrowRequestStatusValues,
-    );
+const optionalText = (max: number, message: string) =>
+    z.string().trim().max(max, message).optional().transform((value) => value || undefined);
 
-export const borrowingStatusSchema =
-    z.enum(
-        borrowingStatusValues,
-    );
+/** Figma "Ajukan Pinjam" (299:2608). Whether the period and meeting point fit the listing is checked server-side. */
+export const createBorrowRequestSchema = z
+    .object({
+        listingId: z.uuid(),
+        meetingPoint: optionalText(80, "Titik temu maksimal 80 karakter."),
+        loanDays: z.coerce.number().int().min(1).max(60),
+        preferredTime: optionalText(80, "Waktu bertemu maksimal 80 karakter."),
+        note: optionalText(200, "Pesan maksimal 200 karakter."),
+        agreed: z.literal(true, { error: "Setujui etika bertukar sebelum mengirim permintaan." }),
+    })
+    .strict();
 
-export const bookAccessStatusSchema =
-    z.enum(
-        bookAccessStatusValues,
-    );
+export const borrowRequestIdSchema = requestIdParamSchema;
 
-export const createBorrowRequestSchema =
+export const borrowRequestActionSchema = z.discriminatedUnion("action", [
+    z.object({ action: z.literal("approve") }).strict(),
+    z.object({ action: z.literal("cancel") }).strict(),
+    z.object({ action: z.literal("confirm_handover") }).strict(),
     z
         .object({
-            listingId:
-                z.uuid(),
-
-            note:
-                noteSchema,
-        })
-        .strict();
-
-export const updateBorrowRequestSchema =
-    z
-        .object({
-            status:
-                borrowRequestStatusSchema,
-
-            note:
-                noteSchema,
-        })
-        .strict();
-
-export const borrowingListingIdSchema =
-    listingIdParamSchema;
-
-export const borrowingRequestIdSchema =
-    requestIdParamSchema;
-
-export const createBorrowingSchema =
-    z
-        .object({
-            requestId:
-                z.uuid(),
-
-            handedOverAt:
-                z.coerce.date()
-                    .optional(),
-
-            dueAt:
-                z.coerce.date()
-                    .optional(),
-
-            note:
-                noteSchema,
+            action: z.literal("reject"),
+            reason: z.enum(rejectionReasons, { error: "Pilih alasan penolakan." }),
+            note: optionalText(200, "Catatan maksimal 200 karakter."),
+            markUnavailable: z.boolean().optional(),
         })
         .strict()
-        .refine(
-            (data) =>
-                !data.dueAt ||
-                !data.handedOverAt ||
-                data.dueAt >
-                data.handedOverAt,
-            {
-                error:
-                    "Due date must be after handover date.",
-                path: ["dueAt"],
-            },
-        );
+        .refine((data) => data.reason !== "Lainnya" || Boolean(data.note), {
+            error: "Isi catatan jika memilih \"Lainnya\".",
+            path: ["note"],
+        }),
+]);
 
-export const updateBorrowingSchema =
+export const borrowingIdSchema = z.object({ borrowingId: uuidSchema });
+
+const problemReasonValues = problemReasons.map((reason) => reason.value) as [string, ...string[]];
+
+export const borrowingActionSchema = z.discriminatedUnion("action", [
+    z.object({ action: z.literal("confirm_return") }).strict(),
+    z.object({ action: z.literal("remind") }).strict(),
     z
         .object({
-            status:
-                borrowingStatusSchema,
-
-            dueAt:
-                z.coerce.date()
-                    .nullable()
-                    .optional(),
-
-            note:
-                noteSchema,
+            action: z.literal("report_problem"),
+            reason: z.enum(problemReasonValues, { error: "Pilih jenis masalah." }),
+            details: z.string().trim().min(10, "Jelaskan masalahnya minimal 10 karakter.").max(500, "Penjelasan maksimal 500 karakter."),
         })
-        .strict();
+        .strict(),
+]);
 
-export const createBookAccessSchema =
-    z
-        .object({
-            requestId:
-                z.uuid(),
+export const resolveBorrowingDisputeSchema = z
+    .object({
+        outcome: z.enum(["RETURNED", "LOST"], { error: "Pilih hasil sengketa." }),
+        note: z.string().trim().min(5, "Tulis alasan keputusan minimal 5 karakter.").max(500, "Alasan maksimal 500 karakter."),
+    })
+    .strict();
 
-            expiresAt:
-                z.coerce.date()
-                    .optional(),
-
-            note:
-                noteSchema,
-        })
-        .strict();
-
-export const updateBookAccessSchema =
-    z
-        .object({
-            status:
-                bookAccessStatusSchema,
-
-            expiresAt:
-                z.coerce.date()
-                    .nullable()
-                    .optional(),
-
-            note:
-                noteSchema,
-        })
-        .strict();
+export type CreateBorrowRequestInput = z.infer<typeof createBorrowRequestSchema>;
+export type BorrowRequestActionInput = z.infer<typeof borrowRequestActionSchema>;
+export type BorrowingActionInput = z.infer<typeof borrowingActionSchema>;
