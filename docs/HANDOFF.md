@@ -43,11 +43,11 @@ bun run check
 bun run db:migrate:dev
 ```
 
-Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. `bun run db:seed` mengisi data dummy (UUID `5eed0000-0000-4000-8000-…`), dan `--reset` menghapusnya lalu mengisi ulang.
+Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. Tidak ada lagi seed dummy: `scripts/retire-seed-data.ts` (sekali jalan, sudah diterapkan) menggantinya dengan data asli. Tambah buku lewat pencarian di `/books` atau sinkron di Data Buku.
 
 ### Database
 
-- DB di `.env` adalah Supabase remote (pooler `ap-southeast-1`). Pemilik repo **menyetujuinya sebagai DB dev** untuk seeding dan migrasi.
+- DB di `.env` adalah Supabase remote (pooler `ap-southeast-1`). Pemilik repo **menyetujuinya sebagai DB dev** untuk migrasi dan data uji.
 - Migrasi **0000–0007 sudah diterapkan**, dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
 - Helper `enumCheck` di `schema.ts` menulis literal, bukan `$1`. Tanpa itu, `drizzle-kit generate` menghasilkan DDL tidak valid dan mencoba membuat ulang semua check constraint.
 - Setelah skema berubah, **restart dev server**. HMR tidak memuat ulang modul skema, dan errornya muncul sebagai `Cannot read properties of undefined (reading 'replace')`.
@@ -114,20 +114,17 @@ DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library 
 
 1. TB-042 tinjauan alur kritis, TB-043 logging operasional, TB-015 katalog komponen form (lihat daftar lengkap di percakapan terakhir / TASKS.md).
 2. Uji tampilan kegagalan provider TB-021 di browser (saat ini hanya tes unit).
-3. **Pembersihan data uji** (§7). Perlu persetujuan pemilik; sesi admin pemilik ada di browser pane.
 4. **Uji alur daftar OTP** dengan email sungguhan (bagian reset sudah diuji pemilik).
 5. Pra-rilis TB-047 s.d. TB-050: perlu rotasi kredensial dan keputusan hosting DEC-01.
 
-## 7. Data uji yang tertinggal di DB dev
+## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)
 
-- Listing QA *Ronggeng Dukuh Paruk* ("Uji QA - Cikini", UNAVAILABLE) masih ada dan **memblokir `db:seed --reset`**. Fitur hapus listing sudah tersedia, tetapi pemilik memilih menundanya.
-- "Komunitas Dummy Menunggu Verifikasi" (`…304`) masih **VERIFIED** akibat uji TB-031.
-- Buku dummy `…101–…106` sudah disinkronkan: ISBN dan sampulnya terisi dari Open Library, dan masing-masing punya baris `book_sync_logs`.
-- Akun dummy `…003` punya baris `admin_audit_logs` (tangguhkan/pulihkan, peran naik/turun); statusnya sekarang Anggota aktif. Listing dummy `…203` punya riwayat hide/restore di `verifications`.
-- Buku **"Amba"** (Laksmi Pamuntjak) diimpor dari Open Library saat uji TB-021; ini rekaman katalog sungguhan, boleh dipertahankan.
-- `app_settings.catalog` sudah ada barisnya dengan nilai default, dan ada 2 baris audit `SETTINGS_UPDATED`.
-- Satu laporan QA berstatus REJECTED. Laporan "Informasi keliru" milik pemilik repo berstatus REVIEWING: **jangan diubah**.
-- Listing "Bumi Manusia" milik Ilyas Maulana adalah **data pengguna sungguhan**: jangan disentuh.
+- **Tidak ada lagi baris dummy** (`5eed0000-…`): profil, listing, komunitas, acara, merchandise, dan keanggotaan dummy sudah dihapus beserta auditnya, begitu pula listing QA *Ronggeng Dukuh Paruk*.
+- **Katalog: 21 buku asli**, semuanya rekaman Open Library. Tujuh di antaranya bekas buku dummy yang diubah di tempat (ID `5eed0000-…01xx` tetap supaya listing dan laporan yang merujuknya utuh); "Filosofi Teras" dihapus karena tidak ada padanan persis. Sisanya diimpor lewat `POST /api/books/import`. Tahun terbit mengikuti data Open Library (mis. "Bumi Manusia" tercatat 1972 di sana).
+- **Komunitas, acara, dan merchandise kosong.** Jangan dikarang; isi hanya dengan data sungguhan dari pemilik repo.
+- Listing "Bumi Manusia" milik **Ilyas Maulana** adalah data pengguna sungguhan: jangan disentuh.
+- Laporan "Informasi keliru" (REVIEWING, buku Bumi Manusia) milik pemilik repo: **jangan diubah**. Laporan QA REJECTED (buku Pulang) masih ada.
+- `app_settings.catalog` berisi nilai default, dengan 2 baris audit `SETTINGS_UPDATED`.
 
 ## 8. Catatan teknis dan jebakan
 

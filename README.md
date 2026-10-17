@@ -39,7 +39,7 @@ bun run typecheck
 bun run build
 ```
 
-For UI review on a development database, `bun run db:seed` inserts dummy profiles, books, listings, communities, events, and merchandise; `bun run db:seed --reset` removes only those rows (fixed UUIDs prefixed `5eed0000-`). Never run it against production.
+The development database holds real catalog data imported from Open Library and Google Books; there is no dummy seed any more (it was retired with `scripts/retire-seed-data.ts`). Add books through the catalog search on `/books` or the admin catalog sync. Run `bun run db:migrate:dev` to list pending migrations and `bun run db:migrate:dev -- --apply` to apply them.
 
 The test suite uses Bun's test runner and PGlite for isolated request parsing and migration checks. It does not replace staging tests for Supabase Auth, PostgreSQL policies, Upstash, or browser flows.
 
