@@ -49,6 +49,7 @@ export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPEN
 export const membershipRoleValues = ['OWNER', 'MANAGER', 'MEMBER'] as const;
 export const membershipStatusValues = ['PENDING', 'ACTIVE', 'REJECTED', 'LEFT', 'REMOVED'] as const;
 export const publicationStatusValues = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
+export const eventLocationTypeValues = ['PHYSICAL', 'ONLINE'] as const;
 export const merchandiseStatusValues = ['DRAFT', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED'] as const;
 export const reportStatusValues = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED'] as const;
 export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'] as const;
@@ -170,8 +171,32 @@ export const borrowings = pgTable('borrowings', {
 export const communities = pgTable('communities', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }), name: text().notNull(),
     description: text(), publicLocation: text(), status: enumText(communityStatusValues).notNull().default('PENDING'),
+    // Public contacts chosen by the owner (DEC-04); shown on the profile and used for merchandise.
+    contactEmail: text(), instagramHandle: text(), whatsappNumber: text(),
     createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('communities_owner_id_idx').on(t.ownerId), index('communities_status_idx').on(t.status), index('communities_name_idx').on(t.name), enumCheck(t.status, communityStatusValues)]).enableRLS();
+
+/** Evidence sent with a community application or a later re-verification request (DEC-04). */
+export const communitySubmissions = pgTable('community_submissions', {
+    id: id(), communityId: uuid().notNull().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    submittedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    evidenceUrl: text().notNull(), note: text(),
+    // Optional file in the private `community-evidence` storage bucket; read through signed URLs only.
+    filePath: text(), fileName: text(), fileType: text(), fileSize: integer(),
+    status: enumText(verificationStatusValues).notNull().default('PENDING'),
+    reviewerId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }), reviewNote: text(),
+    createdAt: createdAt(), reviewedAt: nowDate(),
+}, t => [index('community_submissions_community_idx').on(t.communityId, t.createdAt), index('community_submissions_status_idx').on(t.status, t.createdAt), enumCheck(t.status, verificationStatusValues)]).enableRLS();
+
+/** One-time manager invitations; only the SHA-256 of the token is stored. */
+export const communityInvites = pgTable('community_invites', {
+    id: id(), communityId: uuid().notNull().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    tokenHash: text().notNull().unique(),
+    createdById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    expiresAt: timestamp({ withTimezone: true, mode: 'date' }).notNull(), usedAt: nowDate(),
+    usedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    revokedAt: nowDate(), createdAt: createdAt(),
+}, t => [index('community_invites_community_idx').on(t.communityId, t.createdAt)]).enableRLS();
 
 export const communityMemberships = pgTable('community_memberships', {
     id: id(), userId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
@@ -183,13 +208,18 @@ export const communityMemberships = pgTable('community_memberships', {
 export const events = pgTable('events', {
     id: id(), communityId: uuid().notNull().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }), title: text().notNull(),
     description: text(), startsAt: nowDate(), endsAt: nowDate(), publicLocation: text(), eventUrl: text(),
+    // Figma "Buat Acara": a public venue (name + address/landmark) or an online link.
+    locationType: enumText(eventLocationTypeValues).notNull().default('PHYSICAL'), venueName: text(),
     publicationStatus: enumText(publicationStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('events_community_publication_status_idx').on(t.communityId, t.publicationStatus), index('events_starts_at_idx').on(t.startsAt), enumCheck(t.publicationStatus, publicationStatusValues)]).enableRLS();
+}, t => [index('events_community_publication_status_idx').on(t.communityId, t.publicationStatus), index('events_starts_at_idx').on(t.startsAt), enumCheck(t.publicationStatus, publicationStatusValues), enumCheck(t.locationType, eventLocationTypeValues)]).enableRLS();
 
 export const merchandiseListings = pgTable('merchandise_listings', {
     id: id(), communityId: uuid().notNull().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }), title: text().notNull(),
     description: text(), priceAmount: numeric({ precision: 12, scale: 2 }), currency: varchar({ length: 3 }), priceNote: text(),
     availability: enumText(listingAvailabilityValues).notNull().default('AVAILABLE'), imageReference: text(),
+    category: text(), stockNote: text(),
+    // Null means "use the community contact"; otherwise an item-specific way to buy.
+    contactOverride: text(),
     status: enumText(merchandiseStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('merchandise_listings_community_status_idx').on(t.communityId, t.status), index('merchandise_listings_availability_idx').on(t.availability), enumCheck(t.availability, listingAvailabilityValues), enumCheck(t.status, merchandiseStatusValues)]).enableRLS();
 

@@ -37,6 +37,19 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `PATCH` | `/api/borrow-requests/[requestId]` | Pemilik listing atau peminjam | `{ action }`: `approve` dan `reject` (`reason` dari daftar tetap, `note` wajib untuk "Lainnya", `markUnavailable?`) hanya untuk pemilik saat `PENDING`; `cancel` oleh peminjam saat `PENDING` atau oleh siapa pun saat `APPROVED`; `confirm_handover` oleh masing-masing pihak saat `APPROVED`. Menerima satu permintaan membuat listing `RESERVED` dan menolak permintaan lain yang menunggu |
 | `PATCH` | `/api/borrowings/[borrowingId]` | Pemilik listing atau peminjam | `{ action }`: `confirm_return` (keduanya; listing kembali `AVAILABLE` setelah dua konfirmasi), `remind` (pemilik, hanya saat terlambat, sekali per 24 jam), `report_problem` (`reason`, `details` 10–500 karakter; pinjaman menjadi `DISPUTED`) |
 | `PATCH` | `/api/admin/borrowings/[borrowingId]` | Admin | `{ outcome: RETURNED\|LOST, note }`; memutus sengketa (`409` bila sudah diputus). `RETURNED` membuat listing `AVAILABLE`, `LOST` membuat listing `UNAVAILABLE`; tercatat di riwayat pinjaman dan `admin_audit_logs` |
+| `POST` | `/api/communities` | Wajib login | `multipart/form-data`: profil (`name`, `description`, `publicLocation`, `contactEmail`, `instagramHandle?`, `whatsappNumber?`), `evidenceUrl`, `note?`, dan `file?` (PDF/JPG/PNG ≤5 MB). Membuat komunitas `PENDING` (`201`). `409` bila akun sudah punya 3 pengajuan menunggu; 5 per jam |
+| `PATCH` | `/api/communities/[communityId]` | Pemilik | Mengubah profil dan kontak publik. Langsung tampil bila komunitas `VERIFIED`; ditolak untuk komunitas `SUSPENDED` |
+| `POST` | `/api/communities/[communityId]/submissions` | Pemilik | `multipart/form-data` (`evidenceUrl`, `note?`, `file?`). Mengirim pembaruan verifikasi (komunitas `VERIFIED`, status tidak berubah) atau mengajukan ulang (komunitas `REJECTED` kembali `PENDING`). `409` bila masih ada pengajuan menunggu |
+| `GET` | `/api/communities/[communityId]/submissions/[submissionId]/file` | Pemilik atau admin | Redirect `303` ke URL bertanda tangan 60 detik untuk berkas bukti |
+| `POST` | `/api/communities/[communityId]/invites` | Pemilik komunitas `VERIFIED` | Membuat tautan undangan pengurus sekali pakai (7 hari). Token hanya muncul di respons ini |
+| `DELETE` | `/api/communities/[communityId]/invites/[inviteId]` | Pemilik | Mencabut undangan yang belum dipakai |
+| `POST` | `/api/community-invites/accept` | Wajib login | `{ token }`; menjadikan akun sebagai pengurus. `409` bila undangan sudah dipakai, dicabut, atau kedaluwarsa, atau bila akun adalah pemilik |
+| `DELETE` | `/api/communities/[communityId]/managers/[userId]` | Pemilik | Mencabut pengurus |
+| `POST` | `/api/communities/[communityId]/events` | Pemilik atau pengurus komunitas `VERIFIED` | Membuat acara. Draf boleh belum punya jadwal atau lokasi; `PUBLISHED` wajib punya tanggal, jam (WIB), dan lokasi fisik atau tautan daring |
+| `PUT`, `POST`, `DELETE` | `/api/communities/[communityId]/events/[eventId]` | Pemilik atau pengurus | `PUT` mengubah acara; `POST { action: archive \| duplicate }` mengarsipkan acara atau menyalinnya menjadi draf; `DELETE` hanya untuk draf (`409` untuk acara yang sudah terbit) |
+| `POST` | `/api/communities/[communityId]/merchandise` | Pemilik atau pengurus | Menambah merchandise: harga tetap dalam IDR atau tanpa harga tetap, ketersediaan, kontak komunitas atau kontak khusus, tampil/sembunyi. Tidak ada transaksi di platform (DEC-03) |
+| `PUT`, `DELETE` | `/api/communities/[communityId]/merchandise/[itemId]` | Pemilik atau pengurus | Mengubah atau menghapus merchandise (diarsipkan bila pernah dipesan) |
+| `PATCH` | `/api/admin/community-submissions/[submissionId]` | Admin | `{ decision: CONFIRM\|DISMISS, note? }` (alasan wajib untuk `DISMISS`) untuk pembaruan verifikasi komunitas `VERIFIED`. Pengajuan komunitas baru diputus lewat peninjauan komunitas |
 | `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
 
 Rute kompatibilitas lama `/api/me/bookmarks/[bookId]` dan `/api/me/book-listings...` masih diarahkan ke handler yang sama.
@@ -57,6 +70,6 @@ Endpoint rekomendasi memakai baseline kecocokan kategori/minat lokal pada TB-040
 
 ## Belum menjadi kontrak aktif
 
-Belum ada endpoint perpustakaan/akses buku, CRUD komunitas/acara, penulisan merchandise/order, atau verifikasi. Endpoint baca publik komunitas/acara/merchandise dan rekomendasi baseline sudah aktif sebagaimana dirinci di atas. Siklus pinjam mengikuti `DEC-02` (lihat `docs/DECISIONS.md`); perpanjangan pinjaman belum diputuskan. Integrasi katalog eksternal menunggu `DEC-06`; transaksi merchandise menunggu `DEC-03`.
+Belum ada endpoint perpustakaan/akses buku, penulisan merchandise/order, atau verifikasi. Endpoint baca publik komunitas/acara/merchandise dan rekomendasi baseline sudah aktif sebagaimana dirinci di atas. Siklus pinjam mengikuti `DEC-02` (lihat `docs/DECISIONS.md`); perpanjangan pinjaman belum diputuskan. Integrasi katalog eksternal menunggu `DEC-06`; transaksi merchandise menunggu `DEC-03`.
 
 Halaman `/libraries` saat ini hanya menjelaskan bahwa inventaris buku perpustakaan belum dapat disajikan. Tidak ada endpoint ketersediaan perpustakaan sampai sumber data, pemilik pembaruan, status, dan kesegaran disepakati pada `DEC-13`.

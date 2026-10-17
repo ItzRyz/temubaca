@@ -5,7 +5,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { resolveCommunityReview, type CommunityReviewDecision } from "@/features/verification/community-review";
 
 import { db } from "../client";
-import { communities, userProfiles, verifications } from "../schema";
+import { communities, communitySubmissions, userProfiles, verifications } from "../schema";
 
 export class InvalidReviewTransitionError extends Error {}
 
@@ -42,6 +42,13 @@ export async function reviewCommunity(input: {
             createdAt: now,
             updatedAt: now,
         }).returning({ id: verifications.id });
+        // The application evidence (DEC-04) is answered by the same decision.
+        if (community.status === "PENDING") {
+            await tx
+                .update(communitySubmissions)
+                .set({ status: next.verificationStatus === "APPROVED" ? "APPROVED" : "REJECTED", reviewerId: input.reviewerId, reviewNote: input.note || null, reviewedAt: now })
+                .where(and(eq(communitySubmissions.communityId, community.id), eq(communitySubmissions.status, "PENDING")));
+        }
 
         return { id: community.id, previousStatus: community.status, status: next.status, verificationId: record.id };
     });

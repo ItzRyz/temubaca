@@ -7,8 +7,8 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 | DEC-01 | Platform mana yang menjadi sumber autentikasi, hosting, dan database final? | Arsitektur, biaya, akses | Terbuka |
 | DEC-02 | Apa aturan lengkap siklus pinjam, tenggat, pembatalan, pengembalian, kerusakan, dan sengketa? | Data, UI, keselamatan | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah); perpanjangan pinjaman masih terbuka |
 | DEC-03 | Merchandise MVP berupa katalog dengan transaksi di luar platform atau checkout/pesanan di TemuBaca? | Scope, pembayaran, hukum, operasional, data alamat | Terbuka; checkout diblokir |
-| DEC-04 | Siapa yang boleh membuat/mengelola komunitas dan bagaimana verifikasinya? | Role, moderasi, kualitas data | Terbuka |
-| DEC-05 | Apakah acara/komunitas/merchandise dimoderasi sebelum publikasi? | Alur admin dan waktu tayang | Terbuka |
+| DEC-04 | Siapa yang boleh membuat/mengelola komunitas dan bagaimana verifikasinya? | Role, moderasi, kualitas data | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah) |
+| DEC-05 | Apakah acara/komunitas/merchandise dimoderasi sebelum publikasi? | Alur admin dan waktu tayang | Diputuskan pemilik repo, 18 Okt 2026: komunitas baru ditinjau; konten komunitas terverifikasi langsung tampil |
 | DEC-06 | Provider katalog buku final dan aturan penggunaan/atribusi apa? | Kelengkapan, cache, legalitas | Sebagian: pemilik repo (17 Okt 2026) memilih Open Library sebagai sumber utama dan Google Books sebagai pelengkap; adapter dipakai untuk sinkron ulang oleh admin. Aturan atribusi tampilan, cache, dan kuota production masih terbuka |
 | DEC-07 | Provider peta, geocoding, dan kebijakan lokasi apa? | Biaya, privasi, akurasi | Leaflet/OSM kandidat |
 | DEC-08 | Apakah rekomendasi MVP perlu layanan ML terpisah, atau cukup baseline di aplikasi? | Kompleksitas dan deployment | Python/FastAPI kandidat |
@@ -45,3 +45,27 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Endpoint `/api/borrow-requests`, `/api/borrowings`, dan `/api/admin/borrowings`.
   - TB-025 tidak lagi tertahan.
   - "Perpanjang" dari Figma belum dibuat karena aturan perpanjangan belum diputuskan.
+
+## DEC-04 dan DEC-05 — Pengelolaan dan verifikasi komunitas (diputuskan 18 Okt 2026)
+
+- **Keputusan:**
+  - Setiap akun yang masuk dapat mengajukan komunitas: nama, deskripsi, wilayah dan titik pertemuan publik, surel kontak, Instagram/WhatsApp opsional, serta tautan bukti aktivitas (wajib) dengan catatan atau berkas opsional (PDF/JPG/PNG, maks. 5 MB).
+  - Komunitas berstatus `PENDING` sampai admin menyetujuinya di Peninjauan. Satu akun maksimal punya 3 pengajuan yang menunggu. Pengajuan yang ditolak dapat dikirim ulang dengan bukti baru.
+  - Pemilik mengubah profil dan kontak, mengundang pengurus lewat tautan sekali pakai (berlaku 7 hari, dapat dicabut), mencabut pengurus, dan mengajukan pembaruan verifikasi.
+  - Pengurus mengelola acara dan merchandise.
+  - Komunitas `VERIFIED` menerbitkan acara, merchandise, dan perubahan profil tanpa tinjauan lebih dulu. Pengawasan dilakukan lewat laporan pengguna, dan admin tetap dapat menangguhkan komunitas.
+  - Pembaruan verifikasi tidak menurunkan status. Admin hanya mengonfirmasi (tanggal persetujuan diperbarui) atau mengabaikannya dengan alasan.
+  - Berkas bukti disimpan di bucket Supabase Storage privat `community-evidence` dan hanya dapat dibuka pemilik atau admin lewat URL bertanda tangan 60 detik.
+- **Konteks:** frame Figma Kelola Komunitas (`25:5622`), Acara (`293:2321`, `293:2789`), dan Merchandise (`308:2665`, `309:2665`, `309:2922`, `309:3271`).
+- **Opsi yang dipertimbangkan:**
+  - Komunitas hanya dibuat admin.
+  - Pengelolaan oleh pemilik saja.
+  - Bukti berupa tautan saja.
+  - Moderasi setiap acara dan merchandise sebelum terbit.
+- **Pemilik:** pemilik repo.
+- **Tanggal:** 18 Okt 2026.
+- **Dampak:**
+  - Migrasi `0009_community_management` menambah tabel `community_submissions` dan `community_invites`, kolom kontak komunitas, lokasi acara (fisik/daring, nama tempat), serta kategori, keterangan stok, dan kontak khusus merchandise.
+  - Endpoint baru di `/api/communities/...`, `/api/community-invites/accept`, dan `/api/admin/community-submissions/[submissionId]`.
+  - TB-030, TB-032, dan TB-033 dapat dikerjakan.
+  - Unggah logo dan foto merchandise belum dibuat; hanya berkas bukti yang disimpan.

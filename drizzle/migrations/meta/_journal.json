@@ -64,6 +64,13 @@
       "when": 1792257265298,
       "tag": "0008_borrowing_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792259329013,
+      "tag": "0009_community_management",
+      "breakpoints": true
     }
   ]
 }
