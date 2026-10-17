@@ -172,6 +172,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                     targetType="BOOK"
                                     targetId={book.id}
                                     targetName={book.title}
+                                    targetMeta={authors}
                                     isAuthenticated={user !== null}
                                     label="Laporkan"
                                     triggerClassName={headerActionClass}
@@ -257,9 +258,9 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                 <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">Ajukan pinjam segera hadir</span>
                                             </div>
                                             <div className="flex flex-wrap gap-x-4">
-                                                <ReportForm targetType="BOOK_LISTING" targetId={listing.id} isAuthenticated={user !== null} label="Laporkan listing" />
+                                                <ReportForm targetType="BOOK_LISTING" targetId={listing.id} targetName={book.title} targetMeta={`Salinan milik ${listing.ownerUser.displayName}`} isAuthenticated={user !== null} label="Laporkan listing" />
                                                 {listing.ownerId !== user?.id && (
-                                                    <ReportForm targetType="USER" targetId={listing.ownerId} isAuthenticated={user !== null} label="Laporkan akun pemilik" />
+                                                    <ReportForm targetType="USER" targetId={listing.ownerId} targetName={listing.ownerUser.displayName} targetMeta="Pemilik buku" isAuthenticated={user !== null} label="Laporkan akun pemilik" />
                                                 )}
                                             </div>
                                         </li>

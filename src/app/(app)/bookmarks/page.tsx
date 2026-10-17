@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
 import { listSavedBooks } from "@/lib/db/queries/bookmarks";
+import { listBookFacets } from "@/lib/db/queries/books";
 import { listUserInterests } from "@/lib/db/queries/interests";
+import { getBookRecommendations } from "@/features/recommendations/queries";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,10 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
     const query = (single(params.q) ?? "").trim().slice(0, 100);
 
     const [saved, interests] = await Promise.all([listSavedBooks(user.id), listUserInterests(user.id)]);
+    // Only the Minat tab needs catalog categories and recommendations.
+    const [facets, recommendations] = tab === "interests"
+        ? await Promise.all([listBookFacets(16), getBookRecommendations(user.id)])
+        : [null, null];
     const availableCount = saved.filter((book) => book.availableCopies > 0).length;
     const needle = query.toLocaleLowerCase("id-ID");
     const visible = saved.filter((book) =>
@@ -191,10 +197,60 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
 
             {tab === "interests" && (
                 <section aria-label="Minat dan preferensi">
-                    <InterestManager interests={interests.map(({ id, subject }) => ({ id, subject }))} />
-                    <Link href="/recommendations" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
-                        Lihat rekomendasi berdasarkan minat <ArrowRight aria-hidden="true" className="size-3.5" />
-                    </Link>
+                    <InterestManager
+                        interests={interests.map(({ id, subject }) => ({ id, subject }))}
+                        suggestions={(facets?.categories ?? []).map((facet) => facet.value)}
+                    />
+
+                    <section aria-labelledby="prefs-title" className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                        <h2 id="prefs-title" className="font-heading text-xl font-semibold">Preferensi Rekomendasi</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">Cara TemuBaca memakai data Anda saat ini.</p>
+                        <ul className="mt-4 flex list-none flex-col divide-y divide-border border-t border-border p-0 text-sm">
+                            <li className="flex gap-3 py-3"><Sparkles aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Minat dicocokkan dengan kategori buku</span><span className="text-xs text-muted-foreground">Buku yang kategorinya sama dengan minat Anda diurutkan lebih dulu.</span></span></li>
+                            <li className="flex gap-3 py-3"><Bookmark aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Buku yang sudah disimpan tidak direkomendasikan ulang</span><span className="text-xs text-muted-foreground">Pengaturan memakai bookmark sebagai sinyal rekomendasi belum tersedia.</span></span></li>
+                            <li className="flex gap-3 py-3"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span><span className="block font-medium">Lokasi tidak dipakai</span><span className="text-xs text-muted-foreground">Rekomendasi berbasis lokasi umum menunggu kebijakan lokasi (DEC-07).</span></span></li>
+                        </ul>
+                    </section>
+
+                    <section aria-labelledby="recs-title" className="mt-8">
+                        <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <div>
+                                <h2 id="recs-title" className="font-heading text-xl font-semibold">Rekomendasi untuk Anda</h2>
+                                <p className="text-sm text-muted-foreground">{recommendations?.fallback ? "Belum ada buku yang cocok dengan minat Anda; berikut pilihan dari katalog." : "Beginilah minat Anda dipakai."}</p>
+                            </div>
+                            <Link href="/recommendations" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                Lihat semua rekomendasi <ArrowRight aria-hidden="true" className="size-3.5" />
+                            </Link>
+                        </div>
+                        {recommendations && recommendations.items.length > 0 ? (
+                            <ul className="mt-4 grid list-none gap-4 p-0 md:grid-cols-3">
+                                {recommendations.items.slice(0, 3).map((book) => (
+                                    <li key={book.id} className="flex flex-col rounded-2xl border border-border bg-card p-4">
+                                        <div className="flex gap-4">
+                                            <span aria-hidden="true" className="flex h-20 w-14 shrink-0 items-center justify-center overflow-hidden rounded bg-[#f1f0ea] text-primary">
+                                                {book.coverUrl ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img src={book.coverUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
+                                                ) : <BookOpen className="size-5" />}
+                                            </span>
+                                            <div className="min-w-0">
+                                                <h3 className="line-clamp-2 font-heading text-base font-semibold">{book.title}</h3>
+                                                <p className="truncate text-sm text-muted-foreground">{book.authors.join(", ") || "Penulis belum tercatat"}</p>
+                                                {!recommendations.fallback && book.matched[0] && (
+                                                    <p className="mt-1 inline-flex rounded bg-[#ebe9e1] px-2 py-0.5 text-[11px] font-semibold">Karena minat: {book.matched[0]}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Link href={`/books/${book.id}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                            Lihat Buku<span className="sr-only">: {book.title}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="mt-4 rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">Katalog belum berisi buku untuk direkomendasikan.</p>
+                        )}
+                    </section>
                 </section>
             )}
 
