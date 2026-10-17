@@ -1,5 +1,10 @@
+"use client";
+
 import { BookOpen, CircleCheck, Settings2, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { cn } from "@/lib/utils";
 
 type NavItem = { href: string | null; label: string; icon: LucideIcon; badge?: number };
 
@@ -9,9 +14,10 @@ function initialsOf(name: string) {
 
 /** Admin portal navigation (Figma "Peninjauan" 143:807). Items without a page yet are shown as unavailable. */
 export function AdminSidebar({ displayName, pendingCount }: { displayName: string; pendingCount: number }) {
+    const pathname = usePathname();
     const items: NavItem[] = [
         { href: "/moderation/reports", label: "Peninjauan", icon: CircleCheck, badge: pendingCount },
-        { href: null, label: "Data Komunitas", icon: UsersRound },
+        { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: null, label: "Data Buku", icon: BookOpen },
         { href: null, label: "Data Pengguna", icon: UserRound },
         { href: null, label: "Pengaturan", icon: Settings2 },
@@ -26,7 +32,14 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
                     {items.map(({ href, label, icon: Icon, badge }) => (
                         <li key={label} className="shrink-0">
                             {href ? (
-                                <Link href={href} aria-current="page" className="flex h-10 items-center gap-2.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground">
+                                <Link
+                                    href={href}
+                                    aria-current={pathname.startsWith(href) ? "page" : undefined}
+                                    className={cn(
+                                        "flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm",
+                                        pathname.startsWith(href) ? "bg-primary font-semibold text-primary-foreground" : "text-foreground hover:bg-muted",
+                                    )}
+                                >
                                     <Icon aria-hidden="true" className="size-4" />
                                     <span className="flex-1">{label}</span>
                                     {badge !== undefined && badge > 0 && (

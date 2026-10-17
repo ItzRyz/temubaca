@@ -15,8 +15,17 @@ const decisionUi: Record<CommunityReviewDecision, { label: string; icon: LucideI
     REINSTATE: { label: "Pulihkan Verifikasi", icon: RotateCcw, tone: "primary" },
 };
 
-/** Approve / reject / suspend / reinstate a community; the server re-validates the transition. */
-export function CommunityDecisionPanel({ communityId, decisions }: { communityId: string; decisions: CommunityReviewDecision[] }) {
+const reviewQueueHref = "/moderation/reports?tab=communities&view={status}&item={id}";
+
+/**
+ * Approve / reject / suspend / reinstate a community; the server re-validates the transition.
+ * `nextHref` is where to go afterwards: `{status}` and `{id}` are filled in so the item stays selected.
+ */
+export function CommunityDecisionPanel({ communityId, decisions, nextHref = reviewQueueHref }: {
+    communityId: string;
+    decisions: CommunityReviewDecision[];
+    nextHref?: string;
+}) {
     const router = useRouter();
     const noteId = useId();
     const [note, setNote] = useState("");
@@ -48,7 +57,7 @@ export function CommunityDecisionPanel({ communityId, decisions }: { communityId
             setNote("");
             // The community now belongs to another status filter; follow it so the result stays visible.
             const nextStatus = payload.data?.status;
-            if (nextStatus) router.replace(`/moderation/reports?tab=communities&view=${nextStatus}&item=${communityId}`, { scroll: false });
+            if (nextStatus) router.replace(nextHref.replace("{status}", nextStatus).replace("{id}", communityId), { scroll: false });
             else router.refresh();
         } catch {
             setMessage({ tone: "error", text: "Keputusan belum dapat disimpan. Periksa koneksi lalu coba lagi." });

@@ -2,9 +2,13 @@ import "server-only";
 
 import {
     and,
+    asc,
     desc,
     eq,
     ilike,
+    inArray,
+    isNotNull,
+    or,
     sql,
 } from "drizzle-orm";
 
@@ -14,6 +18,8 @@ import {
     communities,
     communityMemberships,
     events,
+    merchandiseListings,
+    reports,
     userProfiles,
 } from "../schema";
 
@@ -361,4 +367,82 @@ export async function countCommunitiesByStatus(status: (typeof communities.$infe
         .from(communities)
         .where(eq(communities.status, status));
     return result?.total ?? 0;
+}
+
+type CommunityStatus = (typeof communities.$inferSelect)["status"];
+
+/**
+ * Admin directory of communities in every status, with content counts (Figma "Data Komunitas" 160:859).
+ * Correlated subqueries use quoted, qualified names so they bind to the outer `communities` row.
+ */
+export async function listCommunitiesForAdmin(options: { status?: CommunityStatus; query?: string; region?: string; limit?: number } = {}) {
+    const query = options.query?.trim().replace(/[\%_]/g, "\$&");
+
+    return db
+        .select({
+            id: communities.id,
+            name: communities.name,
+            description: communities.description,
+            publicLocation: communities.publicLocation,
+            status: communities.status,
+            createdAt: communities.createdAt,
+            ownerId: communities.ownerId,
+            ownerName: userProfiles.displayName,
+            publishedEventCount: sql<number>`(
+                select count(*)::int from ${events}
+                where "events"."communityId" = "communities"."id"
+                and "events"."publicationStatus" = 'PUBLISHED'
+            )`,
+            publishedMerchandiseCount: sql<number>`(
+                select count(*)::int from ${merchandiseListings}
+                where "merchandise_listings"."communityId" = "communities"."id"
+                and "merchandise_listings"."status" = 'PUBLISHED'
+            )`,
+            reportCount: sql<number>`(
+                select count(*)::int from ${reports}
+                where "reports"."targetType" = 'COMMUNITY'
+                and "reports"."targetId" = "communities"."id"
+            )`,
+        })
+        .from(communities)
+        .innerJoin(userProfiles, eq(communities.ownerId, userProfiles.id))
+        .where(and(
+            options.status ? eq(communities.status, options.status) : undefined,
+            query ? or(ilike(communities.name, `%${query}%`), ilike(userProfiles.displayName, `%${query}%`)) : undefined,
+            options.region ? eq(communities.publicLocation, options.region) : undefined,
+        ))
+        .orderBy(asc(communities.name))
+        .limit(Math.min(Math.max(options.limit ?? 100, 1), 200));
+}
+
+/** Distinct public areas for the admin region filter. */
+export async function listCommunityRegions() {
+    const rows = await db
+        .selectDistinct({ region: communities.publicLocation })
+        .from(communities)
+        .where(isNotNull(communities.publicLocation))
+        .orderBy(asc(communities.publicLocation));
+    return rows.map((row) => row.region).filter((region): region is string => Boolean(region?.trim()));
+}
+
+/** Owner plus ACTIVE managers of a community, for admin review only. */
+export async function listCommunityManagers(communityId: string, ownerId: string) {
+    const rows = await db
+        .select({ userId: userProfiles.id, name: userProfiles.displayName, role: communityMemberships.role })
+        .from(communityMemberships)
+        .innerJoin(userProfiles, eq(communityMemberships.userId, userProfiles.id))
+        .where(and(
+            eq(communityMemberships.communityId, communityId),
+            eq(communityMemberships.status, "ACTIVE"),
+            inArray(communityMemberships.role, ["OWNER", "MANAGER"]),
+        ))
+        .orderBy(asc(userProfiles.displayName));
+
+    const [owner] = await db
+        .select({ userId: userProfiles.id, name: userProfiles.displayName })
+        .from(userProfiles)
+        .where(eq(userProfiles.id, ownerId));
+
+    const others = rows.filter((row) => row.userId !== ownerId).map((row) => ({ ...row, role: "MANAGER" as const }));
+    return owner ? [{ ...owner, role: "OWNER" as const }, ...others] : others;
 }
