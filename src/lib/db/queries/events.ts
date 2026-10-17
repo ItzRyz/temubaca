@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNotNull, lt, or, sql } from "drizzle-orm";
 
 import { db } from "../client";
 import { communities, events } from "../schema";
@@ -11,6 +11,7 @@ export async function listUpcomingPublicEvents(options?: {
     offset?: number;
     now?: Date;
     communityId?: string;
+    query?: string;
 }) {
     const now = options?.now ?? new Date();
     return db
@@ -32,13 +33,22 @@ export async function listUpcomingPublicEvents(options?: {
             isNotNull(events.startsAt),
             gte(events.startsAt, now),
             options?.communityId ? eq(events.communityId, options.communityId) : undefined,
+            eventTextMatch(options?.query),
         ))
         .orderBy(asc(events.startsAt))
         .limit(Math.min(Math.max(options?.limit ?? 20, 1), 100))
         .offset(Math.max(options?.offset ?? 0, 0));
 }
 
-export async function countUpcomingPublicEvents(now = new Date()) {
+/** Case-insensitive match on event title or community name, with LIKE wildcards escaped. */
+function eventTextMatch(query: string | undefined) {
+    const trimmed = query?.trim();
+    if (!trimmed) return undefined;
+    const pattern = `%${trimmed.replace(/[\\%_]/g, "\\$&")}%`;
+    return or(ilike(events.title, pattern), ilike(communities.name, pattern));
+}
+
+export async function countUpcomingPublicEvents(now = new Date(), query?: string) {
     const [result] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(events)
@@ -48,6 +58,7 @@ export async function countUpcomingPublicEvents(now = new Date()) {
             eq(communities.status, "VERIFIED"),
             isNotNull(events.startsAt),
             gte(events.startsAt, now),
+            eventTextMatch(query),
         ));
     return result?.total ?? 0;
 }
@@ -75,4 +86,21 @@ export async function findPublicEvent(eventId: string) {
         ))
         .limit(1);
     return event ?? null;
+}
+
+/** PUBLISHED events of a VERIFIED community that already started, newest first ("Acara Sebelumnya"). */
+export async function listPastPublicEvents(communityId: string, limit = 6, now = new Date()) {
+    return db
+        .select({ id: events.id, title: events.title, startsAt: events.startsAt, publicLocation: events.publicLocation })
+        .from(events)
+        .innerJoin(communities, eq(events.communityId, communities.id))
+        .where(and(
+            eq(events.communityId, communityId),
+            eq(events.publicationStatus, "PUBLISHED"),
+            eq(communities.status, "VERIFIED"),
+            isNotNull(events.startsAt),
+            lt(events.startsAt, now),
+        ))
+        .orderBy(desc(events.startsAt))
+        .limit(Math.min(Math.max(limit, 1), 50));
 }

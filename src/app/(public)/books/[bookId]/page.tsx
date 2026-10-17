@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { BookOpen, ChevronRight, Info, Landmark, MapPin } from "lucide-react";
+import { ArrowDown, ArrowRight, CheckCircle2, ChevronRight, Clock, Info, Library, MapPin, PlusCircle, UserRound, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -12,6 +12,7 @@ import { listBookDataSources } from "@/lib/db/queries/catalog-admin";
 import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { bookConditionValues, books } from "@/lib/db/schema";
 import { getCurrentUser } from "@/lib/auth";
+import { timeAgo } from "@/lib/format/relative-time";
 import { uuidSchema } from "@/lib/validation/common";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
 import { BookListingForm } from "@/features/book-listings/components/book-listing-form";
@@ -33,12 +34,10 @@ const conditionLabels: Record<(typeof bookConditionValues)[number], string> = {
 const sourceNames = { OPEN_LIBRARY: "Open Library", GOOGLE_BOOKS: "Google Books" } as const;
 const sourceLinks = { OPEN_LIBRARY: "https://openlibrary.org", GOOGLE_BOOKS: "https://books.google.com" } as const;
 
-const updatedFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
-
 const findPublicBook = cache(async (bookId: string) => {
     const parsedId = uuidSchema.safeParse(bookId);
     if (!parsedId.success) return null;
-    const [book] = await db.select(publicBookColumns).from(books).where(eq(books.id, parsedId.data)).limit(1);
+    const [book] = await db.select({ ...publicBookColumns, syncedAt: books.syncedAt }).from(books).where(eq(books.id, parsedId.data)).limit(1);
     return book ?? null;
 });
 
@@ -47,11 +46,17 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
     return book ? { title: book.title, description: book.description?.slice(0, 160) ?? undefined } : {};
 }
 
-const secondaryButtonClass = "flex min-h-10 flex-1 items-center justify-center rounded-lg border border-border bg-[#faf7f0] px-4 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
+const secondaryButtonClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
+const headerActionClass = "inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
+const VISIBLE_COPIES = 4;
 
-export default async function BookDetailPage({ params }: BookPageProps) {
+type BookPageSearch = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+/** Figma "Detail Buku" revision 250:2312 with states 252:2036 (no owner), 252:2431 (guest), 253:2150 (no library). */
+export default async function BookDetailPage({ params, searchParams }: BookPageProps & BookPageSearch) {
     const book = await findPublicBook((await params).bookId);
     if (!book) notFound();
+    const showAllCopies = (await searchParams).salinan === "semua";
 
     const [user, listings, { settings }, sources] = await Promise.all([
         getCurrentUser(),
@@ -61,16 +66,24 @@ export default async function BookDetailPage({ params }: BookPageProps) {
     ]);
     const isBookmarked = user ? await hasBookmark(user.id, book.id) : false;
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
-    const bibliography = [
+    const details = [
         ["ISBN", book.isbn],
-        ["Bahasa", book.language],
-        ["Tahun terbit", book.publishedAt],
         ["Penerbit", book.publisher],
+        ["Terbit pertama", book.publishedAt],
+        ["Bahasa", book.language],
     ].filter((entry): entry is [string, string] => Boolean(entry[1]));
-    const meta = [book.publishedAt, book.publisher, book.language].filter(Boolean);
+    const visibleCopies = showAllCopies ? listings : listings.slice(0, VISIBLE_COPIES);
+    const hiddenCopies = listings.length - visibleCopies.length;
+    const now = new Date();
+    const returnTo = `/books/${book.id}`;
+
+    // Library availability is not modelled yet (DEC-13), so the summary only speaks about shared copies.
+    const summary = listings.length > 0
+        ? `Belum tercatat di perpustakaan, tetapi ada ${listings.length} salinan warga yang sedang ditawarkan.`
+        : "Belum tercatat di perpustakaan, dan belum ada salinan warga yang ditawarkan.";
 
     return (
-        <main className="mx-auto w-full max-w-[1256px] px-4 pb-8 sm:px-6">
+        <main className="mx-auto w-full max-w-[1256px] px-4 pb-10 sm:px-6">
             <nav aria-label="Breadcrumb" className="py-3 text-[13px] text-muted-foreground">
                 <ol className="flex list-none flex-wrap items-center gap-1 p-0">
                     <li><Link href="/books" className="hover:text-foreground">Jelajahi</Link></li>
@@ -88,56 +101,55 @@ export default async function BookDetailPage({ params }: BookPageProps) {
             <div className="mt-4 grid gap-6 lg:grid-cols-[372px_1fr]">
                 <div className="flex flex-col gap-6">
                     <section aria-label="Sampul dan aksi" className="rounded-2xl border border-border bg-card p-5 shadow-[0_4px_16px_rgba(31,41,36,0.05)]">
-                        <div className="mx-auto flex aspect-[4/5] max-w-xs items-center justify-center overflow-hidden rounded-xl bg-[#f1f0ea] p-6 lg:max-w-none">
+                        <div className="mx-auto flex aspect-[4/5] max-w-xs items-center justify-center overflow-hidden rounded-xl bg-[#ffdbd1] p-6 lg:max-w-none">
                             {book.coverUrl ? (
                                 // Cover hosts depend on the catalog provider (DEC-06); next/image remote patterns are not fixed yet.
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={book.coverUrl} alt={`Sampul ${book.title}`} referrerPolicy="no-referrer" className="h-full rounded object-contain shadow-md" />
                             ) : (
-                                <div aria-hidden="true" className="flex h-full w-3/4 flex-col items-center justify-center gap-3 rounded bg-card p-5 text-center shadow-md">
-                                    <BookOpen className="size-6 text-primary/50" />
-                                    <span className="font-heading text-xl leading-tight font-semibold text-primary uppercase">{book.title}</span>
-                                    <span className="h-px w-12 bg-border" />
-                                    <span className="font-heading text-sm text-foreground/80 italic">{authors}</span>
+                                <div aria-hidden="true" className="flex flex-col items-center gap-3 text-center">
+                                    <span className="font-heading text-[32px] leading-tight font-semibold text-[#5c1a0a]">{book.title}</span>
+                                    <span className="text-sm text-[#5c1a0a]/80">{authors}</span>
                                 </div>
                             )}
                         </div>
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-4 flex flex-col gap-2">
+                            <a href="#cara-membaca" className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                                Lihat Cara Membaca <ArrowDown aria-hidden="true" className="size-4" />
+                            </a>
                             <BookmarkButton
                                 bookId={book.id}
                                 isAuthenticated={user !== null}
                                 initiallyBookmarked={isBookmarked}
-                                className={`${secondaryButtonClass} w-full disabled:opacity-60`}
+                                className={`${secondaryButtonClass} disabled:opacity-60`}
                             />
-                            <ShareButton title={book.title} className={secondaryButtonClass} />
                         </div>
-                        <ReportForm targetType="BOOK" targetId={book.id} targetName={book.title} isAuthenticated={user !== null} />
                     </section>
 
-                    {bibliography.length > 0 && (
-                        <section aria-labelledby="bibliography-title" className="rounded-2xl border border-border bg-card p-5">
-                            <h2 id="bibliography-title" className="font-heading text-lg font-semibold">Identitas Bibliografi</h2>
-                            <dl className="mt-4 grid gap-3">
-                                {bibliography.map(([label, value]) => (
-                                    <div key={label} className="flex justify-between gap-4 text-sm">
+                    {details.length > 0 && (
+                        <section aria-labelledby="details-title" className="rounded-2xl border border-border bg-card p-5">
+                            <h2 id="details-title" className="font-heading text-lg font-semibold">Detail Buku</h2>
+                            <dl className="mt-3 divide-y divide-border">
+                                {details.map(([label, value]) => (
+                                    <div key={label} className="flex justify-between gap-4 py-2.5 text-sm">
                                         <dt className="text-muted-foreground">{label}</dt>
                                         <dd className="text-right font-medium">{value}</dd>
                                     </div>
                                 ))}
                             </dl>
-                            <p className="mt-4 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-foreground/80">
-                                Tercatat di <strong>{listings.length} salinan warga</strong> yang sedang tersedia.
-                            </p>
                             {settings.showAttribution && sources.length > 0 && (
-                                <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                                    Sumber data:{" "}
-                                    {sources.map((source, index) => (
-                                        <span key={source}>
-                                            {index > 0 && ", "}
-                                            <a href={sourceLinks[source]} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{sourceNames[source]}</a>
-                                        </span>
-                                    ))}
-                                    . Data dapat tidak lengkap.
+                                <p className="mt-3 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
+                                    <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                                    <span>
+                                        Sumber:{" "}
+                                        {sources.map((source, index) => (
+                                            <span key={source}>
+                                                {index > 0 && ", "}
+                                                <a href={sourceLinks[source]} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{sourceNames[source]}</a>
+                                            </span>
+                                        ))}
+                                        {book.syncedAt && <> · diperbarui {timeAgo(book.syncedAt, now)}</>}. Data dapat tidak lengkap.
+                                    </span>
                                 </p>
                             )}
                         </section>
@@ -146,86 +158,152 @@ export default async function BookDetailPage({ params }: BookPageProps) {
 
                 <div className="flex min-w-0 flex-col gap-6">
                     <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                        {book.categories.length > 0 && (
-                            <ul className="flex list-none flex-wrap gap-2 p-0">
-                                {book.categories.slice(0, 3).map((category) => (
-                                    <li key={category} className="rounded-full bg-[#e7efe8] px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground">{category}</li>
-                                ))}
-                            </ul>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            {book.categories.length > 0 ? (
+                                <ul aria-label="Kategori" className="flex list-none flex-wrap gap-2 p-0">
+                                    {book.categories.slice(0, 2).map((category) => (
+                                        <li key={category} className="rounded bg-[#e7efe8] px-2 py-0.5 text-xs font-semibold text-secondary-foreground">{category}</li>
+                                    ))}
+                                </ul>
+                            ) : <span />}
+                            <div className="flex gap-2">
+                                <ShareButton title={book.title} className={headerActionClass} />
+                                <ReportForm
+                                    targetType="BOOK"
+                                    targetId={book.id}
+                                    targetName={book.title}
+                                    isAuthenticated={user !== null}
+                                    label="Laporkan"
+                                    triggerClassName={headerActionClass}
+                                />
+                            </div>
+                        </div>
+                        <h1 className="mt-3 font-heading text-[32px] leading-tight font-bold tracking-tight text-primary sm:text-[40px]">{book.title}</h1>
+                        <p className="mt-2 text-sm text-muted-foreground">Karya <span className="font-semibold text-primary">{authors}</span></p>
+                        <p className="mt-4 flex items-start gap-2 rounded-lg bg-[#e7efe8] px-3 py-2.5 text-sm text-secondary-foreground">
+                            <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" /> {summary}
+                        </p>
+                    </section>
+
+                    <section id="cara-membaca" aria-labelledby="access-title" className="scroll-mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                        <h2 id="access-title" className="font-heading text-xl font-semibold">Cara Membaca di Sekitar Anda</h2>
+                        <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-[#faf7f0] px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+                            <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                            Ketersediaan bisa berubah. Konfirmasi kepada pemilik salinan sebelum bertemu di tempat umum.
+                        </p>
+
+                        <h3 className="mt-6 flex items-center gap-2 font-heading text-base font-semibold"><Library aria-hidden="true" className="size-4" /> Perpustakaan</h3>
+                        <div className="mt-3 flex flex-col items-center rounded-xl border border-dashed border-border bg-[#faf7f0] px-5 py-6 text-center">
+                            <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary"><Library className="size-4" /></span>
+                            <p className="mt-3 font-heading text-base font-semibold">Data perpustakaan belum tersedia</p>
+                            <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                                TemuBaca belum menampilkan koleksi perpustakaan sampai sumber datanya terverifikasi. Ini tidak berarti bukunya tidak ada di perpustakaan.
+                            </p>
+                            <Link href="/libraries" className="mt-4 inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-semibold hover:bg-muted">
+                                Tentang data perpustakaan <ChevronRight aria-hidden="true" className="size-4" />
+                            </Link>
+                        </div>
+
+                        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="flex items-center gap-2 font-heading text-base font-semibold"><UsersRound aria-hidden="true" className="size-4" /> Berbagi Buku</h3>
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground"><Info aria-hidden="true" className="size-3.5" /> Serah terima selalu di tempat umum</p>
+                        </div>
+
+                        {!user && listings.length > 0 && (
+                            <div className="mt-3 flex flex-col gap-3 rounded-xl bg-[#e7efe8] p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="flex items-start gap-3 text-sm">
+                                    <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-primary"><UserRound className="size-4" /></span>
+                                    <span>
+                                        <span className="block font-semibold">Masuk untuk menyimpan dan membagikan buku</span>
+                                        <span className="block text-xs text-muted-foreground">Semua salinan tetap bisa kamu lihat tanpa akun.</span>
+                                    </span>
+                                </p>
+                                <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                    Masuk / Daftar
+                                </Link>
+                            </div>
                         )}
-                        <h1 className="mt-3 font-heading text-[32px] leading-tight font-bold tracking-tight text-[#1f2924] sm:text-[40px]">{book.title}</h1>
-                        <p className="mt-2 text-sm text-muted-foreground">Karya <span className="font-heading text-base font-semibold text-primary">{authors}</span></p>
-                        {meta.length > 0 && <p className="mt-4 text-xs text-muted-foreground">{meta.join(" • ")}</p>}
+
+                        {listings.length > 0 ? (
+                            <>
+                                <ul className="mt-3 grid list-none gap-4 p-0 md:grid-cols-2">
+                                    {visibleCopies.map((listing) => (
+                                        <li key={listing.id} className="flex flex-col rounded-xl border border-border bg-[#faf7f0] p-4">
+                                            <p className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                                <UserRound aria-hidden="true" className="size-3" /> Perorangan
+                                            </p>
+                                            <div className="mt-1 flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold">{listing.ownerUser.displayName}</p>
+                                                    <p className="text-xs text-muted-foreground">Bergabung sejak {listing.ownerUser.createdAt.getFullYear()}</p>
+                                                </div>
+                                                <span className="shrink-0 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">Ditawarkan</span>
+                                            </div>
+                                            <ul className="mt-3 mb-4 flex list-none flex-col gap-1.5 p-0 text-xs text-foreground/85">
+                                                <li className="flex items-start gap-1.5">
+                                                    <MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                                                    {listing.publicLocation ? `Titik temu: ${listing.publicLocation}` : "Titik temu dipilih bersama di tempat umum"}
+                                                </li>
+                                                <li className="flex items-start gap-1.5"><CheckCircle2 aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> Kondisi buku: {conditionLabels[listing.condition]}</li>
+                                                {listing.borrowingRules && (
+                                                    <li className="flex items-start gap-1.5"><Clock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> <span className="line-clamp-2">{listing.borrowingRules}</span></li>
+                                                )}
+                                            </ul>
+                                            <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                                                <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                                    <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" /> Diperbarui {timeAgo(listing.updatedAt, now)}
+                                                </p>
+                                                {/* Borrow requests wait on DEC-02; say so instead of a button that does nothing. */}
+                                                <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">Ajukan pinjam segera hadir</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-x-4">
+                                                <ReportForm targetType="BOOK_LISTING" targetId={listing.id} isAuthenticated={user !== null} label="Laporkan listing" />
+                                                {listing.ownerId !== user?.id && (
+                                                    <ReportForm targetType="USER" targetId={listing.ownerId} isAuthenticated={user !== null} label="Laporkan akun pemilik" />
+                                                )}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                                {hiddenCopies > 0 && (
+                                    <p className="mt-4 text-right">
+                                        <Link href={`${returnTo}?salinan=semua#cara-membaca`} className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-primary hover:underline">
+                                            Lihat {hiddenCopies} lainnya <ArrowRight aria-hidden="true" className="size-4" />
+                                        </Link>
+                                    </p>
+                                )}
+                            </>
+                        ) : (
+                            <div className="mt-3 flex flex-col items-center rounded-xl border border-dashed border-border bg-[#faf7f0] px-5 py-8 text-center">
+                                <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary"><UsersRound className="size-4" /></span>
+                                <p className="mt-3 font-heading text-base font-semibold">Belum ada yang berbagi buku ini</p>
+                                <p className="mt-1 max-w-md text-sm text-muted-foreground">Jadilah yang pertama membagikan salinan di areamu.</p>
+                                <a href="#punya-salinan" className="mt-4 inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                    <PlusCircle aria-hidden="true" className="size-4" /> Daftarkan Buku Anda
+                                </a>
+                            </div>
+                        )}
                     </section>
 
                     <section aria-labelledby="about-title" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                        <h2 id="about-title" className="font-heading text-xl font-semibold">Tentang Buku</h2>
+                        <h2 id="about-title" className="font-heading text-xl font-semibold text-primary">Tentang Buku</h2>
                         {book.description ? (
-                            <p className="mt-4 font-heading text-base leading-7 whitespace-pre-line text-foreground/90">{book.description}</p>
+                            <p className="mt-4 text-base leading-7 whitespace-pre-line text-foreground/90">{book.description}</p>
                         ) : (
                             <p className="mt-4 text-sm text-muted-foreground">Sinopsis belum tersedia di katalog.</p>
                         )}
                     </section>
 
-                    <section aria-labelledby="access-title" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                        <h2 id="access-title" className="font-heading text-xl font-semibold">Cara Membaca di Sekitarmu</h2>
-                        <p className="mt-1 text-xs text-muted-foreground">Ketersediaan fisik yang dicatat di TemuBaca.</p>
-                        <p className="mt-4 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-foreground/80">
-                            Ketersediaan buku fisik dapat berubah. Konfirmasi kepada pemilik salinan sebelum bertemu di lokasi publik.
-                        </p>
-
-                        <h3 className="mt-6 flex items-center gap-2 font-heading text-base font-semibold"><Landmark aria-hidden="true" className="size-4" /> Perpustakaan Daerah &amp; Publik</h3>
-                        <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                            Data ketersediaan perpustakaan belum tersedia di TemuBaca. Kami tidak menampilkan stok perpustakaan sampai sumber datanya terverifikasi.
-                        </p>
-
-                        <h3 className="mt-6 font-heading text-base font-semibold">Berbagi Buku Warga</h3>
-                        {listings.length > 0 ? (
-                            <ul className="mt-3 grid list-none gap-4 p-0 md:grid-cols-2">
-                                {listings.map((listing) => (
-                                    <li key={listing.id} className="flex flex-col rounded-xl border border-border bg-[#faf7f0] p-4">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <p className="text-sm font-semibold">Salinan milik {listing.ownerUser.displayName}</p>
-                                            <span className="shrink-0 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">Bisa dipinjam</span>
-                                        </div>
-                                        <p className="mt-1 text-xs text-muted-foreground">Kondisi: {conditionLabels[listing.condition]}</p>
-                                        {(listing.publicLocation || listing.borrowingRules) && (
-                                            <div className="mt-3 rounded-lg bg-card p-3 text-xs leading-5">
-                                                {listing.publicLocation && (
-                                                    <p className="flex items-center gap-1 font-semibold"><MapPin aria-hidden="true" className="size-3.5" /> {listing.publicLocation}</p>
-                                                )}
-                                                {listing.borrowingRules && <p className="mt-1 whitespace-pre-line text-muted-foreground">{listing.borrowingRules}</p>}
-                                            </div>
-                                        )}
-                                        <p className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                            <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" />
-                                            Diperbarui {updatedFormatter.format(listing.updatedAt)}
-                                        </p>
-                                        <ReportForm targetType="BOOK_LISTING" targetId={listing.id} isAuthenticated={user !== null} />
-                                        {listing.ownerId !== user?.id && (
-                                            <ReportForm targetType="USER" targetId={listing.ownerId} isAuthenticated={user !== null} label="Laporkan akun pemilik" />
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-3 flex items-start gap-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                                <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                                Belum ada salinan warga yang tersedia untuk buku ini.
-                            </p>
-                        )}
-                    </section>
-
-                    <section aria-labelledby="share-copy-title" className="rounded-2xl bg-primary p-6 text-primary-foreground">
-                        <h2 id="share-copy-title" className="font-heading text-xl font-semibold">Punya Salinan di Rumah?</h2>
+                    <section id="punya-salinan" aria-labelledby="share-copy-title" className="scroll-mt-6 rounded-2xl bg-primary p-6 text-primary-foreground">
+                        <h2 id="share-copy-title" className="font-heading text-xl font-semibold">Punya salinan di rumah?</h2>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-primary-foreground/80">
-                            Bantu pembaca lain di sekitarmu. Daftarkan salinanmu dengan lokasi publik umum saja—alamat rumah tidak perlu dicantumkan.
+                            Bantu pembaca di sekitar Anda. Alamat rumah tidak pernah ditampilkan; serah terima dilakukan di titik temu publik.
                         </p>
                         <BookListingForm
                             bookId={book.id}
                             isAuthenticated={user !== null}
                             className="mt-5"
-                            triggerClassName="inline-flex min-h-10 items-center gap-1 rounded-lg bg-card px-4 text-sm font-semibold text-primary hover:bg-card/90"
+                            triggerClassName="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-card px-4 text-sm font-semibold text-primary hover:bg-card/90"
                         />
                     </section>
                 </div>

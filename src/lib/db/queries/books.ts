@@ -284,12 +284,13 @@ export async function listBookListings(
             ownerUser: {
                 columns: {
                     displayName: true,
+                    createdAt: true,
                 },
             },
         },
 
         orderBy: (table, { desc }) => [
-            desc(table.createdAt),
+            desc(table.updatedAt),
         ],
     });
 }

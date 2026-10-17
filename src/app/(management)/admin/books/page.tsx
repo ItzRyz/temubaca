@@ -17,6 +17,7 @@ import {
 import type { bookProviderValues } from "@/lib/db/schema";
 import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { hasGoogleBooksKey } from "@/lib/external/books/registry";
+import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Data buku" };
@@ -45,16 +46,6 @@ const listingViews = { all: "Semua", AVAILABLE: "Tersedia", RESERVED: "Dipesan",
 const catalogViews = { all: "Semua", FRESH: "Terbaru", STALE: "Usang", FAILED: "Gagal", DUPLICATE: "Duplikat" } as const;
 type ListingView = keyof typeof listingViews;
 type CatalogView = keyof typeof catalogViews;
-
-const relative = new Intl.RelativeTimeFormat("id-ID", { numeric: "auto" });
-function timeAgo(value: Date | null | undefined, now: Date) {
-    if (!value) return "Belum pernah";
-    const minutes = Math.round((value.getTime() - now.getTime()) / 60_000);
-    if (Math.abs(minutes) < 60) return relative.format(minutes, "minute");
-    const hours = Math.round(minutes / 60);
-    if (Math.abs(hours) < 24) return relative.format(hours, "hour");
-    return relative.format(Math.round(hours / 24), "day");
-}
 
 function single(value: string | string[] | undefined) {
     return typeof value === "string" ? value : undefined;

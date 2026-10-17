@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronRight, MapPin } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChevronRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { ReportForm } from "@/features/reports/components/report-form";
@@ -41,31 +41,29 @@ export function CommunityCard({ community, isAuthenticated }: { community: Commu
                         </p>
                     )}
                 </div>
-                <span className="flex shrink-0 items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">
-                    <BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi
-                </span>
             </div>
-            <p className="mt-4 line-clamp-4 text-sm leading-[22px] text-muted-foreground">
+            <p className="mt-4 line-clamp-3 text-sm leading-[22px] text-muted-foreground">
                 {community.description || "Belum ada deskripsi komunitas."}
             </p>
-            <dl className="mt-4 grid grid-cols-2 rounded-lg bg-[#f1f0ea] py-2.5 text-center">
-                <div>
-                    <dt className="sr-only">Anggota aktif</dt>
-                    <dd className="text-sm font-semibold">{community.activeMemberCount}</dd>
-                    <dd aria-hidden="true" className="text-[11px] text-muted-foreground">Kawan aktif</dd>
-                </div>
-                <div>
-                    <dt className="sr-only">Acara mendatang</dt>
-                    <dd className="text-sm font-semibold">{community.upcomingEventCount}</dd>
-                    <dd aria-hidden="true" className="text-[11px] text-muted-foreground">Acara mendatang</dd>
-                </div>
-            </dl>
-            <div className="mt-auto pt-4">
-                <Link href={`/communities/${community.id}`} className="flex min-h-10 items-center justify-center gap-1 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+            <ul aria-label="Status" className="mt-3 mb-5 flex list-none flex-wrap gap-1.5 p-0">
+                <li className="flex items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    <BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi
+                </li>
+                <li className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">{community.activeMemberCount} kawan aktif</li>
+            </ul>
+            <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                    <span className="block">Agenda</span>
+                    <span className="flex items-center gap-1 font-semibold text-primary">
+                        <CalendarDays aria-hidden="true" className="size-3.5" />
+                        {community.upcomingEventCount > 0 ? `${community.upcomingEventCount} acara mendatang` : "Belum ada acara terjadwal"}
+                    </span>
+                </p>
+                <Link href={`/communities/${community.id}`} className="flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                     Lihat Profil <ChevronRight aria-hidden="true" className="size-3.5" />
                 </Link>
-                <ReportForm targetType="COMMUNITY" targetId={community.id} targetName={community.name} isAuthenticated={isAuthenticated} />
             </div>
+            <ReportForm targetType="COMMUNITY" targetId={community.id} targetName={community.name} isAuthenticated={isAuthenticated} />
         </article>
     );
 }

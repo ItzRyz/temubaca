@@ -28,12 +28,14 @@ const DETAILS_MAX = 500;
 
 type Status = "idle" | "sending" | "success";
 
-export function ReportForm({ targetType, targetId, isAuthenticated, label = "Laporkan konten", targetName }: {
+export function ReportForm({ targetType, targetId, isAuthenticated, label = "Laporkan konten", targetName, triggerClassName }: {
     targetType: ReportTargetType;
     targetId: string;
     isAuthenticated: boolean;
     /** Trigger text. */
     label?: string;
+    /** Replaces the default text-link trigger styling. */
+    triggerClassName?: string;
     /** Shown in the dialog title, e.g. the book title. */
     targetName?: string;
 }) {
@@ -100,7 +102,7 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
             <button
                 type="button"
                 onClick={open}
-                className="mt-4 flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+                className={triggerClassName ?? "mt-4 flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"}
             >
                 <Flag aria-hidden="true" className="size-3.5" /> {label}
             </button>

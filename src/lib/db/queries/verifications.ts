@@ -64,3 +64,14 @@ export async function listCommunityVerifications(communityId: string, limit = 20
         .orderBy(desc(verifications.createdAt))
         .limit(Math.min(Math.max(limit, 1), 100));
 }
+
+/** When the platform last approved this community, for the public "Status profil" line. No reviewer name. */
+export async function lastCommunityApproval(communityId: string) {
+    const [row] = await db
+        .select({ at: verifications.createdAt })
+        .from(verifications)
+        .where(and(eq(verifications.targetType, "COMMUNITY"), eq(verifications.targetId, communityId), eq(verifications.status, "APPROVED")))
+        .orderBy(desc(verifications.createdAt))
+        .limit(1);
+    return row?.at ?? null;
+}
