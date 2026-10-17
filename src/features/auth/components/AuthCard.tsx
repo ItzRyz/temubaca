@@ -188,7 +188,7 @@ function SignUpForm() {
     const [agreed, setAgreed] = useState(false);
     const { register, handleSubmit, setError, formState: { errors } } = useForm<SignUpInput>({
         resolver: zodResolver(signUpSchema),
-        defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
+        defaultValues: { name: "", email: "", password: "" },
     });
 
     const onSubmit = async (data: SignUpInput) => {
@@ -197,7 +197,7 @@ function SignUpForm() {
         try {
             const result = await signUp(data);
             if (!result.success) {
-                for (const field of ["name", "email", "password", "confirmPassword"] as const) {
+                for (const field of ["name", "email", "password"] as const) {
                     const message = result.fieldErrors?.[field]?.[0];
                     if (message) setError(field, { type: "server", message });
                 }
@@ -213,11 +213,9 @@ function SignUpForm() {
         }
     };
 
-    const togglePassword = <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} />;
-
     return (
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-            <AuthField id="sign-up-name" label="Nama Lengkap" icon={User} type="text" autoComplete="name" error={errors.name?.message} {...register("name")} />
+            <AuthField id="sign-up-name" label="Nama Lengkap" icon={User} type="text" autoComplete="name" placeholder="Nama lengkapmu" error={errors.name?.message} {...register("name")} />
             <AuthField id="sign-up-email" label="Email" icon={Mail} type="email" autoComplete="email" placeholder="nama@email.com" error={errors.email?.message} {...register("email")} />
             <AuthField
                 id="sign-up-password"
@@ -225,18 +223,10 @@ function SignUpForm() {
                 icon={LockKeyhole}
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
+                placeholder="Minimal 8 karakter"
                 error={errors.password?.message}
-                trailing={togglePassword}
+                trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} />}
                 {...register("password")}
-            />
-            <AuthField
-                id="sign-up-confirm-password"
-                label="Konfirmasi Kata Sandi"
-                icon={LockKeyhole}
-                type={showPassword ? "text" : "password"}
-                autoComplete="new-password"
-                error={errors.confirmPassword?.message}
-                {...register("confirmPassword")}
             />
             <div className="flex items-start gap-2.5">
                 <Checkbox id="sign-up-agreement" className="mt-0.5" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />

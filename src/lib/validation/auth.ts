@@ -1,18 +1,23 @@
 import { z } from "zod";
 
-import { displayNameSchema } from "./strings";
 
 const emailSchema = z
     .string()
     .trim()
     .toLowerCase()
-    .max(320)
-    .pipe(z.email({ message: "Format email salah" }));
+    .max(320, { message: "Email terlalu panjang." })
+    .pipe(z.email({ message: "Format email belum benar." }));
 
 const passwordSchema = z
     .string()
-    .min(8, { message: "Password minimal 8 karakter" })
-    .max(128, { message: "Password maksimal 128 karakter" });
+    .min(8, { message: "Kata sandi minimal 8 karakter." })
+    .max(128, { message: "Kata sandi maksimal 128 karakter." });
+
+const nameSchema = z
+    .string()
+    .trim()
+    .min(2, { message: "Nama minimal 2 karakter." })
+    .max(100, { message: "Nama maksimal 100 karakter." });
 
 export const signInSchema = z.object({
     email: emailSchema,
@@ -21,13 +26,9 @@ export const signInSchema = z.object({
 
 export const signUpSchema = z.object({
     email: emailSchema,
-    name: displayNameSchema,
+    name: nameSchema,
     password: passwordSchema,
-    confirmPassword: passwordSchema,
-}).strict().refine((data) => data.password === data.confirmPassword, {
-    message: "Password dan konfirmasi password tidak sama",
-    path: ["confirmPassword"],
-});
+}).strict();
 
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;

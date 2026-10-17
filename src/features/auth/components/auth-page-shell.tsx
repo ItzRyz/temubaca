@@ -7,12 +7,10 @@ type AuthPageShellProps = {
 
 const storyByMode = {
     masuk: {
-        eyebrow: "Akun TemuBaca",
         title: "Kembali ke Ruang Baca Warga",
         description: "Masuk untuk melanjutkan bacaanmu, mengelola buku yang kamu bagikan, dan menyapa kawan baru.",
     },
     daftar: {
-        eyebrow: "Ruang Baca Warga",
         title: "Mari Membaca dan Berbagi Bersama",
         description: "Temukan buku favorit, pinjam dari kawan sekitar, dan bagikan koleksi bacaanmu.",
     },

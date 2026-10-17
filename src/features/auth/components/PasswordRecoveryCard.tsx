@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, KeyRound, LockKeyhole, Mail, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye, EyeClosed, KeyRound, LockKeyhole, Mail, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
 
-import { requestPasswordReset, updatePassword } from "@/features/auth/actions";
+import { requestPasswordReset, signOut, updatePassword } from "@/features/auth/actions";
 
 import { AuthPanel, authFieldShellClass, authInputClass, authPrimaryButtonClass } from "./auth-layout";
 
@@ -89,12 +89,57 @@ export function ForgotPasswordCard() {
     );
 }
 
+function PasswordField({ id, label, placeholder, value, onChange, invalid }: {
+    id: string;
+    label: string;
+    placeholder?: string;
+    value: string;
+    onChange: (value: string) => void;
+    invalid: boolean;
+}) {
+    const [visible, setVisible] = useState(false);
+    return (
+        <div className="flex flex-col gap-1.5">
+            <label htmlFor={id} className="text-sm font-medium text-foreground">{label}</label>
+            <div className={`${authFieldShellClass} ${invalid ? "border-destructive" : "border-input"}`}>
+                <LockKeyhole aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                <input
+                    id={id}
+                    type={visible ? "text" : "password"}
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    required
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                    className={authInputClass}
+                />
+                <button
+                    type="button"
+                    aria-label={visible ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                    aria-pressed={visible}
+                    onClick={() => setVisible((current) => !current)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                    {visible ? <EyeClosed aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export function UpdatePasswordCard() {
+    const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [updated, setUpdated] = useState(false);
+
+    const requirements = [
+        { label: "Minimal 8 karakter", met: password.length >= 8 && password.length <= 128 },
+        { label: "Konfirmasi kata sandi cocok", met: confirmPassword.length > 0 && password === confirmPassword },
+    ];
 
     const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -116,8 +161,12 @@ export function UpdatePasswordCard() {
         setPending(true);
         try {
             const result = await updatePassword(password);
-            if (result.success) setUpdated(true);
-            else setError(result.fieldErrors?.password?.[0] ?? result.message ?? "Pembaruan gagal.");
+            if (result.success) {
+                router.replace("/");
+                router.refresh();
+                return;
+            }
+            setError(result.fieldErrors?.password?.[0] ?? result.message ?? "Pembaruan gagal.");
         } catch {
             setError("Kata sandi belum dapat diperbarui. Minta kode reset yang baru.");
         } finally {
@@ -125,47 +174,33 @@ export function UpdatePasswordCard() {
         }
     };
 
-    const fields = [
-        { id: "new-password", label: "Kata Sandi Baru", value: password, onChange: setPassword },
-        { id: "confirm-new-password", label: "Konfirmasi Kata Sandi", value: confirmPassword, onChange: setConfirmPassword },
-    ];
-
     return (
         <AuthPanel>
-            <PanelHeader
-                title={updated ? "Kata Sandi Diperbarui" : "Buat Kata Sandi Baru"}
-                description={updated ? "Kata sandi baru sudah aktif dan kamu sudah masuk." : "Gunakan kata sandi minimal 8 karakter."}
-            />
-            {updated ? (
-                <Link href="/" className={`${authPrimaryButtonClass} mt-6`}>Lanjut ke beranda</Link>
-            ) : (
-                <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-                    {fields.map((field) => (
-                        <div key={field.id} className="flex flex-col gap-1.5">
-                            <label htmlFor={field.id} className="text-sm font-medium text-foreground">{field.label}</label>
-                            <div className={`${authFieldShellClass} ${error ? "border-destructive" : "border-input"}`}>
-                                <LockKeyhole aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-                                <input
-                                    id={field.id}
-                                    type="password"
-                                    autoComplete="new-password"
-                                    minLength={8}
-                                    maxLength={128}
-                                    required
-                                    value={field.value}
-                                    onChange={(event) => field.onChange(event.target.value)}
-                                    className={authInputClass}
-                                />
-                            </div>
-                        </div>
+            <PanelHeader title="Buat Kata Sandi Baru" description="Buat kata sandi baru yang belum pernah kamu gunakan sebelumnya." />
+            <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
+                <PasswordField id="new-password" label="Kata Sandi Baru" placeholder="Minimal 8 karakter" value={password} onChange={setPassword} invalid={Boolean(error)} />
+                <PasswordField id="confirm-new-password" label="Konfirmasi Kata Sandi Baru" placeholder="Ulangi kata sandi baru" value={confirmPassword} onChange={setConfirmPassword} invalid={Boolean(error)} />
+                <ul aria-label="Syarat kata sandi" className="flex list-none flex-col gap-1 p-0 text-xs leading-[18px]">
+                    {requirements.map((requirement) => (
+                        <li key={requirement.label} className={`flex items-center gap-2 ${requirement.met ? "text-primary" : "text-muted-foreground"}`}>
+                            {requirement.met
+                                ? <Check aria-hidden="true" className="size-3" />
+                                : <span aria-hidden="true" className="mx-[3px] size-1.5 rounded-full bg-current opacity-60" />}
+                            {requirement.label}
+                            <span className="sr-only">{requirement.met ? "(terpenuhi)" : "(belum terpenuhi)"}</span>
+                        </li>
                     ))}
-                    <ErrorMessage message={error} />
-                    <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
-                        {pending ? "Menyimpan..." : "Simpan Kata Sandi Baru"}
-                    </button>
-                </form>
-            )}
-            {!updated && <BackToLogin />}
+                </ul>
+                <ErrorMessage message={error} />
+                <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
+                    {pending ? "Menyimpan..." : "Simpan & Masuk"}
+                    {!pending && <ArrowRight aria-hidden="true" className="size-4" />}
+                </button>
+            </form>
+            {/* The recovery code already signed the user in; cancelling must end that session. */}
+            <form action={signOut} className="mt-4 border-t border-[#ebe9e1] pt-4 text-center">
+                <button type="submit" className="text-[13px] text-muted-foreground hover:text-foreground">Batal, kembali ke halaman masuk</button>
+            </form>
         </AuthPanel>
     );
 }

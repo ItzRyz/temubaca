@@ -9,19 +9,19 @@ export const emailSchema =
         .string()
         .trim()
         .toLowerCase()
-        .max(320)
-        .pipe(z.email());
+        .max(320, { error: "Email terlalu panjang." })
+        .pipe(z.email({ error: "Format email belum benar." }));
 
 export const passwordSchema =
     z
         .string()
         .min(8, {
             error:
-                "Password must contain at least 8 characters.",
+                "Kata sandi minimal 8 karakter.",
         })
         .max(128, {
             error:
-                "Password must not exceed 128 characters.",
+                "Kata sandi maksimal 128 karakter.",
         });
 
 export const signInSchema =

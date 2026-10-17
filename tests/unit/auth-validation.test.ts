@@ -30,7 +30,6 @@ describe("authentication input validation", () => {
             email: "reader@example.com",
             name: "Pembaca Baru",
             password: "correct-horse-battery",
-            confirmPassword: "correct-horse-battery",
             role: "ADMIN",
         });
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, Bookmark, Handshake, LibraryBig } from "lucide-react";
+import { ArrowLeft, Bookmark, HeartHandshake } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -13,7 +13,7 @@ const benefits = [
     {
         title: "Pinjam buku fisik langsung dari kawan",
         description: "Temukan salinan yang dibagikan pembaca lain di sekitarmu.",
-        icon: Handshake,
+        icon: HeartHandshake,
     },
 ];
 
@@ -26,14 +26,13 @@ export const authPrimaryButtonClass =
     "flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_1px_1.5px_rgba(0,0,0,0.1),0_1px_1px_rgba(0,0,0,0.1)] hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60";
 
 type AuthLayoutProps = {
-    eyebrow?: string;
     title: string;
     description: string;
     showBenefits?: boolean;
     children: ReactNode;
 };
 
-export function AuthLayout({ eyebrow, title, description, showBenefits = false, children }: AuthLayoutProps) {
+export function AuthLayout({ title, description, showBenefits = false, children }: AuthLayoutProps) {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">
@@ -44,11 +43,6 @@ export function AuthLayout({ eyebrow, title, description, showBenefits = false, 
                     <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
                         <section className="flex flex-col rounded-[28px] border border-border bg-[#fcfbf7] p-6 shadow-[0_12px_16px_rgba(31,41,36,0.06)] sm:p-9">
                             <div className="flex flex-col items-start gap-6">
-                                {eyebrow && (
-                                    <p className="inline-flex items-center gap-1.5 rounded-full border border-[#dbe1d8] bg-[#e7efe8] px-3 py-1 text-[11px] leading-[16.5px] font-semibold tracking-[0.6px] text-secondary-foreground uppercase">
-                                        <LibraryBig aria-hidden="true" className="size-3" /> {eyebrow}
-                                    </p>
-                                )}
                                 <div className="flex flex-col gap-3">
                                     <h1 className="font-heading text-[32px] leading-[1.2] font-semibold tracking-[-0.8px] text-[#1f2924] sm:text-[38px]">{title}</h1>
                                     <p className="text-base leading-[26px] text-muted-foreground">{description}</p>
