@@ -121,11 +121,14 @@ export async function signIn(
         });
 
         if (error) {
+            if ((error.status ?? 0) >= 500) {
+                return { success: false, message: "Masuk belum dapat diproses saat ini. Coba lagi nanti." };
+            }
+            // Shown under the password field (Figma 87:611). Wording stays generic so it never
+            // reveals whether the email has an account.
             return {
                 success: false,
-                message: (error.status ?? 0) >= 500
-                    ? "Masuk belum dapat diproses saat ini. Coba lagi nanti."
-                    : "Email atau kata sandi salah. Periksa lagi atau atur ulang kata sandi.",
+                fieldErrors: { password: ["Email atau kata sandi salah. Periksa lagi atau atur ulang kata sandi."] },
             };
         }
 

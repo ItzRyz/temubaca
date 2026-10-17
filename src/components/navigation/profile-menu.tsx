@@ -5,8 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { signOut } from "@/features/auth/actions";
-
 type MenuLink = { href: string; label: string; icon: LucideIcon };
 
 const memberLinks: MenuLink[] = [
@@ -86,11 +84,10 @@ export function ProfileMenu({ initials, displayName, isAdmin }: { initials: stri
                         ))}
                     </ul>
                     <div aria-hidden="true" className="my-1 h-px bg-border" />
-                    <form action={signOut}>
-                        <button type="submit" className={`${itemClass} text-destructive`}>
-                            <LogOut aria-hidden="true" className="size-4" /> Keluar
-                        </button>
-                    </form>
+                    {/* Confirm first on /logout (Figma "Keluar Akun" 58:21897). */}
+                    <Link href="/logout" className={`${itemClass} text-destructive`}>
+                        <LogOut aria-hidden="true" className="size-4" /> Keluar
+                    </Link>
                 </div>
             )}
         </div>

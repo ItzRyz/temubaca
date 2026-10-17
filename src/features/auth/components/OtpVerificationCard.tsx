@@ -172,14 +172,14 @@ export function OtpVerificationCard({ email, purpose, initialResendIn }: OtpVeri
                     {resendIn > 0 ? (
                         <>Kirim ulang kode setelah <span className="font-semibold text-primary">{resendIn} detik</span></>
                     ) : (
-                        <button
+                        <>Belum menerima kode?{" "}<button
                             type="button"
                             onClick={resend}
                             disabled={resending}
                             className="font-semibold text-primary hover:underline disabled:opacity-60"
                         >
                             {resending ? "Mengirim ulang..." : "Kirim ulang kode"}
-                        </button>
+                        </button></>
                     )}
                 </p>
                 {notice && <p role="status" className="rounded-lg bg-[#e7efe8] px-3 py-2 text-sm text-secondary-foreground">{notice}</p>}

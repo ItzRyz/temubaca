@@ -36,23 +36,31 @@ function ErrorMessage({ message }: { message: string | null }) {
     return <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{message}</p>;
 }
 
+function FieldError({ id, message }: { id: string; message: string | null }) {
+    if (!message) return null;
+    return <p id={id} role="alert" className="text-[13px] text-destructive">{message}</p>;
+}
+
 export function ForgotPasswordCard() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [emailError, setEmailError] = useState<string | null>(null);
 
     const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setPending(true);
         setError(null);
+        setEmailError(null);
         try {
             const result = await requestPasswordReset(email);
             if (result.success) {
                 router.replace(result.redirectTo ?? "/verify-email");
                 return;
             }
-            setError(result.fieldErrors?.email?.[0] ?? result.message ?? "Permintaan gagal.");
+            if (result.fieldErrors?.email?.[0]) setEmailError(result.fieldErrors.email[0]);
+            else setError(result.message ?? "Permintaan gagal.");
         } catch {
             setError("Permintaan reset kata sandi gagal. Silakan coba lagi.");
         } finally {
@@ -63,10 +71,10 @@ export function ForgotPasswordCard() {
     return (
         <AuthPanel>
             <PanelHeader title="Lupa Kata Sandi?" description="Kirim kode verifikasi ke email kamu." icon={LockKeyhole} />
-            <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+            <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                     <label htmlFor="recovery-email" className="text-sm font-medium text-foreground">Email Terdaftar</label>
-                    <div className={`${authFieldShellClass} ${error ? "border-destructive" : "border-input"}`}>
+                    <div className={`${authFieldShellClass} ${emailError ? "border-destructive" : "border-input"}`}>
                         <Mail aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <input
                             id="recovery-email"
@@ -76,9 +84,12 @@ export function ForgotPasswordCard() {
                             placeholder="nama@email.com"
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
+                            aria-invalid={Boolean(emailError)}
+                            aria-describedby={emailError ? "recovery-email-error" : undefined}
                             className={authInputClass}
                         />
                     </div>
+                    <FieldError id="recovery-email-error" message={emailError} />
                 </div>
                 <ErrorMessage message={error} />
                 <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
@@ -91,19 +102,19 @@ export function ForgotPasswordCard() {
     );
 }
 
-function PasswordField({ id, label, placeholder, value, onChange, invalid }: {
+function PasswordField({ id, label, placeholder, value, onChange, error }: {
     id: string;
     label: string;
     placeholder?: string;
     value: string;
     onChange: (value: string) => void;
-    invalid: boolean;
+    error: string | null;
 }) {
     const [visible, setVisible] = useState(false);
     return (
         <div className="flex flex-col gap-1.5">
             <label htmlFor={id} className="text-sm font-medium text-foreground">{label}</label>
-            <div className={`${authFieldShellClass} ${invalid ? "border-destructive" : "border-input"}`}>
+            <div className={`${authFieldShellClass} ${error ? "border-destructive" : "border-input"}`}>
                 <LockKeyhole aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                 <input
                     id={id}
@@ -115,6 +126,8 @@ function PasswordField({ id, label, placeholder, value, onChange, invalid }: {
                     placeholder={placeholder}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? `${id}-error` : undefined}
                     className={authInputClass}
                 />
                 <button
@@ -127,6 +140,7 @@ function PasswordField({ id, label, placeholder, value, onChange, invalid }: {
                     {visible ? <EyeClosed aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
                 </button>
             </div>
+            <FieldError id={`${id}-error`} message={error} />
         </div>
     );
 }
@@ -137,18 +151,22 @@ export function UpdatePasswordCard() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [confirmError, setConfirmError] = useState<string | null>(null);
 
     const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError(null);
+        setPasswordError(null);
+        setConfirmError(null);
 
         const parsed = resetPasswordSchema.safeParse({ password });
         if (!parsed.success) {
-            setError(parsed.error.issues[0]?.message ?? "Kata sandi tidak valid.");
+            setPasswordError(parsed.error.issues[0]?.message ?? "Kata sandi tidak valid.");
             return;
         }
         if (password !== confirmPassword) {
-            setError("Kata sandi dan konfirmasi tidak sama.");
+            setConfirmError("Konfirmasi kata sandi tidak cocok.");
             return;
         }
 
@@ -160,7 +178,8 @@ export function UpdatePasswordCard() {
                 router.refresh();
                 return;
             }
-            setError(result.fieldErrors?.password?.[0] ?? result.message ?? "Pembaruan gagal.");
+            if (result.fieldErrors?.password?.[0]) setPasswordError(result.fieldErrors.password[0]);
+            else setError(result.message ?? "Pembaruan gagal.");
         } catch {
             setError("Kata sandi belum dapat diperbarui. Minta kode reset yang baru.");
         } finally {
@@ -172,8 +191,8 @@ export function UpdatePasswordCard() {
         <AuthPanel>
             <PanelHeader title="Buat Kata Sandi Baru" description="Buat kata sandi baru yang belum pernah kamu gunakan sebelumnya." />
             <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
-                <PasswordField id="new-password" label="Kata Sandi Baru" placeholder="Minimal 8 karakter" value={password} onChange={setPassword} invalid={Boolean(error)} />
-                <PasswordField id="confirm-new-password" label="Konfirmasi Kata Sandi Baru" placeholder="Ulangi kata sandi baru" value={confirmPassword} onChange={setConfirmPassword} invalid={Boolean(error)} />
+                <PasswordField id="new-password" label="Kata Sandi Baru" placeholder="Minimal 8 karakter" value={password} onChange={setPassword} error={passwordError} />
+                <PasswordField id="confirm-new-password" label="Konfirmasi Kata Sandi Baru" placeholder="Ulangi kata sandi baru" value={confirmPassword} onChange={setConfirmPassword} error={confirmError} />
                 <PasswordChecklist
                     password={password}
                     extra={[{ label: "Konfirmasi kata sandi cocok", met: confirmPassword.length > 0 && password === confirmPassword }]}
