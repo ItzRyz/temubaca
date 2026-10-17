@@ -109,7 +109,7 @@ function SwitchRow({ question, href, label }: { question: string; href: string; 
     );
 }
 
-function SignInForm() {
+function SignInForm({ next }: { next?: string }) {
     const router = useRouter();
     const [serverError, setServerError] = useState<string | null>(null);
     const [isPending, setIsPending] = useState(false);
@@ -131,7 +131,7 @@ function SignInForm() {
                 if (result.message) setServerError(result.message);
                 return;
             }
-            router.replace("/");
+            router.replace(next ?? "/");
             router.refresh();
         } catch {
             setServerError("Tidak dapat masuk saat ini. Silakan coba lagi.");
@@ -246,14 +246,14 @@ function SignUpForm() {
     );
 }
 
-export function AuthCard({ mode }: { mode: AuthMode }) {
+export function AuthCard({ mode, next }: { mode: AuthMode; next?: string }) {
     return (
         <AuthPanel>
             <h2 className="pt-1 text-center font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">
                 {mode === "masuk" ? "Selamat Datang Kembali" : "Daftar Akun TemuBaca"}
             </h2>
             <AuthTabs mode={mode} />
-            {mode === "masuk" ? <SignInForm /> : <SignUpForm />}
+            {mode === "masuk" ? <SignInForm next={next} /> : <SignUpForm />}
         </AuthPanel>
     );
 }

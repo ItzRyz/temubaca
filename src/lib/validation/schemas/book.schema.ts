@@ -188,3 +188,20 @@ export const listingVisibilitySchema =
             message: "Alasan wajib diisi (minimal 3 karakter) untuk menyembunyikan listing.",
             path: ["reason"],
         });
+
+export const externalBookImportSchema =
+    z
+        .object({
+            provider: z.enum(["OPEN_LIBRARY", "GOOGLE_BOOKS"]),
+
+            providerId:
+                z.string().trim().min(1).max(100).regex(/^[\w-]+$/),
+        })
+        .strict();
+
+export const externalBookSearchQuerySchema =
+    z
+        .object({
+            q: z.string().trim().min(2).max(200),
+        })
+        .strict();

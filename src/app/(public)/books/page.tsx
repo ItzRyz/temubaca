@@ -1,10 +1,14 @@
 import { PlusCircle, Search } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { BookResultCard } from "@/features/books/components/book-result-card";
 import { CatalogFilters } from "@/features/books/components/catalog-filters";
 import { CatalogPagination } from "@/features/books/components/catalog-pagination";
+import { ExternalResultsSkeleton } from "@/features/catalog/components/external-results";
+import { ExternalResultsSection } from "@/features/catalog/components/external-results-section";
+import { getCurrentUser } from "@/lib/auth";
 import { browseBooks, listBookFacets } from "@/lib/db/queries/books";
 import { bookBrowseQuerySchema } from "@/lib/validation/schemas/book.schema";
 
@@ -34,10 +38,13 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
         page: singleValue(params.page),
     });
     const filters = parsed.success ? parsed.data : { page: 1, q: undefined, category: undefined, language: undefined };
-    const [{ items, total }, facets] = await Promise.all([
+    const [{ items, total }, facets, user] = await Promise.all([
         browseBooks(filters, PAGE_SIZE, (filters.page - 1) * PAGE_SIZE),
         listBookFacets(),
+        getCurrentUser(),
     ]);
+    // Open catalogs are searched on the first page of a text query only, to save provider quota.
+    const externalQuery = filters.q && filters.q.trim().length >= 2 && filters.page === 1 ? filters.q.trim() : null;
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
     const hrefFor = (page: number) => {
@@ -108,6 +115,12 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
                     <CatalogPagination page={filters.page} totalPages={totalPages} hrefFor={hrefFor} />
                 </section>
             </div>
+
+            {externalQuery && (
+                <Suspense fallback={<ExternalResultsSkeleton />}>
+                    <ExternalResultsSection query={externalQuery} isAuthenticated={user !== null} returnTo={hrefFor(1)} />
+                </Suspense>
+            )}
 
             <section className="mt-12 flex flex-col gap-6 rounded-3xl bg-primary p-6 text-primary-foreground sm:p-8 md:flex-row md:items-center md:justify-between">
                 <div className="max-w-2xl">

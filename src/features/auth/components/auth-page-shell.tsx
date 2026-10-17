@@ -3,6 +3,7 @@ import { AuthLayout } from "@/features/auth/components/auth-layout";
 
 type AuthPageShellProps = {
     initialMode: "masuk" | "daftar";
+    next?: string;
 };
 
 const storyByMode = {
@@ -16,10 +17,10 @@ const storyByMode = {
     },
 } as const;
 
-export function AuthPageShell({ initialMode }: AuthPageShellProps) {
+export function AuthPageShell({ initialMode, next }: AuthPageShellProps) {
     return (
         <AuthLayout {...storyByMode[initialMode]} showBenefits>
-            <AuthCard mode={initialMode} />
+            <AuthCard mode={initialMode} next={next} />
         </AuthLayout>
     );
 }

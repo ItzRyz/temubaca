@@ -112,8 +112,8 @@ DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library 
 
 ## 6. Langkah berikutnya (rekomendasi)
 
-1. **Tes integrasi query dengan PGlite**: visibilitas publik listing tersembunyi/tertangguh, transaksi moderasi beserta jejak audit, dan penolakan hapus listing.
-2. **Audit aksesibilitas & responsif** semua rute (375px dan 1440px), termasuk halaman admin dan auth baru.
+1. TB-042 tinjauan alur kritis, TB-043 logging operasional, TB-015 katalog komponen form (lihat daftar lengkap di percakapan terakhir / TASKS.md).
+2. Uji tampilan kegagalan provider TB-021 di browser (saat ini hanya tes unit).
 3. **Pembersihan data uji** (§7). Perlu persetujuan pemilik; sesi admin pemilik ada di browser pane.
 4. **Uji alur daftar OTP** dengan email sungguhan (bagian reset sudah diuji pemilik).
 5. Pra-rilis TB-047 s.d. TB-050: perlu rotasi kredensial dan keputusan hosting DEC-01.
@@ -124,6 +124,7 @@ DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library 
 - "Komunitas Dummy Menunggu Verifikasi" (`…304`) masih **VERIFIED** akibat uji TB-031.
 - Buku dummy `…101–…106` sudah disinkronkan: ISBN dan sampulnya terisi dari Open Library, dan masing-masing punya baris `book_sync_logs`.
 - Akun dummy `…003` punya baris `admin_audit_logs` (tangguhkan/pulihkan, peran naik/turun); statusnya sekarang Anggota aktif. Listing dummy `…203` punya riwayat hide/restore di `verifications`.
+- Buku **"Amba"** (Laksmi Pamuntjak) diimpor dari Open Library saat uji TB-021; ini rekaman katalog sungguhan, boleh dipertahankan.
 - `app_settings.catalog` sudah ada barisnya dengan nilai default, dan ada 2 baris audit `SETTINGS_UPDATED`.
 - Satu laporan QA berstatus REJECTED. Laporan "Informasi keliru" milik pemilik repo berstatus REVIEWING: **jangan diubah**.
 - Listing "Bumi Manusia" milik Ilyas Maulana adalah **data pengguna sungguhan**: jangan disentuh.
