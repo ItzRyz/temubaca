@@ -1,13 +1,15 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Eye, EyeClosed, KeyRound, LockKeyhole, Mail, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeClosed, KeyRound, LockKeyhole, Mail, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
 
 import { requestPasswordReset, signOut, updatePassword } from "@/features/auth/actions";
+import { resetPasswordSchema } from "@/lib/validation/schemas/auth.schema";
 
 import { AuthPanel, authFieldShellClass, authInputClass, authPrimaryButtonClass } from "./auth-layout";
+import { PasswordChecklist } from "./password-checklist";
 
 function PanelHeader({ title, description, icon: Icon = KeyRound }: { title: string; description: string; icon?: LucideIcon }) {
     return (
@@ -136,21 +138,13 @@ export function UpdatePasswordCard() {
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const requirements = [
-        { label: "Minimal 8 karakter", met: password.length >= 8 && password.length <= 128 },
-        { label: "Konfirmasi kata sandi cocok", met: confirmPassword.length > 0 && password === confirmPassword },
-    ];
-
     const submit = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         setError(null);
 
-        if (password.length < 8) {
-            setError("Kata sandi minimal 8 karakter.");
-            return;
-        }
-        if (password.length > 128) {
-            setError("Kata sandi maksimal 128 karakter.");
+        const parsed = resetPasswordSchema.safeParse({ password });
+        if (!parsed.success) {
+            setError(parsed.error.issues[0]?.message ?? "Kata sandi tidak valid.");
             return;
         }
         if (password !== confirmPassword) {
@@ -180,17 +174,10 @@ export function UpdatePasswordCard() {
             <form onSubmit={submit} noValidate className="mt-6 flex flex-col gap-4">
                 <PasswordField id="new-password" label="Kata Sandi Baru" placeholder="Minimal 8 karakter" value={password} onChange={setPassword} invalid={Boolean(error)} />
                 <PasswordField id="confirm-new-password" label="Konfirmasi Kata Sandi Baru" placeholder="Ulangi kata sandi baru" value={confirmPassword} onChange={setConfirmPassword} invalid={Boolean(error)} />
-                <ul aria-label="Syarat kata sandi" className="flex list-none flex-col gap-1 p-0 text-xs leading-[18px]">
-                    {requirements.map((requirement) => (
-                        <li key={requirement.label} className={`flex items-center gap-2 ${requirement.met ? "text-primary" : "text-muted-foreground"}`}>
-                            {requirement.met
-                                ? <Check aria-hidden="true" className="size-3" />
-                                : <span aria-hidden="true" className="mx-[3px] size-1.5 rounded-full bg-current opacity-60" />}
-                            {requirement.label}
-                            <span className="sr-only">{requirement.met ? "(terpenuhi)" : "(belum terpenuhi)"}</span>
-                        </li>
-                    ))}
-                </ul>
+                <PasswordChecklist
+                    password={password}
+                    extra={[{ label: "Konfirmasi kata sandi cocok", met: confirmPassword.length > 0 && password === confirmPassword }]}
+                />
                 <ErrorMessage message={error} />
                 <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
                     {pending ? "Menyimpan..." : "Simpan & Masuk"}

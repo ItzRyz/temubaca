@@ -5,7 +5,7 @@ import { Eye, EyeClosed, LockKeyhole, Mail, User, type LucideIcon } from "lucide
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { signIn, signUp } from "@/features/auth/actions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/validation/auth";
 
 import { AuthPanel, authFieldShellClass, authInputClass, authPrimaryButtonClass } from "./auth-layout";
+import { PasswordChecklist } from "./password-checklist";
 
 type AuthMode = "masuk" | "daftar";
 
@@ -186,10 +187,11 @@ function SignUpForm() {
     const [isPending, setIsPending] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [agreed, setAgreed] = useState(false);
-    const { register, handleSubmit, setError, formState: { errors } } = useForm<SignUpInput>({
+    const { register, handleSubmit, setError, control, formState: { errors } } = useForm<SignUpInput>({
         resolver: zodResolver(signUpSchema),
         defaultValues: { name: "", email: "", password: "" },
     });
+    const password = useWatch({ control, name: "password" });
 
     const onSubmit = async (data: SignUpInput) => {
         setIsPending(true);
@@ -228,6 +230,7 @@ function SignUpForm() {
                 trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword((visible) => !visible)} />}
                 {...register("password")}
             />
+            <PasswordChecklist password={password} />
             <div className="flex items-start gap-2.5">
                 <Checkbox id="sign-up-agreement" className="mt-0.5" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
                 <label htmlFor="sign-up-agreement" className="cursor-pointer text-xs leading-[18px] text-muted-foreground">

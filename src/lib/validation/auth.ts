@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { newPasswordSchema } from "./schemas/auth.schema";
 
 const emailSchema = z
     .string()
@@ -27,7 +28,7 @@ export const signInSchema = z.object({
 export const signUpSchema = z.object({
     email: emailSchema,
     name: nameSchema,
-    password: passwordSchema,
+    password: newPasswordSchema,
 }).strict();
 
 export type SignInInput = z.infer<typeof signInSchema>;

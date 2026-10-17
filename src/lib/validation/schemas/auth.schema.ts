@@ -24,6 +24,31 @@ export const passwordSchema =
                 "Kata sandi maksimal 128 karakter.",
         });
 
+/**
+ * Rules for passwords chosen at sign-up or reset, shared by the schema and
+ * the on-screen checklist. Sign-in keeps the looser `passwordSchema` so
+ * accounts created before these rules can still log in.
+ */
+export const newPasswordRules = [
+    {
+        id: "length",
+        label: "Minimal 8 karakter",
+        test: (value: string) => value.length >= 8 && value.length <= 128,
+    },
+    {
+        id: "letter-and-digit",
+        label: "Mengandung angka dan huruf",
+        test: (value: string) => /\p{L}/u.test(value) && /\d/.test(value),
+    },
+] as const;
+
+export const newPasswordSchema =
+    passwordSchema
+        .refine(newPasswordRules[1].test, {
+            error:
+                "Kata sandi harus mengandung angka dan huruf.",
+        });
+
 export const signInSchema =
     z
         .object({
@@ -38,7 +63,7 @@ export const signUpSchema =
         .object({
             email: emailSchema,
 
-            password: passwordSchema,
+            password: newPasswordSchema,
 
             displayName:
                 displayNameSchema,
@@ -86,6 +111,6 @@ export type PendingOtp = z.infer<typeof pendingOtpSchema>;
 export const resetPasswordSchema =
     z
         .object({
-            password: passwordSchema,
+            password: newPasswordSchema,
         })
         .strict();

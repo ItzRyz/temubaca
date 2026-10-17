@@ -37,8 +37,8 @@ describe("authentication input validation", () => {
     });
 
     test("enforces shared reset-password and email bounds", () => {
-        expect(resetPasswordSchema.safeParse({ password: "x".repeat(128) }).success).toBe(true);
-        expect(resetPasswordSchema.safeParse({ password: "x".repeat(129) }).success).toBe(false);
+        expect(resetPasswordSchema.safeParse({ password: `${"x".repeat(127)}1` }).success).toBe(true);
+        expect(resetPasswordSchema.safeParse({ password: `${"x".repeat(128)}1` }).success).toBe(false);
         expect(forgotPasswordSchema.safeParse({ email: `${"x".repeat(310)}@example.com` }).success).toBe(false);
         expect(forgotPasswordSchema.safeParse({ email: "  READER@EXAMPLE.COM " }).data?.email).toBe("reader@example.com");
     });
@@ -55,5 +55,16 @@ describe("authentication input validation", () => {
         expect(pendingOtpSchema.safeParse({ email: "reader@example.com", purpose: "invite", sentAt: 1 }).success).toBe(false);
         expect(pendingOtpSchema.safeParse({ email: "not-an-email", purpose: "signup", sentAt: 1 }).success).toBe(false);
         expect(pendingOtpSchema.safeParse({ email: "reader@example.com", purpose: "signup", sentAt: 1, role: "ADMIN" }).success).toBe(false);
+    });
+
+    test("requires letters and digits for new passwords but not for sign-in", () => {
+        const signUp = (password: string) => signUpSchema.safeParse({ email: "reader@example.com", name: "Pembaca Baru", password });
+
+        expect(signUp("bacabuku2026").success).toBe(true);
+        expect(signUp("bacabukuterus").success).toBe(false);
+        expect(signUp("1234567890").success).toBe(false);
+        expect(resetPasswordSchema.safeParse({ password: "pustakawarga" }).success).toBe(false);
+        expect(resetPasswordSchema.safeParse({ password: "pustaka warga 7" }).success).toBe(true);
+        expect(signInSchema.safeParse({ email: "reader@example.com", password: "bacabukuterus" }).success).toBe(true);
     });
 });
