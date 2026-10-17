@@ -31,6 +31,9 @@ export async function findPublicCommunityProfile(communityId: string) {
             name: communities.name,
             description: communities.description,
             publicLocation: communities.publicLocation,
+            contactEmail: communities.contactEmail,
+            instagramHandle: communities.instagramHandle,
+            whatsappNumber: communities.whatsappNumber,
             createdAt: communities.createdAt,
             activeMemberCount: sql<number>`(
                 select count(*)::int from ${communityMemberships}

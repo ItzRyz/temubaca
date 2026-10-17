@@ -6,7 +6,8 @@ import { uuidSchema } from "../common";
 
 const text = (min: number, max: number, label: string) =>
     z.string({ error: `${label} wajib diisi.` }).trim()
-        .min(min, min > 1 ? `${label} minimal ${min} karakter.` : `${label} wajib diisi.`)
+        .min(1, `${label} wajib diisi.`)
+        .min(min, `${label} minimal ${min} karakter.`)
         .max(max, `${label} maksimal ${max} karakter.`);
 
 const blankToUndefined = (value: unknown) => (typeof value === "string" && value.trim() === "" ? undefined : value);

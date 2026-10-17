@@ -131,10 +131,9 @@ export default async function CommunitiesPage({ searchParams }: CommunitiesPageP
                         <div>
                             <h2 className="font-heading text-lg font-semibold">Punya Komunitas Literasi?</h2>
                             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                Pengajuan profil komunitas oleh warga sedang disiapkan. Setiap pengajuan nantinya ditinjau tim TemuBaca sebelum tampil.
+                                Ajukan profil komunitas literasi Anda beserta bukti kegiatannya. Tim TemuBaca meninjau setiap pengajuan sebelum tampil untuk umum.
                             </p>
-                            {/* Community submissions wait on DEC-04 (who may create and how verification works). */}
-                            <span className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-card px-4 text-sm font-semibold text-muted-foreground">Pengajuan segera dibuka</span>
+                            <Link href="/communities/new" className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Ajukan Komunitas</Link>
                         </div>
                     </div>
                 </div>

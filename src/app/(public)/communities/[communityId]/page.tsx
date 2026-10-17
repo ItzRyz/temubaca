@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
+import { communityContactLinks } from "@/features/community-management/contacts";
+import { getCommunityAccess } from "@/lib/db/queries/community-management";
 import { findPublicCommunityProfile } from "@/lib/db/queries/communities";
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
@@ -73,6 +75,8 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
     const counts: Record<Tab, number | undefined> = { tentang: undefined, acara: upcoming.length, merchandise: merchandise.length };
     const hrefFor = (key: Tab) => (key === "tentang" ? `/communities/${community.id}` : `/communities/${community.id}?tab=${key}`);
     const signedIn = user !== null;
+    const canManage = user ? Boolean((await getCommunityAccess(user.id, community.id))?.role) : false;
+    const contacts = communityContactLinks(community);
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-10 sm:px-6">
@@ -97,7 +101,12 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                             </span>
                             <h1 className="pt-3 font-heading text-2xl leading-tight font-semibold text-primary sm:text-[32px]">{community.name}</h1>
                         </div>
-                        <ShareButton title={community.name} className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted sm:mt-4" />
+                        <div className="flex flex-wrap gap-2 self-start sm:mt-4">
+                            {canManage && (
+                                <Link href={`/communities/${community.id}/manage`} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Kelola Komunitas</Link>
+                            )}
+                            <ShareButton title={community.name} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" />
+                        </div>
                     </div>
                     <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 font-semibold text-primary"><BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi</span>
@@ -120,6 +129,17 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                             <dd className="text-xs text-muted-foreground">oleh tim TemuBaca</dd>
                         </div>
                     </dl>
+                    {contacts.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                            <span className="text-xs font-semibold text-primary">Kontak publik:</span>
+                            {contacts.map((contact) => (
+                                <a key={contact.kind} href={contact.href} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer nofollow"
+                                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold hover:bg-muted">
+                                    {contact.label} · {contact.value}
+                                </a>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
 

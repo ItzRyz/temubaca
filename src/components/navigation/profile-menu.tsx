@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Bookmark, BookOpen, LayoutDashboard, LogOut, ShieldCheck, Sparkles, UserRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, Bookmark, BookOpen, LayoutDashboard, LogOut, ShieldCheck, Sparkles, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
@@ -12,6 +12,7 @@ const memberLinks: MenuLink[] = [
     { href: "/profile", label: "Profil", icon: UserRound },
     { href: "/my-listings", label: "Buku Saya", icon: BookOpen },
     { href: "/my-listings?tab=peminjaman", label: "Minta & Pinjam", icon: ArrowLeftRight },
+    { href: "/communities/mine", label: "Komunitas Saya", icon: UsersRound },
     { href: "/bookmarks", label: "Bookmark & Minat", icon: Bookmark },
     { href: "/recommendations", label: "Rekomendasi", icon: Sparkles },
 ];

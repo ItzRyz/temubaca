@@ -55,9 +55,15 @@ export async function findPublicMerchandise(listingId: string) {
             currency: merchandiseListings.currency,
             priceNote: merchandiseListings.priceNote,
             availability: merchandiseListings.availability,
+            category: merchandiseListings.category,
+            stockNote: merchandiseListings.stockNote,
+            contactOverride: merchandiseListings.contactOverride,
             communityId: communities.id,
             communityName: communities.name,
             communityLocation: communities.publicLocation,
+            contactEmail: communities.contactEmail,
+            instagramHandle: communities.instagramHandle,
+            whatsappNumber: communities.whatsappNumber,
         })
         .from(merchandiseListings)
         .innerJoin(communities, eq(merchandiseListings.communityId, communities.id))

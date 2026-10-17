@@ -283,3 +283,10 @@ export async function countCommunityContent(communityId: string) {
     ]);
     return { events: eventRow?.total ?? 0, merchandise: merchRow?.total ?? 0 };
 }
+
+export function getCommunityContacts(communityId: string) {
+    return db.query.communities.findFirst({
+        where: eq(communities.id, communityId),
+        columns: { id: true, status: true, contactEmail: true, instagramHandle: true, whatsappNumber: true },
+    });
+}

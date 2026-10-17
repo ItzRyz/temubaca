@@ -140,7 +140,7 @@ Audit kode lokal pada 2026-10-10. Status berikut menunjukkan progres implementas
 | TB-024 | Berjalan | Pemilik dapat membuat dan mengelola listing; uji privasi lokasi dan uji pengguna belum dicatat. |
 | TB-025 | Berjalan | DEC-02 diputuskan 18 Okt 2026. Siklus pinjam, otorisasi pemilik/peminjam, dan riwayat `borrow_events` sudah aktif, beserta uji integrasi PGlite untuk seluruh alur. Uji di browser baru memakai fetch tiruan dan payload tidak valid; alur dua akun dengan data nyata belum dicoba. Perpanjangan belum diputuskan. |
 | TB-026 | Tertahan | Provider peta dan kebijakan lokasi menunggu DEC-07. |
-| TB-031 | Berjalan | Peninjauan admin: setujui/tolak komunitas `PENDING`, tangguhkan `VERIFIED`, pulihkan `SUSPENDED`; transisi divalidasi di server (409 bila status sudah berubah), alasan wajib untuk tolak/tangguhkan, setiap keputusan dicatat di `verifications` (peninjau, catatan, waktu) dalam satu transaksi dengan row lock. Alur pengajuan oleh warga dan bukti/checklist SOP menunggu DEC-04. |
+| TB-031 | Berjalan | Peninjauan admin: setujui/tolak komunitas `PENDING`, tangguhkan `VERIFIED`, pulihkan `SUSPENDED`; transisi divalidasi di server (409 bila status sudah berubah), alasan wajib untuk tolak/tangguhkan, setiap keputusan dicatat di `verifications` (peninjau, catatan, waktu) dalam satu transaksi dengan row lock. Pengajuan oleh warga dan bukti aktivitas (tautan, catatan, berkas privat) aktif sejak DEC-04 (18 Okt 2026) dan tampil di panel Peninjauan dan Data Komunitas; checklist SOP peninjauan belum ditetapkan. |
 | TB-030, TB-032, TB-033, TB-035, TB-037–TB-039, TB-041–TB-046 | Belum dimulai | Lanjutkan sesuai dependensi dan keputusan pada tabel utama. Checkout TB-035 tetap menunggu DEC-03. |
 | TB-034 | Berjalan sebagian | Katalog publik dan GET API baca-saja hanya menampilkan listing terbit dari komunitas terverifikasi; alur kelola listing, detail dan keputusan transaksi masih perlu diselesaikan. |
 | TB-036 | Berjalan sebagian | API menerima laporan buku/listing/komunitas/acara/merchandise/akun, dashboard admin, antrean, dan perubahan status/catatan tersedia. Form UI tersedia pada buku/listing, kartu komunitas/acara/merchandise, dan akun pemilik salinan (API menolak laporan terhadap akun sendiri); uji moderator/staging belum berjalan. |
@@ -210,6 +210,20 @@ Audit kode lokal pada 2026-10-10. Status berikut menunjukkan progres implementas
     - Notifikasi email/push. Pengingat hanya tampil di kartu pinjaman peminjam.
     - Ajukan Banding (`301:2608`), karena itu banding moderasi listing, bukan DEC-02.
   - **Verifikasi:** kartu pinjaman berisi data belum dilihat di browser karena DB dev belum punya pinjaman.
+- Pengelola komunitas (DEC-04/05; node `25:5622`, `293:2321`, `293:2789`, `308:2665`, `309:2665`, `309:2922`, `309:3271`):
+  - **Pengajuan:** `/communities/new` (Ajukan Komunitas) berisi profil, kontak, tautan bukti, berkas opsional (privat), dan catatan. Ringkasan galat mengikuti `309:3271` ("N isian perlu diperbaiki"). `/communities/mine` (Komunitas Saya) menampilkan status tiap komunitas. Tautan masuk dari kartu "Punya Komunitas Literasi?", menu profil, dan Profil Saya.
+  - **Kelola:** `/communities/[id]/manage` memakai menu Profil Komunitas, Acara, Merchandise, dan Pengurus.
+    - Profil dan kontak dapat diubah langsung.
+    - Status Verifikasi menjelaskan status saat ini, menampilkan riwayat pengajuan, dan menyediakan form Ajukan Pembaruan Verifikasi (atau Ajukan Ulang bila ditolak).
+    - Acara: filter Terbit/Draf/Selesai/Arsip, pencarian, tombol Lengkapi untuk draf yang belum lengkap, Duplikat untuk acara selesai, dan menu ⋮ (arsipkan, hapus draf). Form Buat/Ubah Acara mendukung lokasi fisik atau tautan daring, waktu WIB, dan pilihan draf/terbit.
+    - Merchandise: filter Tersedia/Habis/Disembunyikan, empty state `309:2665`, dan form dengan harga tetap atau tanpa harga tetap, ketersediaan + keterangan, kontak komunitas atau kontak khusus, serta toggle tampil.
+    - Pengurus: tautan undangan sekali pakai (7 hari) yang bisa disalin dan dicabut, serta pencabutan pengurus.
+  - **Undangan:** `/communities/invite/[token]` menerima undangan. Tamu diarahkan masuk lalu kembali ke tautan yang sama.
+  - **Publik:** profil komunitas menampilkan kontak publik dan tombol Kelola Komunitas untuk pemilik/pengurus. Detail merchandise memakai kontak komunitas atau kontak khusus, dan kontak dinonaktifkan saat Habis. Detail acara menampilkan nama tempat atau keterangan daring.
+  - **Belum dibuat:**
+    - Unggah logo dan foto merchandise, karena belum ada penyimpanan gambar publik.
+    - Menu "Hubungi/Ikuti Komunitas".
+  - **Verifikasi:** form pengajuan diuji dengan fetch tiruan dan permintaan API yang tidak menulis data. Halaman Kelola belum dilihat di browser karena DB dev belum punya komunitas.
 - Layar Figma lain (peta ruang baca, peminjaman, pengelola komunitas, admin Data Komunitas/Buku/Pengguna/Katalog Eksternal/Pengaturan) belum di-slice.
 
 ## Data dummy — 2026-10-10

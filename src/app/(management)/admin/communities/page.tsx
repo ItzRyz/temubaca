@@ -12,6 +12,7 @@ import { listCommunityVerifications } from "@/lib/db/queries/verifications";
 import type { communityStatusValues } from "@/lib/db/schema";
 import { availableCommunityDecisions } from "@/features/verification/community-review";
 import { CommunityDecisionPanel } from "@/features/verification/components/community-decision-panel";
+import { CommunityEvidence } from "@/features/community-management/components/evidence-list";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Data komunitas" };
@@ -250,6 +251,7 @@ export default async function AdminCommunitiesPage({ searchParams }: PageProps) 
                             )}
                             <p className="mt-2 text-xs leading-5 text-muted-foreground">Verifikasi berarti profil telah ditinjau pengelola platform, bukan jaminan atas seluruh kegiatan komunitas.</p>
                         </div>
+                        <CommunityEvidence communityId={active.id} />
 
                         {active.status === "PENDING" ? (
                             <div className="flex flex-col gap-2 border-t border-border bg-[#f1f0ea] p-5 text-sm">

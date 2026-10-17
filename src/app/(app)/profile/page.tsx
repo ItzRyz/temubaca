@@ -114,16 +114,21 @@ export default async function ProfilePage() {
                                                     <span className="text-muted-foreground">{roleLabels[community.role]}</span>
                                                 </p>
                                             </div>
-                                            {community.status === "VERIFIED" && (
-                                                <Link href={`/communities/${community.id}`} className="self-start rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted sm:self-auto">Lihat Komunitas</Link>
-                                            )}
+                                            <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+                                                {(community.role === "OWNER" || community.role === "MANAGER") && (
+                                                    <Link href={`/communities/${community.id}/manage`} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Kelola</Link>
+                                                )}
+                                                {community.status === "VERIFIED" && (
+                                                    <Link href={`/communities/${community.id}`} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-muted">Lihat Komunitas</Link>
+                                                )}
+                                            </div>
                                         </li>
                                     );
                                 })}
                             </ul>
                         ) : (
                             <p className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                                Kamu belum tergabung di komunitas. <Link href="/communities" className="font-semibold text-primary hover:underline">Jelajahi komunitas</Link>
+                                Kamu belum tergabung di komunitas. <Link href="/communities" className="font-semibold text-primary hover:underline">Jelajahi komunitas</Link> atau <Link href="/communities/new" className="font-semibold text-primary hover:underline">ajukan komunitasmu</Link>
                             </p>
                         )}
                         <p className="mt-3 text-xs text-muted-foreground">Verifikasi berarti profil telah ditinjau pengelola. Ini bukan jaminan atas seluruh kegiatan komunitas.</p>

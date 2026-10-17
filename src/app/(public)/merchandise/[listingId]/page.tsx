@@ -11,6 +11,7 @@ import { colorFor, initialsOf } from "@/features/communities/components/communit
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
+import { communityContactLinks } from "@/features/community-management/contacts";
 
 type MerchandisePageProps = {
     params: Promise<{ listingId: string }>;
@@ -25,7 +26,7 @@ const availabilityBadge = {
 } as const;
 
 const steps = [
-    "Buka profil komunitas dan cari agenda terdekat untuk bertemu pengurusnya.",
+    "Hubungi komunitas lewat kontak di bawah, atau temui pengurusnya di acara terdekat.",
     "Konfirmasi ketersediaan, harga, dan cara pembayaran langsung dengan pengurus.",
     "Atur serah terima di ruang publik, misalnya saat acara komunitas.",
 ];
@@ -56,6 +57,7 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
     ]);
     const others = related.filter((item) => item.id !== listing.id).slice(0, 3);
     const communityHref = `/communities/${listing.communityId}`;
+    const contacts = communityContactLinks(listing);
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-8 sm:px-6">
@@ -129,7 +131,27 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                                 </li>
                             ))}
                         </ol>
-                        <Link href={communityHref} className="mt-4 flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                        {listing.availability === "AVAILABLE" ? (
+                            listing.contactOverride ? (
+                                <p className="mt-4 rounded-lg border border-border px-3 py-2.5 text-sm"><span className="block text-xs font-semibold text-primary">Kontak pembelian</span>{listing.contactOverride}</p>
+                            ) : contacts.length > 0 ? (
+                                <ul className="mt-4 flex list-none flex-col gap-2 p-0">
+                                    {contacts.map((contact) => (
+                                        <li key={contact.kind}>
+                                            <a href={contact.href} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer nofollow"
+                                                className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border px-3 text-sm hover:bg-muted">
+                                                <span className="font-semibold">{contact.label}</span> <span className="truncate text-muted-foreground">{contact.value}</span>
+                                            </a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="mt-4 text-sm text-muted-foreground">Komunitas belum mencantumkan kontak pembelian. Temui pengurus di acara komunitas.</p>
+                            )
+                        ) : (
+                            <p className="mt-4 rounded-lg bg-[#f1f0ea] px-3 py-2.5 text-sm text-muted-foreground">Item ini sedang habis{listing.stockNote ? `: ${listing.stockNote}` : ""}. Kontak pembelian dinonaktifkan sementara.</p>
+                        )}
+                        <Link href={communityHref} className="mt-3 flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                             Buka Profil Komunitas <ArrowRight aria-hidden="true" className="size-4" />
                         </Link>
                     </section>
@@ -139,7 +161,7 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                         <div>
                             <h2 className="font-sans text-sm font-semibold">Pemberitahuan TemuBaca</h2>
                             <p className="mt-1 text-xs leading-5 text-foreground/80">
-                                <strong>TemuBaca belum memproses pembayaran atau pengiriman.</strong> Katalog ini hanya publikasi dari komunitas terverifikasi. Kontak komunitas belum ditampilkan di TemuBaca; waspadai pihak yang mengaku sebagai pengurus.
+                                <strong>TemuBaca belum memproses pembayaran atau pengiriman.</strong> Katalog ini hanya publikasi dari komunitas terverifikasi. Gunakan kontak yang tercantum di sini; waspadai pihak lain yang mengaku sebagai pengurus.
                             </p>
                         </div>
                     </section>

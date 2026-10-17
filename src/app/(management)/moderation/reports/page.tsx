@@ -9,6 +9,7 @@ import { listCommunityVerifications } from "@/lib/db/queries/verifications";
 import { ReportDecisionPanel } from "@/features/reports/components/report-decision-panel";
 import { availableCommunityDecisions } from "@/features/verification/community-review";
 import { CommunityDecisionPanel } from "@/features/verification/components/community-decision-panel";
+import { CommunityEvidence } from "@/features/community-management/components/evidence-list";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Peninjauan pengajuan & laporan" };
@@ -304,6 +305,7 @@ async function CommunitiesTab({ view, query, selected, hrefFor }: TabProps<Commu
                             <dd className="mt-1 whitespace-pre-line text-foreground/85">{active.description || "Belum ada deskripsi."}</dd>
                         </div>
                     </dl>
+                    <CommunityEvidence communityId={active.id} />
                     <div className="border-t border-border p-5">
                         <h3 className="font-sans text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Jejak audit</h3>
                         {history.length > 0 ? (
@@ -328,7 +330,7 @@ async function CommunitiesTab({ view, query, selected, hrefFor }: TabProps<Commu
                     <CommunityDecisionPanel key={active.id} communityId={active.id} decisions={availableCommunityDecisions(active.status)} />
                     <p className="flex gap-2 border-t border-border p-5 text-xs leading-5 text-muted-foreground">
                         <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                        Verifikasi berarti profil telah ditinjau pengelola. Bukti pengajuan dan checklist SOP menunggu alur pengajuan komunitas (DEC-04).
+                        Verifikasi berarti profil telah ditinjau pengelola, bukan jaminan atas seluruh kegiatan komunitas. Periksa tautan dan berkas bukti sebelum memutuskan; checklist SOP peninjauan belum ditetapkan.
                     </p>
                 </section>
             )}

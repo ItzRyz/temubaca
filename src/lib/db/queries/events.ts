@@ -74,6 +74,8 @@ export async function findPublicEvent(eventId: string) {
             endsAt: events.endsAt,
             publicLocation: events.publicLocation,
             eventUrl: events.eventUrl,
+            locationType: events.locationType,
+            venueName: events.venueName,
             communityId: communities.id,
             communityName: communities.name,
         })

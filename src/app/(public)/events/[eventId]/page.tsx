@@ -136,7 +136,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 <aside className="flex flex-col gap-6">
                     <section aria-labelledby="location-title" className="rounded-2xl border border-border bg-card p-5">
                         <h2 id="location-title" className="flex items-center gap-2 font-heading text-lg font-semibold"><MapPin aria-hidden="true" className="size-4" /> Lokasi</h2>
-                        <p className="mt-3 text-sm leading-6">{event.publicLocation ?? "Lokasi akan diumumkan oleh penyelenggara."}</p>
+                        {event.locationType === "ONLINE" ? (
+                            <p className="mt-3 text-sm leading-6">Acara daring.{eventUrl ? " Gunakan tombol tautan acara di atas untuk bergabung." : " Tautan akan dibagikan penyelenggara."}</p>
+                        ) : (
+                            <>
+                                {event.venueName && <p className="mt-3 text-sm font-semibold">{event.venueName}</p>}
+                                <p className={event.venueName ? "text-sm leading-6 text-muted-foreground" : "mt-3 text-sm leading-6"}>{event.publicLocation ?? "Lokasi akan diumumkan oleh penyelenggara."}</p>
+                            </>
+                        )}
                         <p className="mt-3 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-muted-foreground">
                             Peta dan petunjuk arah belum tersedia. Hanya lokasi publik umum yang ditampilkan.
                         </p>
