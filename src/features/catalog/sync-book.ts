@@ -36,6 +36,12 @@ function isSameBook(candidate: Pick<ExternalBook, "title" | "authors">, title: s
     return sameTitle && sameAuthor;
 }
 
+/** Title plus the author's last name: initials ("Leila S. Chudori") make Google miss exact books. */
+function searchQuery(title: string, author: string | undefined) {
+    const lastName = author?.trim().split(/\s+/).at(-1) ?? "";
+    return `${title} ${lastName}`.trim();
+}
+
 export type SyncBookResult =
     | { status: "not_found" }
     | { status: "SUCCESS" | "FAILED"; changedFields: string[]; message: string | null };
@@ -90,7 +96,7 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
     if (!failed && !ownProvider && !isbn) {
         for (const provider of order) {
             try {
-                const { items } = await providers[provider].search({ query: `${book.title} ${book.authors[0] ?? ""}`.trim(), limit: 5, offset: 0 });
+                const { items } = await providers[provider].search({ query: searchQuery(book.title, book.authors[0]), limit: 5, offset: 0 });
                 const match = items.find((item) => isSameBook(item, book.title, book.authors[0]));
                 if (match) {
                     complements.push(match);
@@ -108,9 +114,16 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
         if (isbn) {
             for (const provider of order.filter((value) => value !== ownProvider && !complements.some((item) => item.provider === value))) {
                 try {
-                    const match = await providers[provider].findByIsbn(isbn);
+                    let match = await providers[provider].findByIsbn(isbn);
+                    // Google's `isbn:` lookup misses many Indonesian editions that title search finds.
+                    if (!match) {
+                        const title = primary?.title ?? book.title;
+                        const author = primary?.authors[0] ?? book.authors[0];
+                        const { items } = await providers[provider].search({ query: searchQuery(title, author), limit: 5, offset: 0 });
+                        match = items.find((item) => item.isbn === isbn) ?? items.find((item) => isSameBook(item, title, author)) ?? null;
+                    }
                     if (match) complements.push(match);
-                    else notes.push(`${providerNames[provider]}: tidak ada data untuk ISBN ini.`);
+                    else notes.push(`${providerNames[provider]}: tidak ada data untuk buku ini.`);
                 } catch (error) {
                     // A complement failing should not block the primary refresh.
                     notes.push(failureText(provider, error));
