@@ -27,7 +27,8 @@ const enumText = <T extends readonly [string, ...string[]]>(values: T) =>
 const enumCheck = (column: AnyPgColumn, values: readonly string[]) =>
     check(
         `${column.name}_enum_check`,
-        sql`${column} in (${sql.join(values.map(value => sql`${value}`), sql`, `)})`,
+        // Inline literals (constants from this file) so drizzle-kit emits valid DDL, not `$1` placeholders.
+        sql`${column} in (${sql.raw(values.map(value => `'${value.replace(/'/g, "''")}'`).join(', '))})`,
     );
 const createdAt = () => timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow();
 const updatedAt = () => timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow();
@@ -50,6 +51,8 @@ export const reportStatusValues = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED
 export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'] as const;
 export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'OTHER'] as const;
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
+export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
+export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
@@ -64,8 +67,17 @@ export const books = pgTable('books', {
     isbn: text(), title: text().notNull(), authors: text().array().notNull().default(sql`'{}'::text[]`),
     description: text(), publisher: text(), publishedAt: text(), language: text(),
     categories: text().array().notNull().default(sql`'{}'::text[]`), coverUrl: text(), metadata: jsonb(),
-    createdAt: createdAt(), updatedAt: updatedAt(),
+    syncedAt: nowDate(), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [unique('books_provider_provider_id_key').on(t.provider, t.providerId), index('books_title_idx').on(t.title), index('books_isbn_idx').on(t.isbn), enumCheck(t.provider, bookProviderValues)]).enableRLS();
+
+/** Every provider refresh of a stored catalog record, for the admin "Riwayat sinkron" trail. */
+export const bookSyncLogs = pgTable('book_sync_logs', {
+    id: id(), bookId: uuid().notNull().references(() => books.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    provider: enumText(bookProviderValues).notNull(), status: enumText(bookSyncStatusValues).notNull(),
+    trigger: enumText(bookSyncTriggerValues).notNull(), changedFields: text().array().notNull().default(sql`'{}'::text[]`),
+    message: text(), actorId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(),
+}, t => [index('book_sync_logs_book_id_created_at_idx').on(t.bookId, t.createdAt), index('book_sync_logs_status_created_at_idx').on(t.status, t.createdAt), enumCheck(t.provider, bookProviderValues), enumCheck(t.status, bookSyncStatusValues), enumCheck(t.trigger, bookSyncTriggerValues)]).enableRLS();
 
 export const bookmarks = pgTable('bookmarks', {
     id: id(), userId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
@@ -99,7 +111,9 @@ export const bookListings = pgTable('book_listings', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     bookId: uuid().notNull().references(() => books.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     condition: enumText(bookConditionValues).notNull(), availability: enumText(listingAvailabilityValues).notNull().default('AVAILABLE'),
-    publicLocation: text(), borrowingRules: text(), createdAt: createdAt(), updatedAt: updatedAt(),
+    publicLocation: text(), borrowingRules: text(),
+    hiddenAt: nowDate(), hiddenReason: text(), hiddenById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('book_listings_owner_id_idx').on(t.ownerId), index('book_listings_book_id_idx').on(t.bookId), index('book_listings_availability_idx').on(t.availability), enumCheck(t.condition, bookConditionValues), enumCheck(t.availability, listingAvailabilityValues)]).enableRLS();
 
 export const borrowings = pgTable('borrowings', {
@@ -171,7 +185,8 @@ export const userProfilesRelations = relations(userProfiles, ({ many }) => ({
     reviewedVerifications: many(verifications), recommendations: many(recommendations),
 }));
 
-export const booksRelations = relations(books, ({ many }) => ({ bookmarks: many(bookmarks), listings: many(bookListings) }));
+export const booksRelations = relations(books, ({ many }) => ({ bookmarks: many(bookmarks), listings: many(bookListings), syncLogs: many(bookSyncLogs) }));
+export const bookSyncLogsRelations = relations(bookSyncLogs, ({ one }) => ({ book: one(books, { fields: [bookSyncLogs.bookId], references: [books.id] }) }));
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({ user: one(userProfiles, { fields: [bookmarks.userId], references: [userProfiles.id] }), book: one(books, { fields: [bookmarks.bookId], references: [books.id] }) }));
 export const userInterestsRelations = relations(userInterests, ({ one }) => ({ user: one(userProfiles, { fields: [userInterests.userId], references: [userProfiles.id] }) }));
 export const bookListingsRelations = relations(bookListings, ({ one, many }) => ({ ownerUser: one(userProfiles, { fields: [bookListings.ownerId], references: [userProfiles.id] }), book: one(books, { fields: [bookListings.bookId], references: [books.id] }), requests: many(borrowRequests) }));

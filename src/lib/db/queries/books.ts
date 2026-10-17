@@ -6,6 +6,7 @@ import {
     desc,
     eq,
     ilike,
+    isNull,
     or,
     sql,
 } from "drizzle-orm";
@@ -70,8 +71,8 @@ export async function findBookById(
                     },
                 },
 
-                where: (listing, { eq }) =>
-                    eq(listing.availability, "AVAILABLE"),
+                where: (listing, { and, eq, isNull }) =>
+                    and(eq(listing.availability, "AVAILABLE"), isNull(listing.hiddenAt)),
 
                 orderBy: (table, { desc }) => [
                     desc(table.createdAt),
@@ -154,6 +155,7 @@ export async function browseBooks(filters: BookBrowseFilters, limit = 10, offset
     const availableCopies = sql<number>`(
         select count(*)::int from ${bookListings}
         where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
+        and "book_listings"."hiddenAt" is null
     )`; // Qualified names: drizzle renders bare column refs unqualified inside sql``, which would bind to the subquery table.
 
     const [items, [countRow]] = await Promise.all([
@@ -266,6 +268,8 @@ export async function listBookListings(
                 bookListings.availability,
                 "AVAILABLE",
             ),
+            // Listings hidden by an admin never reach public pages.
+            isNull(bookListings.hiddenAt),
         ),
 
         with: {
@@ -341,6 +345,8 @@ export async function findAvailableBookListings(
                 bookListings.availability,
                 "AVAILABLE",
             ),
+            // Listings hidden by an admin never reach public pages.
+            isNull(bookListings.hiddenAt),
         ),
 
         with: {

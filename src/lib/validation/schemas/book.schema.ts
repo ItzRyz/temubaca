@@ -174,3 +174,17 @@ export const externalBookSchema =
         .strict();
 
 export type ExternalBook = z.infer<typeof externalBookSchema>;
+
+export const listingVisibilitySchema =
+    z
+        .object({
+            hidden: z.boolean(),
+
+            reason:
+                z.string().trim().max(500).optional(),
+        })
+        .strict()
+        .refine((input) => !input.hidden || (input.reason?.length ?? 0) >= 3, {
+            message: "Alasan wajib diisi (minimal 3 karakter) untuk menyembunyikan listing.",
+            path: ["reason"],
+        });

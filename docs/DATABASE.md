@@ -23,6 +23,8 @@ Gunakan PostgreSQL relasional. Skema pada `ERD.md` adalah rancangan, bukan hasil
 - Drizzle Kit mem-parsing URL migrasi menjadi parameter koneksi lalu menerapkan TLS strict untuk host non-lokal, dan semua host saat `NODE_ENV=production`; opsi SSL yang tertanam di URL tidak boleh menurunkan tingkat verifikasi.
 - Tentukan mode pooler, ukuran pool, TLS, dan batas koneksi setelah platform hosting dipilih. Jangan mengasumsikan URL migrasi dan runtime harus sama.
 - Jangan jalankan migrasi terhadap production dari build atau startup aplikasi; jalankan sebagai langkah rilis eksplisit terhadap target yang diverifikasi.
+- Untuk DB dev, `bun run db:migrate:dev` menampilkan migrasi pending dan `bun run db:migrate:dev -- --apply` menerapkannya dengan TLS yang sama seperti runtime dev, mencatat hash SHA-256 dan `when` jurnal di `drizzle.__drizzle_migrations__`. Script menolak berjalan saat `NODE_ENV=production`.
+- `book_listings.hiddenAt/hiddenReason/hiddenById` menandai listing yang disembunyikan admin; semua query publik mengecualikannya. `books.syncedAt` dan tabel `book_sync_logs` mencatat sinkron katalog (migrasi 0005).
 
 ## Akses pinjam dan ketersediaan perpustakaan
 

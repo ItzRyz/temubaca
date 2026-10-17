@@ -24,6 +24,8 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `POST` | `/api/reports` | Wajib login | Membuat laporan untuk buku, listing, komunitas, acara, merchandise, atau akun yang ada; 5 kiriman per menit per akun |
 | `GET` | `/api/admin/reports?page=&limit=&status=&targetType=` | Admin | Daftar laporan dengan pagination; detail pelapor hanya ditampilkan pada konsol admin |
 | `PATCH` | `/api/admin/reports/[reportId]` | Admin | Mengubah status tinjauan dan catatan hasil internal |
+| `PATCH` | `/api/admin/book-listings/[listingId]/visibility` | Admin | `{ hidden, reason }`; menyembunyikan listing dari halaman publik (alasan wajib, tampil ke pemilik) atau memulihkannya; tercatat di `verifications` |
+| `POST` | `/api/admin/books/[bookId]/sync` | Admin | Sinkron ulang satu rekaman dari Open Library/Google Books; maks. 6 per menit per admin; setiap percobaan tercatat di `book_sync_logs` |
 | `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
 
 Rute kompatibilitas lama `/api/me/bookmarks/[bookId]` dan `/api/me/book-listings...` masih diarahkan ke handler yang sama.

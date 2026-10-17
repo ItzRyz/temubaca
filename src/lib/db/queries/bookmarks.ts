@@ -153,6 +153,7 @@ export async function listSavedBooks(userId: string, limit = 100) {
             availableCopies: sql<number>`(
                 select count(*)::int from "book_listings"
                 where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
+                and "book_listings"."hiddenAt" is null
             )`,
         })
         .from(bookmarks)

@@ -18,7 +18,7 @@ export function AdminSidebar({ displayName, pendingCount }: { displayName: strin
     const items: NavItem[] = [
         { href: "/moderation/reports", label: "Peninjauan", icon: CircleCheck, badge: pendingCount },
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
-        { href: null, label: "Data Buku", icon: BookOpen },
+        { href: "/admin/books", label: "Data Buku", icon: BookOpen },
         { href: null, label: "Data Pengguna", icon: UserRound },
         { href: null, label: "Pengaturan", icon: Settings2 },
     ];

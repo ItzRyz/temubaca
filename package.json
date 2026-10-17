@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "check": "bun run typecheck && bun run lint && bun run test",
-    "db:seed": "bun scripts/seed-dummy.ts"
+    "db:seed": "bun scripts/seed-dummy.ts",
+    "db:migrate:dev": "bun scripts/migrate-dev.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

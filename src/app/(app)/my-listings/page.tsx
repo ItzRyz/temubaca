@@ -28,6 +28,7 @@ const statusBadge = {
     AVAILABLE: { label: "Tersedia", note: "Siap dipinjam kawan", className: "bg-[#c9ecd6] text-primary" },
     RESERVED: { label: "Dipesan", note: "Sedang dipesan peminjam", className: "bg-[#fbe7c6] text-[#7a4b00]" },
     UNAVAILABLE: { label: "Tidak Ditawarkan", note: "Tidak muncul di halaman buku publik", className: "bg-[#f1f0ea] text-foreground/80" },
+    HIDDEN: { label: "Disembunyikan Admin", note: "Tidak muncul di halaman buku publik", className: "bg-destructive/10 text-destructive" },
 } as const;
 
 const filters = [
@@ -132,7 +133,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
             {visible.length > 0 ? (
                 <ul className="mt-4 flex list-none flex-col gap-4 p-0">
                     {visible.map((listing) => {
-                        const status = statusBadge[listing.availability];
+                        const status = statusBadge[listing.hiddenAt ? "HIDDEN" : listing.availability];
                         return (
                             <li key={listing.id} className="rounded-xl border border-border bg-card p-4">
                                 <div className="grid gap-4 sm:grid-cols-[64px_1fr] lg:grid-cols-[64px_1fr_240px_auto] lg:items-center">
@@ -164,6 +165,11 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                             <span className={`rounded-full px-2.5 py-0.5 font-semibold ${status.className}`}>{status.label}</span>
                                             {status.note}
                                         </p>
+                                        {listing.hiddenAt && (
+                                            <p className="mt-1 text-destructive">
+                                                Alasan admin: {listing.hiddenReason ?? "tidak dicantumkan"}. Hubungi admin bila menurutmu ini keliru.
+                                            </p>
+                                        )}
                                         <p className="mt-1">Kondisi: {conditionLabels[listing.condition] ?? listing.condition}</p>
                                     </div>
                                     <BookListingAvailability listingId={listing.id} initialAvailability={listing.availability} />

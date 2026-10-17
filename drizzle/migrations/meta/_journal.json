@@ -36,6 +36,13 @@
       "when": 1791194994408,
       "tag": "0004_confused_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792213523374,
+      "tag": "0005_catalog_sync_and_listing_moderation",
+      "breakpoints": true
     }
   ]
 }

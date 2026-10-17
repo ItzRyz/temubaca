@@ -22,6 +22,7 @@ export interface BookCatalogProvider {
     readonly id: ExternalBookProvider;
     search(input: SearchBookCatalogInput): Promise<BookCatalogSearchResult>;
     getById(providerId: string): Promise<ExternalBook | null>;
+    findByIsbn(isbn: string): Promise<ExternalBook | null>;
 }
 
 export type BookProviderFailureKind =
