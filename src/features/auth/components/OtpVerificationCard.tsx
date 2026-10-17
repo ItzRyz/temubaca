@@ -4,6 +4,8 @@ import { ArrowRight, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type SubmitEvent } from "react";
 
+import { FormAlert } from "@/components/ui/form";
+
 import { cancelEmailOtp, resendEmailOtp, verifyEmailOtp } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 import { OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS, type PendingOtpPurpose } from "@/lib/validation/schemas/auth.schema";
@@ -182,8 +184,8 @@ export function OtpVerificationCard({ email, purpose, initialResendIn }: OtpVeri
                         </button></>
                     )}
                 </p>
-                {notice && <p role="status" className="rounded-lg bg-[#e7efe8] px-3 py-2 text-sm text-secondary-foreground">{notice}</p>}
-                {message && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{message}</p>}
+                <FormAlert tone="success">{notice}</FormAlert>
+                <FormAlert>{message}</FormAlert>
                 <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
                     {pending ? "Memverifikasi..." : "Verifikasi"}
                     {!pending && <ArrowRight aria-hidden="true" className="size-4" />}

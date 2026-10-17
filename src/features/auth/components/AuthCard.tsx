@@ -5,6 +5,8 @@ import { Eye, EyeClosed, LockKeyhole, Mail, User, type LucideIcon } from "lucide
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
+
+import { FieldError, FormAlert } from "@/components/ui/form";
 import { useForm, useWatch } from "react-hook-form";
 
 import { signIn, signUp } from "@/features/auth/actions";
@@ -50,7 +52,7 @@ function AuthField({ id, label, labelAside, icon: Icon, error, trailing, ...inpu
                 />
                 {trailing}
             </div>
-            {error && <p id={errorId} role="alert" className="text-[13px] text-destructive">{error}</p>}
+            <FieldError id={errorId} message={error} />
         </div>
     );
 }
@@ -169,7 +171,7 @@ function SignInForm({ next }: { next?: string }) {
                 <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked === true)} />
                 <label htmlFor="remember-me" className="cursor-pointer text-sm text-muted-foreground">Ingat saya</label>
             </div>
-            {serverError && <p role="alert" className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{serverError}</p>}
+            <FormAlert className="mt-4">{serverError}</FormAlert>
             <button type="submit" disabled={isPending} className={cn(authPrimaryButtonClass, "mt-4")}>
                 {isPending ? "Memproses..." : "Masuk"}
             </button>
@@ -237,7 +239,7 @@ function SignUpForm() {
                     Saya berjanji merawat buku pinjaman, mengembalikannya tepat waktu, dan saling menghargai sesama warga TemuBaca.
                 </label>
             </div>
-            {serverError && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{serverError}</p>}
+            <FormAlert>{serverError}</FormAlert>
             <button type="submit" disabled={isPending || !agreed} className={authPrimaryButtonClass}>
                 {isPending ? "Memproses..." : "Buat Akun Sekarang"}
             </button>

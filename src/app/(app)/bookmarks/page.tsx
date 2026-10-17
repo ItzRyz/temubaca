@@ -125,7 +125,7 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                         </div>
                         <form action="/bookmarks" method="get" role="search" className="flex md:w-72">
                             {availableOnly && <input type="hidden" name="filter" value="available" />}
-                            <label className="flex h-10 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                            <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
                                 <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                                 <span className="sr-only">Cari judul atau penulis</span>
                                 <input name="q" type="search" maxLength={100} defaultValue={query} placeholder="Cari judul atau penulis..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

@@ -4,6 +4,8 @@ import { Ban, RotateCcw, ShieldCheck, ShieldOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
+import { Field, FormAlert, TextArea } from "@/components/ui/form";
+
 type Props = {
     userId: string;
     role: "MEMBER" | "ADMIN";
@@ -72,21 +74,18 @@ export function AccountActionPanel({ userId, role, suspended, isSelf }: Props) {
 
     return (
         <div className="flex flex-col gap-3 bg-[#f1f0ea] p-5">
-            <label htmlFor={noteId} className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Tindakan akun</label>
-            <textarea
-                id={noteId}
-                rows={3}
-                maxLength={500}
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder={suspended ? "Catatan pemulihan (opsional)." : "Wajib diisi untuk penangguhan. Alasan tampil ke pengguna di area akunnya."}
-                className="rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-            />
-            {message && (
-                <p role={message.tone === "error" ? "alert" : "status"} className={message.tone === "error" ? "rounded bg-destructive/10 px-3 py-2 text-sm text-destructive" : "text-sm text-primary"}>
-                    {message.text}
-                </p>
-            )}
+            <Field id={noteId} label="Tindakan akun" labelClassName="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                {(control) => (
+                    <TextArea
+                        {...control}
+                        maxLength={500}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder={suspended ? "Catatan pemulihan (opsional)." : "Wajib diisi untuk penangguhan. Alasan tampil ke pengguna di area akunnya."}
+                    />
+                )}
+            </Field>
+            <FormAlert tone={message?.tone === "error" ? "error" : "success"}>{message?.text}</FormAlert>
             <div className="grid gap-2 sm:grid-cols-2">
                 <button type="button" onClick={toggleRole} disabled={pending !== null}
                     className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-muted disabled:opacity-60">

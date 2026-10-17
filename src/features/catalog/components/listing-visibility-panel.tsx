@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
+import { Field, FormAlert, TextArea } from "@/components/ui/form";
+
 /** Hide a listing from public pages with a recorded reason, or restore it (Figma "Tindakan Listing"). */
 export function ListingVisibilityPanel({ listingId, bookId, hidden }: { listingId: string; bookId: string; hidden: boolean }) {
     const router = useRouter();
@@ -43,21 +45,18 @@ export function ListingVisibilityPanel({ listingId, bookId, hidden }: { listingI
 
     return (
         <div className="flex flex-col gap-3 bg-[#f1f0ea] p-5">
-            <label htmlFor={reasonId} className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Tindakan listing</label>
-            <textarea
-                id={reasonId}
-                rows={3}
-                maxLength={500}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder={hidden ? "Catatan pemulihan (opsional)." : "Wajib diisi untuk menyembunyikan. Alasan tampil ke pemilik di Buku Saya."}
-                className="rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-            />
-            {message && (
-                <p role={message.tone === "error" ? "alert" : "status"} className={message.tone === "error" ? "rounded bg-destructive/10 px-3 py-2 text-sm text-destructive" : "text-sm text-primary"}>
-                    {message.text}
-                </p>
-            )}
+            <Field id={reasonId} label="Tindakan listing" labelClassName="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                {(control) => (
+                    <TextArea
+                        {...control}
+                        maxLength={500}
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        placeholder={hidden ? "Catatan pemulihan (opsional)." : "Wajib diisi untuk menyembunyikan. Alasan tampil ke pemilik di Buku Saya."}
+                    />
+                )}
+            </Field>
+            <FormAlert tone={message?.tone === "error" ? "error" : "success"}>{message?.text}</FormAlert>
             <div className="grid gap-2 sm:grid-cols-2">
                 <Link href={`/books/${bookId}`} target="_blank" className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card text-sm font-semibold hover:bg-muted">
                     Buka Buku <ExternalLink aria-hidden="true" className="size-4" /><span className="sr-only">(tab baru)</span>

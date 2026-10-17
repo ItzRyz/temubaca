@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { Field, FormAlert, Select, TextArea, TextInput } from "@/components/ui/form";
+
 type BookListingEditorProps = {
     listingId: string;
     initialCondition: string;
@@ -64,25 +66,24 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
         <details className="mt-3 border-t border-border/70 pt-3">
             <summary className="cursor-pointer text-sm font-semibold text-primary">Ubah detail listing</summary>
             <form onSubmit={handleSubmit} className="mt-4 grid gap-4">
-                <label className="grid gap-2 text-sm font-medium">
-                    Kondisi buku
-                    <select value={condition} onChange={(event) => setCondition(event.target.value)} className="h-10 rounded-lg border border-input bg-background px-3">
-                        {conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                    </select>
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    Area/lokasi publik
-                    <input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={500} className="h-10 rounded-lg border border-input bg-background px-3" />
-                </label>
-                <label className="grid gap-2 text-sm font-medium">
-                    Aturan peminjaman
-                    <textarea value={rules} onChange={(event) => setRules(event.target.value)} maxLength={5000} rows={3} className="rounded-lg border border-input bg-background px-3 py-2" />
-                </label>
-                <button type="submit" disabled={pending} className="min-h-10 justify-self-start rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60">
+                <Field label="Kondisi buku">
+                    {(control) => (
+                        <Select {...control} value={condition} onChange={(event) => setCondition(event.target.value)}>
+                            {conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                        </Select>
+                    )}
+                </Field>
+                <Field label="Area/lokasi publik" hint="Tulis area umum seperti nama taman atau stasiun, bukan alamat rumah.">
+                    {(control) => <TextInput {...control} value={location} onChange={(event) => setLocation(event.target.value)} maxLength={500} />}
+                </Field>
+                <Field label="Aturan peminjaman">
+                    {(control) => <TextArea {...control} value={rules} onChange={(event) => setRules(event.target.value)} maxLength={5000} />}
+                </Field>
+                <button type="submit" disabled={pending} className="min-h-11 justify-self-start rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60">
                     {pending ? "Menyimpan…" : "Simpan perubahan"}
                 </button>
-                {message && <p role="status" className="text-sm text-primary">{message}</p>}
-                {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+                <FormAlert tone="success">{message}</FormAlert>
+                <FormAlert>{error}</FormAlert>
             </form>
         </details>
     );

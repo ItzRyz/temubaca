@@ -4,6 +4,8 @@ import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 
+import { Field, FormAlert, TextArea } from "@/components/ui/form";
+
 type Decision = "REVIEWING" | "REJECTED" | "RESOLVED";
 
 const decisions: { value: Decision; label: string; description: string }[] = [
@@ -73,21 +75,18 @@ export function ReportDecisionPanel({ reportIds, initialOutcome, itemKey }: { re
                     ))}
                 </div>
             </fieldset>
-            <label htmlFor={noteId} className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Catatan keputusan</label>
-            <textarea
-                id={noteId}
-                rows={3}
-                maxLength={10000}
-                value={outcome}
-                onChange={(event) => setOutcome(event.target.value)}
-                placeholder="Wajib diisi saat menutup laporan. Catatan hanya terlihat oleh admin."
-                className="rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-            />
-            {message && (
-                <p role={message.tone === "error" ? "alert" : "status"} className={message.tone === "error" ? "rounded bg-destructive/10 px-3 py-2 text-sm text-destructive" : "text-sm text-primary"}>
-                    {message.text}
-                </p>
-            )}
+            <Field id={noteId} label="Catatan keputusan" labelClassName="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                {(control) => (
+                    <TextArea
+                        {...control}
+                        maxLength={10000}
+                        value={outcome}
+                        onChange={(event) => setOutcome(event.target.value)}
+                        placeholder="Wajib diisi saat menutup laporan. Catatan hanya terlihat oleh admin."
+                    />
+                )}
+            </Field>
+            <FormAlert tone={message?.tone === "error" ? "error" : "success"}>{message?.text}</FormAlert>
             <button type="submit" disabled={pending} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
                 <Check aria-hidden="true" className="size-4" /> {pending ? "Menyimpan…" : "Terapkan Tindakan"}
             </button>

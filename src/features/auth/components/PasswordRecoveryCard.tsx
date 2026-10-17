@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
 
+import { FieldError, FormAlert } from "@/components/ui/form";
+
 import { requestPasswordReset, signOut, updatePassword } from "@/features/auth/actions";
 import { resetPasswordSchema } from "@/lib/validation/schemas/auth.schema";
 
@@ -29,16 +31,6 @@ function BackToLogin() {
             <ArrowLeft aria-hidden="true" className="size-3.5" /> Kembali ke halaman masuk
         </Link>
     );
-}
-
-function ErrorMessage({ message }: { message: string | null }) {
-    if (!message) return null;
-    return <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{message}</p>;
-}
-
-function FieldError({ id, message }: { id: string; message: string | null }) {
-    if (!message) return null;
-    return <p id={id} role="alert" className="text-[13px] text-destructive">{message}</p>;
 }
 
 export function ForgotPasswordCard() {
@@ -91,7 +83,7 @@ export function ForgotPasswordCard() {
                     </div>
                     <FieldError id="recovery-email-error" message={emailError} />
                 </div>
-                <ErrorMessage message={error} />
+                <FormAlert>{error}</FormAlert>
                 <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
                     {pending ? "Mengirim..." : "Kirim Kode Verifikasi"}
                     {!pending && <ArrowRight aria-hidden="true" className="size-4" />}
@@ -197,7 +189,7 @@ export function UpdatePasswordCard() {
                     password={password}
                     extra={[{ label: "Konfirmasi kata sandi cocok", met: confirmPassword.length > 0 && password === confirmPassword }]}
                 />
-                <ErrorMessage message={error} />
+                <FormAlert>{error}</FormAlert>
                 <button type="submit" disabled={pending} className={authPrimaryButtonClass}>
                     {pending ? "Menyimpan..." : "Simpan & Masuk"}
                     {!pending && <ArrowRight aria-hidden="true" className="size-4" />}

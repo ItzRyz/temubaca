@@ -4,6 +4,8 @@ import { Check, PauseCircle, RotateCcw, X, type LucideIcon } from "lucide-react"
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
+import { Field, FormAlert, TextArea } from "@/components/ui/form";
+
 import { cn } from "@/lib/utils";
 
 import { decisionRequiresNote, type CommunityReviewDecision } from "../community-review";
@@ -68,21 +70,18 @@ export function CommunityDecisionPanel({ communityId, decisions, nextHref = revi
 
     return (
         <div className="flex flex-col gap-3 bg-[#f1f0ea] p-5">
-            <label htmlFor={noteId} className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Catatan keputusan</label>
-            <textarea
-                id={noteId}
-                rows={3}
-                maxLength={2000}
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder={noteRequired ? "Wajib diisi jika menolak atau menangguhkan." : "Opsional."}
-                className="rounded-lg border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-            />
-            {message && (
-                <p role={message.tone === "error" ? "alert" : "status"} className={message.tone === "error" ? "rounded bg-destructive/10 px-3 py-2 text-sm text-destructive" : "text-sm text-primary"}>
-                    {message.text}
-                </p>
-            )}
+            <Field id={noteId} label="Catatan keputusan" labelClassName="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                {(control) => (
+                    <TextArea
+                        {...control}
+                        maxLength={2000}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder={noteRequired ? "Wajib diisi jika menolak atau menangguhkan." : "Opsional."}
+                    />
+                )}
+            </Field>
+            <FormAlert tone={message?.tone === "error" ? "error" : "success"}>{message?.text}</FormAlert>
             <div className="grid gap-2 sm:grid-cols-2">
                 {decisions.map((decision) => {
                     const { label, icon: Icon, tone } = decisionUi[decision];

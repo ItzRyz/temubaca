@@ -132,7 +132,7 @@ export default async function ModerationPage({ searchParams }: PageProps) {
                 <form action="/moderation/reports" method="get" role="search" className="flex lg:w-72">
                     {tab === "communities" && <input type="hidden" name="tab" value="communities" />}
                     {single(params.view) && <input type="hidden" name="view" value={single(params.view)} />}
-                    <label className="flex h-10 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari judul konten atau nama</span>
                         <input name="q" type="search" maxLength={100} defaultValue={query} placeholder="Cari judul konten/pemilik..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
+import { Switch } from "@/components/ui/form";
+
 type BookListingAvailabilityProps = {
     listingId: string;
     initialAvailability: "AVAILABLE" | "UNAVAILABLE" | "RESERVED";
@@ -55,17 +57,7 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
                         {locked ? "Terkunci (dipesan)" : pending ? "Memperbarui…" : offered ? "Aktif" : "Nonaktif"}
                     </span>
                 </span>
-                <button
-                    type="button"
-                    role="switch"
-                    aria-checked={offered}
-                    aria-labelledby={labelId}
-                    onClick={toggleAvailability}
-                    disabled={pending || locked}
-                    className={`relative h-6 w-12 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 ${offered ? "bg-primary" : "bg-[#d9ddd8]"}`}
-                >
-                    <span aria-hidden="true" className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-[left] ${offered ? "left-[26px]" : "left-0.5"}`} />
-                </button>
+                <Switch checked={offered} onCheckedChange={() => toggleAvailability()} aria-labelledby={labelId} disabled={pending || locked} />
             </div>
             {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
         </div>
