@@ -16,7 +16,7 @@ const sections = {
     catalog: { label: "Katalog Buku", pending: null },
     map: { label: "Peta & Lokasi", pending: "Penyedia peta, geocoding, dan kebijakan lokasi menunggu keputusan DEC-07." },
     moderation: { label: "Moderasi & Publikasi", pending: "Belum ada aturan moderasi yang dapat diatur. Keputusan tinjauan saat ini selalu dilakukan manual oleh admin di menu Peninjauan." },
-    borrowing: { label: "Aturan Pinjam", pending: "Durasi, batas, dan aturan peminjaman menunggu keputusan alur pinjam DEC-02." },
+    borrowing: { label: "Aturan Pinjam", pending: "Aturan pinjam mengikuti DEC-02 dan belum dapat diubah dari sini: lama pinjam 7/14/21/30 hari sesuai batas pemilik, konfirmasi serah terima dan pengembalian oleh kedua pihak, pengingat sekali per 24 jam, tanpa denda. Perpanjangan belum diputuskan." },
     retention: { label: "Retensi & Data", pending: "Retensi data, penghapusan akun, dan backup menunggu keputusan DEC-11." },
 } as const;
 type Section = keyof typeof sections;

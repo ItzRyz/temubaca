@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CircleCheck, Settings2, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, CircleCheck, Settings2, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -13,7 +13,7 @@ function initialsOf(name: string) {
 }
 
 /** Admin portal navigation (Figma "Peninjauan" 143:807). Items without a page yet are shown as unavailable. */
-export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number } }) {
+export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number; disputes: number } }) {
     const pathname = usePathname();
     const items: NavItem[] = [
         {
@@ -22,6 +22,13 @@ export function AdminSidebar({ displayName, pending }: { displayName: string; pe
             icon: CircleCheck,
             badge: pending.reports + pending.communities,
             badgeDetail: `${pending.reports} laporan dan ${pending.communities} pengajuan komunitas menunggu`,
+        },
+        {
+            href: "/admin/loans",
+            label: "Sengketa Pinjam",
+            icon: ArrowLeftRight,
+            badge: pending.disputes,
+            badgeDetail: `${pending.disputes} sengketa pinjam menunggu keputusan`,
         },
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: "/admin/books", label: "Data Buku", icon: BookOpen },

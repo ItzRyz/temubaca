@@ -67,13 +67,30 @@ export const policies = {
     },
 
     borrowing: {
-        // Borrowing policy stays closed until DEC-02 defines the lifecycle and actor rules.
-        request: () => false,
+        // DEC-02: any signed-in, unsuspended account may borrow and lend; per-loan rules live in
+        // features/borrowing/lifecycle.ts, and only admins settle disputes.
+        request:
+            (role: PlatformRole) =>
+                role === "MEMBER" ||
+                role === "ADMIN",
 
-        manageOwnRequest: () => false,
+        manageOwnRequest:
+            (role: PlatformRole) =>
+                role === "MEMBER" ||
+                role === "ADMIN",
 
-        manageListingRequests: () => false,
+        manageListingRequests:
+            (role: PlatformRole) =>
+                role === "MEMBER" ||
+                role === "ADMIN",
 
-        complete: () => false,
+        complete:
+            (role: PlatformRole) =>
+                role === "MEMBER" ||
+                role === "ADMIN",
+
+        resolveDispute:
+            (role: PlatformRole) =>
+                role === "ADMIN",
     },
 } as const;

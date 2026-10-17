@@ -139,3 +139,33 @@ export function loanDayChoices(maxDays: number) {
 export function meetingPointsOf(publicLocation: string | null | undefined) {
     return (publicLocation ?? "").split(" & ").map((point) => point.trim()).filter(Boolean);
 }
+
+/** The "Catatan kondisi:" line the Tambah Buku dialog writes into the listing rules. */
+export function conditionNoteFromRules(rules: string | null | undefined) {
+    return rules?.match(/Catatan kondisi:\s*(.+)/i)?.[1]?.trim() || null;
+}
+
+export type LoanGroup = "action" | "waiting" | "ongoing" | "history";
+
+/** Figma 297:2494 / 298:2551 sections: Perlu Tindakan, Menunggu Jawaban, Sedang Berjalan, Riwayat. */
+export function loanGroup(loan: LoanSnapshot, role: LoanRole, now = new Date()): LoanGroup {
+    const state = loanState(loan, now);
+    const mine = role === "owner"
+        ? { handover: loan.ownerHandoverAt, returned: loan.ownerReturnAt }
+        : { handover: loan.requesterHandoverAt, returned: loan.requesterReturnAt };
+    const theirs = role === "owner" ? loan.requesterReturnAt : loan.ownerReturnAt;
+    switch (state) {
+        case "PENDING":
+            return role === "owner" ? "action" : "waiting";
+        case "AWAITING_HANDOVER":
+            return mine.handover ? "ongoing" : "action";
+        case "OVERDUE":
+            return mine.returned ? "ongoing" : "action";
+        case "ACTIVE":
+            return theirs && !mine.returned ? "action" : "ongoing";
+        case "DISPUTED":
+            return "ongoing";
+        default:
+            return "history";
+    }
+}

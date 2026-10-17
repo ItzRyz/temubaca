@@ -167,7 +167,7 @@ export default async function ProfilePage() {
                         <dl className="divide-y divide-border text-sm">
                             {[
                                 ["Lokasi perangkat", "Belum dipakai. Fitur peta dan izin lokasi masih menunggu keputusan DEC-07; pencarian manual tetap tersedia."],
-                                ["Notifikasi permintaan pinjam", "Belum tersedia karena alur pinjam masih menunggu DEC-02."],
+                                ["Notifikasi permintaan pinjam", "Belum ada notifikasi email atau push. Permintaan, pengingat, dan status pinjaman tampil di Buku Saya, tab Peminjaman."],
                                 ["Unduh atau hapus akun dan data", "Belum tersedia. Kebijakan retensi dan penghapusan akun masih menunggu DEC-11."],
                             ].map(([term, detail]) => (
                                 <div key={term} className="py-3">

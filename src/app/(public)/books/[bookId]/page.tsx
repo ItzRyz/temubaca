@@ -18,6 +18,9 @@ import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button"
 import { BookListingForm } from "@/features/book-listings/components/book-listing-form";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
+import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-request-dialog";
+import { conditionNoteFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
+import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
 
 type BookPageProps = {
     params: Promise<{ bookId: string }>;
@@ -47,6 +50,7 @@ export async function generateMetadata({ params }: BookPageProps): Promise<Metad
 }
 
 const secondaryButtonClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
+const borrowButtonClass = "inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 const headerActionClass = "inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
 const VISIBLE_COPIES = 4;
 
@@ -64,7 +68,9 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
         getCatalogSettings(),
         listBookDataSources(book),
     ]);
-    const isBookmarked = user ? await hasBookmark(user.id, book.id) : false;
+    const [isBookmarked, openRequests] = user
+        ? await Promise.all([hasBookmark(user.id, book.id), findOpenRequestsForListings(user.id, listings.map((listing) => listing.id))])
+        : [false, new Map<string, { id: string; status: string }>()];
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
     const details = [
         ["ISBN", book.isbn],
@@ -254,8 +260,26 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                 <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                                     <span aria-hidden="true" className="size-1.5 rounded-full bg-primary" /> Diperbarui {timeAgo(listing.updatedAt, now)}
                                                 </p>
-                                                {/* Borrow requests wait on DEC-02; say so instead of a button that does nothing. */}
-                                                <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">Ajukan pinjam segera hadir</span>
+                                                {!user ? (
+                                                    <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className={borrowButtonClass}>Masuk untuk meminjam</Link>
+                                                ) : listing.ownerId === user.id ? (
+                                                    <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">Salinan Anda</span>
+                                                ) : openRequests.has(listing.id) ? (
+                                                    <Link href="/my-listings?tab=peminjaman&view=pinjam" className="inline-flex min-h-9 items-center rounded-lg bg-[#e7efe8] px-3 text-xs font-semibold text-primary hover:bg-[#d9e6db]">
+                                                        Permintaan terkirim · Lihat
+                                                    </Link>
+                                                ) : (
+                                                    <BorrowRequestDialog
+                                                        listingId={listing.id}
+                                                        bookTitle={book.title}
+                                                        bookMeta={[authors, book.publisher].filter(Boolean).join(" • ")}
+                                                        ownerName={listing.ownerUser.displayName}
+                                                        conditionNote={conditionNoteFromRules(listing.borrowingRules)}
+                                                        meetingPoints={meetingPointsOf(listing.publicLocation)}
+                                                        loanChoices={loanDayChoices(maxLoanDaysFromRules(listing.borrowingRules))}
+                                                        triggerClassName={borrowButtonClass}
+                                                    />
+                                                )}
                                             </div>
                                             <div className="flex flex-wrap gap-x-4">
                                                 <ReportForm targetType="BOOK_LISTING" targetId={listing.id} targetName={book.title} targetMeta={`Salinan milik ${listing.ownerUser.displayName}`} isAuthenticated={user !== null} label="Laporkan listing" />

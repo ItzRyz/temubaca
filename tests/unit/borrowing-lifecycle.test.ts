@@ -103,3 +103,18 @@ describe("request validation", () => {
         expect(borrowRequestActionSchema.safeParse({ action: "reject", reason: "Alasan karangan" }).success).toBe(false);
     });
 });
+
+describe("loan groups", () => {
+    test("each side sees what waits on them", async () => {
+        const { loanGroup } = await import("../../src/features/borrowing/lifecycle");
+        expect(loanGroup(base, "owner", now)).toBe("action");
+        expect(loanGroup(base, "requester", now)).toBe("waiting");
+        const approved = { ...base, requestStatus: "APPROVED", ownerHandoverAt: now };
+        expect(loanGroup(approved, "owner", now)).toBe("ongoing");
+        expect(loanGroup(approved, "requester", now)).toBe("action");
+        expect(loanGroup(overdue, "requester", now)).toBe("action");
+        expect(loanGroup({ ...active, requesterReturnAt: now }, "owner", now)).toBe("action");
+        expect(loanGroup({ ...active, requesterReturnAt: now }, "requester", now)).toBe("ongoing");
+        expect(loanGroup({ ...active, borrowingStatus: "RETURNED" }, "owner", now)).toBe("history");
+    });
+});
