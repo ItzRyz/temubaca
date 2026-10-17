@@ -92,13 +92,29 @@ const alertTone = {
 };
 
 /** Form-level message: errors are announced immediately, success/info politely. */
-export function FormAlert({ tone = "error", children, className }: { tone?: keyof typeof alertTone; children?: ReactNode; className?: string }) {
+export function FormAlert({ tone = "error", children, className, id }: { tone?: keyof typeof alertTone; children?: ReactNode; className?: string; id?: string }) {
     if (!children) return null;
     const { className: toneClass, icon: Icon, role } = alertTone[tone];
     return (
-        <p role={role} className={cn("flex gap-2 rounded-lg px-3 py-2 text-sm leading-6", toneClass, className)}>
+        <p id={id} role={role} className={cn("flex gap-2 rounded-lg px-3 py-2 text-sm leading-6", toneClass, className)}>
             <Icon aria-hidden="true" className="mt-1 size-4 shrink-0" />
             <span>{children}</span>
         </p>
+    );
+}
+
+/**
+ * A radio or checkbox with its label as one 40px+ tap target; the focus ring wraps the whole row.
+ * Pass the input props (`type`, `name`, `value`, …) and the visible label as children.
+ */
+export function ChoiceOption({ children, className, ...input }: Omit<ComponentProps<"input">, "children"> & { children: ReactNode }) {
+    return (
+        <label className={cn(
+            "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/40",
+            className,
+        )}>
+            <input className="size-4 shrink-0 accent-primary focus-visible:outline-none" {...input} />
+            {children}
+        </label>
     );
 }

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+
+import { Field, FormAlert, Select, TextArea, TextInput } from "@/components/ui/form";
 
 type BookListingFormProps = {
     bookId: string;
@@ -22,6 +24,7 @@ const conditions = [
 
 export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", triggerClassName }: BookListingFormProps) {
     const router = useRouter();
+    const pathname = usePathname();
     const [open, setOpen] = useState(false);
     const [condition, setCondition] = useState<(typeof conditions)[number][0]>("GOOD");
     const [publicLocation, setPublicLocation] = useState("");
@@ -32,7 +35,7 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
 
     if (!isAuthenticated) {
         return (
-            <Link href="/login" className={triggerClassName ?? "inline-flex min-h-11 items-center rounded-xl border border-primary px-5 py-3 text-sm font-semibold text-primary hover:bg-primary/5"}>
+            <Link href={`/login?next=${encodeURIComponent(pathname)}`} className={triggerClassName ?? "inline-flex min-h-11 items-center rounded-xl border border-primary px-5 py-3 text-sm font-semibold text-primary hover:bg-primary/5"}>
                 Masuk untuk menawarkan buku
             </Link>
         );
@@ -83,25 +86,24 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
             >
                 {open ? "Tutup formulir" : "Tawarkan salinan buku ini"}
             </button>
-            {saved && <p role="status" className="mt-2 text-sm font-medium">Listing buku berhasil dibuat.</p>}
-            {error && <p role="alert" className="mt-2 w-fit rounded-md bg-card px-2 py-1 text-sm text-destructive">{error}</p>}
+            <FormAlert tone="success" className="mt-2 w-fit bg-card">{saved ? "Listing buku berhasil dibuat." : null}</FormAlert>
+            <FormAlert className="mt-2 w-fit bg-card">{error}</FormAlert>
             {open && (
                 <form onSubmit={handleSubmit} className="mt-4 grid max-w-2xl gap-4 rounded-2xl border border-border/70 bg-card p-5 text-foreground">
-                    <label className="grid gap-2 text-sm font-medium">
-                        Kondisi buku
-                        <select value={condition} onChange={(event) => setCondition(event.target.value as (typeof conditions)[number][0])} className="h-11 rounded-lg border border-input bg-background px-3">
-                            {conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                        </select>
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium">
-                        Area/lokasi publik <span className="font-normal text-muted-foreground">(opsional)</span>
-                        <input value={publicLocation} onChange={(event) => setPublicLocation(event.target.value)} maxLength={500} className="h-11 rounded-lg border border-input bg-background px-3" placeholder="Contoh: Bandung, Dago" />
-                    </label>
-                    <label className="grid gap-2 text-sm font-medium">
-                        Aturan peminjaman <span className="font-normal text-muted-foreground">(opsional)</span>
-                        <textarea value={borrowingRules} onChange={(event) => setBorrowingRules(event.target.value)} maxLength={5000} rows={3} className="rounded-lg border border-input bg-background px-3 py-2" placeholder="Tambahkan informasi yang perlu diketahui calon peminjam." />
-                    </label>
-                    <button type="submit" disabled={pending} className="min-h-11 justify-self-start rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                    <Field label="Kondisi buku">
+                        {(control) => (
+                            <Select {...control} value={condition} onChange={(event) => setCondition(event.target.value as (typeof conditions)[number][0])}>
+                                {conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            </Select>
+                        )}
+                    </Field>
+                    <Field label={<>Area/lokasi publik <span className="font-normal text-muted-foreground">(opsional)</span></>} hint="Tulis area umum seperti nama taman atau stasiun, bukan alamat rumah.">
+                        {(control) => <TextInput {...control} value={publicLocation} onChange={(event) => setPublicLocation(event.target.value)} maxLength={500} placeholder="Contoh: Bandung, Dago" />}
+                    </Field>
+                    <Field label={<>Aturan peminjaman <span className="font-normal text-muted-foreground">(opsional)</span></>}>
+                        {(control) => <TextArea {...control} value={borrowingRules} onChange={(event) => setBorrowingRules(event.target.value)} maxLength={5000} placeholder="Tambahkan informasi yang perlu diketahui calon peminjam." />}
+                    </Field>
+                    <button type="submit" disabled={pending} className="min-h-11 justify-self-start rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
                         {pending ? "Menyimpan…" : "Terbitkan listing"}
                     </button>
                 </form>

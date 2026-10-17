@@ -3,6 +3,8 @@
 import { CheckCircle2, Flag, Send, ShieldCheck, X } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
+
 type ReportTargetType = "BOOK" | "BOOK_LISTING" | "COMMUNITY" | "EVENT" | "MERCHANDISE_LISTING" | "USER";
 
 const targetLabels: Record<ReportTargetType, string> = {
@@ -127,7 +129,7 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
                         <CheckCircle2 aria-hidden="true" className="size-10 text-primary" />
                         <p className="font-heading text-lg font-semibold">Laporan diterima</p>
                         <p className="max-w-sm text-sm text-muted-foreground">Terima kasih. Pengelola TemuBaca akan meninjau laporanmu. Konten tidak otomatis disembunyikan selama peninjauan.</p>
-                        <button type="button" onClick={close} className="mt-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Tutup</button>
+                        <button type="button" onClick={close} className="mt-2 min-h-11 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Tutup</button>
                     </div>
                 ) : (
                     <form ref={formRef} onSubmit={submit} noValidate className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto p-6">
@@ -137,44 +139,54 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
                             </legend>
                             <div className="mt-2.5 flex flex-col gap-2.5">
                                 {reasons.map((reason) => (
-                                    <label key={reason.value} className="flex cursor-pointer items-start gap-3 rounded border border-border bg-[#faf7f0] p-3 has-checked:border-primary has-checked:bg-[#e7efe8]">
-                                        <input type="radio" name="reason" value={reason.value} className="mt-0.5 size-4 shrink-0 accent-primary" onChange={() => setError("")} />
+                                    <ChoiceOption
+                                        key={reason.value}
+                                        type="radio"
+                                        name="reason"
+                                        value={reason.value}
+                                        onChange={() => setError("")}
+                                        className="items-start rounded border border-border bg-[#faf7f0] p-3 has-checked:border-primary has-checked:bg-[#e7efe8]"
+                                    >
                                         <span>
                                             <span className="block text-sm font-semibold">{reason.value}</span>
                                             <span className="block text-xs leading-4 text-muted-foreground">{reason.description}</span>
                                         </span>
-                                    </label>
+                                    </ChoiceOption>
                                 ))}
                             </div>
                         </fieldset>
 
-                        <label className="flex flex-col gap-1.5">
-                            <span className="flex items-center justify-between text-xs font-semibold">
-                                <span>Detail tambahan <span className="font-normal text-muted-foreground">(Opsional)</span></span>
-                                <span aria-hidden="true" className="text-[11px] font-normal text-muted-foreground">{details.length}/{DETAILS_MAX}</span>
-                            </span>
-                            <textarea
-                                name="details"
-                                rows={3}
-                                maxLength={DETAILS_MAX}
-                                value={details}
-                                onChange={(event) => setDetails(event.target.value)}
-                                placeholder="Ceritakan kronologi atau bagian yang perlu ditinjau oleh pengelola TemuBaca..."
-                                className="rounded border border-border bg-card px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
-                            />
-                            <span className="text-[11px] text-muted-foreground">Jangan cantumkan alamat rumah, nomor telepon, atau data pribadi lain.</span>
-                        </label>
+                        <Field
+                            label={(
+                                <span className="flex items-center justify-between text-xs font-semibold">
+                                    <span>Detail tambahan <span className="font-normal text-muted-foreground">(Opsional)</span></span>
+                                    <span aria-hidden="true" className="text-[11px] font-normal text-muted-foreground">{details.length}/{DETAILS_MAX}</span>
+                                </span>
+                            )}
+                            hint={`Jangan cantumkan alamat rumah, nomor telepon, atau data pribadi lain. Maksimal ${DETAILS_MAX} karakter.`}
+                        >
+                            {(control) => (
+                                <TextArea
+                                    {...control}
+                                    name="details"
+                                    maxLength={DETAILS_MAX}
+                                    value={details}
+                                    onChange={(event) => setDetails(event.target.value)}
+                                    placeholder="Ceritakan kronologi atau bagian yang perlu ditinjau oleh pengelola TemuBaca..."
+                                />
+                            )}
+                        </Field>
 
                         <p className="flex gap-3 rounded border border-border bg-[#f1f0ea] p-4 text-xs leading-5 text-foreground/80">
                             <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
                             <span><strong className="text-foreground">Laporan ditinjau langsung oleh manusia.</strong> Pengelola TemuBaca memeriksa setiap laporan untuk menjaga keamanan ruang literasi warga.</span>
                         </p>
 
-                        {error && <p id={`${titleId}-error`} role="alert" className="rounded bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+                        <FormAlert id={`${titleId}-error`}>{error}</FormAlert>
 
                         <div className="flex items-center justify-end gap-3 border-t border-border pt-3">
-                            <button type="button" onClick={close} className="rounded px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted">Batal</button>
-                            <button type="submit" disabled={status === "sending"} className="flex items-center gap-2 rounded bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.05)] hover:bg-primary/90 disabled:opacity-60">
+                            <button type="button" onClick={close} className="min-h-11 rounded px-4 text-sm font-semibold text-muted-foreground hover:bg-muted">Batal</button>
+                            <button type="submit" disabled={status === "sending"} className="flex min-h-11 items-center gap-2 rounded bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.05)] hover:bg-primary/90 disabled:opacity-60">
                                 <Send aria-hidden="true" className="size-3.5" />
                                 {status === "sending" ? "Mengirim…" : "Kirim Laporan"}
                             </button>
