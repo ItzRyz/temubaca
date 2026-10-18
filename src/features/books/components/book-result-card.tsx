@@ -1,5 +1,6 @@
 import { BookOpen, ChevronRight, Info, Library } from "lucide-react";
 import Link from "next/link";
+import { primaryGenreLabel } from "@/features/books/genres";
 
 export type BookResult = {
     id: string;
@@ -34,8 +35,8 @@ export function BookResultCard({ book }: { book: BookResult }) {
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    {book.categories[0] && (
-                        <span className="rounded-full bg-[#e7efe8] px-2 py-0.5 font-semibold text-secondary-foreground">{book.categories[0]}</span>
+                    {primaryGenreLabel(book.categories) && (
+                        <span className="rounded-full bg-[#e7efe8] px-2 py-0.5 font-semibold text-secondary-foreground">{primaryGenreLabel(book.categories)}</span>
                     )}
                     {imprint && <span>{imprint}</span>}
                 </div>

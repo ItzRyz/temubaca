@@ -17,6 +17,8 @@ import {
     type ListingDeletionBlocker,
 } from "@/features/book-listings/listing-deletion";
 
+import { genreBySlug, genres } from "@/features/books/genres";
+
 import { db } from "../client";
 
 import {
@@ -146,11 +148,19 @@ export type BookBrowseFilters = {
     language?: string;
 };
 
+/** A genre slug matches any of its provider subjects; anything else is an exact subject (old links). */
+function categoryCondition(category: string) {
+    const genre = genreBySlug(category);
+    return genre
+        ? sql`exists (select 1 from unnest(${books.categories}) as subject where lower(subject) ~ ${genre.pattern})`
+        : sql`${category} = ANY(${books.categories})`;
+}
+
 function browseCondition(filters: BookBrowseFilters) {
     const q = filters.q?.trim();
     return and(
         q ? textSearchCondition(q) : undefined,
-        filters.category ? sql`${filters.category} = ANY(${books.categories})` : undefined,
+        filters.category ? categoryCondition(filters.category) : undefined,
         filters.language ? eq(books.language, filters.language) : undefined,
     );
 }
@@ -189,7 +199,21 @@ export async function browseBooks(filters: BookBrowseFilters, limit = 10, offset
     return { items, total: countRow?.total ?? 0 };
 }
 
-/** Most common categories and languages for the catalog filter sidebar. */
+/** Genre counts for the /books filter (see features/books/genres.ts), most common first; empty genres are left out. */
+export async function listGenreFacets() {
+    const counts = sql.join(
+        genres.map((genre) => sql`count(*) filter (where exists (select 1 from unnest(${books.categories}) as subject where lower(subject) ~ ${genre.pattern}))::int`),
+        sql`, `,
+    );
+    const result = await db.execute<{ counts: number[] }>(sql`select array[${counts}] as counts from ${books}`);
+    const totals = result.rows[0]?.counts ?? [];
+    return genres
+        .map((genre, index) => ({ value: genre.slug, label: genre.label, total: Number(totals[index] ?? 0) }))
+        .filter((facet) => facet.total > 0)
+        .sort((a, b) => b.total - a.total);
+}
+
+/** Most common raw provider subjects and languages (interest suggestions use the raw subjects). */
 export async function listBookFacets(limit = 8) {
     const [categories, languages] = await Promise.all([
         db.execute<{ value: string; total: number }>(sql`

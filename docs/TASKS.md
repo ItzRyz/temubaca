@@ -252,6 +252,13 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
   - Temuan yang diperbaiki: redirect login kini membawa `?next=` sehingga pengguna kembali ke halaman asal.
   - State gagal katalog terbuka (TB-021) kini diuji render untuk kelima kondisi.
   - Belum: akses non-admin ke portal admin dengan akun anggota, screen reader, dan uji multi-user.
+- Filter genre di `/books` (18 Okt 2026):
+  - Filter kategori sebelumnya menampilkan 31 subjek mentah dari provider untuk 21 buku: berbahasa Inggris, tumpang tindih ("Fiction", "Indonesia, fiction", "Indonesian fiction"), dan sebagian bukan genre ("Earth (planet)", "New York Times reviewed").
+  - Kini subjek dipetakan ke genre berbahasa Indonesia di `src/features/books/genres.ts` (termasuk genre manual Tambah Buku). Subjek yang tidak tercakup tidak ditawarkan.
+  - Filter "Genre" menampilkan 8 genre teratas beserta "Lihat N lainnya". Hasil filter memakai pola yang sama di Postgres.
+  - Tautan lama `?category=<subjek mentah>` tetap berfungsi.
+  - Kartu buku, breadcrumb, dan chip di Detail Buku menampilkan genre yang sama.
+  - Saran minat (Bookmark/Rekomendasi) masih memakai subjek mentah, karena pencocokan rekomendasi bergantung padanya.
 - Layar Figma lain (peta ruang baca, peminjaman, pengelola komunitas, admin Data Komunitas/Buku/Pengguna/Katalog Eksternal/Pengaturan) belum di-slice.
 
 ## Data dummy — 2026-10-10

@@ -16,6 +16,7 @@ import { AppealDialog } from "@/features/listing-appeals/components/appeal-dialo
 import { timeAgo } from "@/lib/format/relative-time";
 import { listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
+import { primaryGenreLabel } from "@/features/books/genres";
 
 export const metadata: Metadata = { title: "Buku saya" };
 
@@ -211,7 +212,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                             </span>
                                             <div className="min-w-0">
                                                 <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                                    {listing.book.categories[0] && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{listing.book.categories[0]}</span>}
+                                                    {primaryGenreLabel(listing.book.categories) && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{primaryGenreLabel(listing.book.categories)}</span>}
                                                     {[listing.book.publishedAt, listing.book.publisher].filter(Boolean).join(" • ")}
                                                 </p>
                                                 <h2 className="mt-1 font-heading text-lg font-semibold">

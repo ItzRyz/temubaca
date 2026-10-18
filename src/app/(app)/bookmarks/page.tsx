@@ -14,6 +14,7 @@ import { DeleteAccountDialog } from "@/features/account-deletion/components/dele
 import { getDeletionOverview } from "@/lib/db/queries/account-deletion";
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { cn } from "@/lib/utils";
+import { primaryGenreLabel } from "@/features/books/genres";
 
 export const metadata: Metadata = { title: "Bookmark & minat baca" };
 
@@ -157,7 +158,7 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                            {book.categories[0] && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{book.categories[0]}</span>}
+                                            {primaryGenreLabel(book.categories) && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{primaryGenreLabel(book.categories)}</span>}
                                             {book.publisher && <span>{book.publisher}</span>}
                                         </div>
                                         <h2 className="mt-1 font-heading text-lg font-semibold">

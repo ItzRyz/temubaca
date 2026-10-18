@@ -9,7 +9,8 @@ import { CatalogPagination } from "@/features/books/components/catalog-paginatio
 import { ExternalResultsSkeleton } from "@/features/catalog/components/external-results";
 import { ExternalResultsSection } from "@/features/catalog/components/external-results-section";
 import { getCurrentUser } from "@/lib/auth";
-import { browseBooks, listBookFacets } from "@/lib/db/queries/books";
+import { browseBooks, listBookFacets, listGenreFacets } from "@/lib/db/queries/books";
+import { genreBySlug } from "@/features/books/genres";
 import { bookBrowseQuerySchema } from "@/lib/validation/schemas/book.schema";
 
 export const metadata: Metadata = {
@@ -38,11 +39,13 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
         page: singleValue(params.page),
     });
     const filters = parsed.success ? parsed.data : { page: 1, q: undefined, category: undefined, language: undefined };
-    const [{ items, total }, facets, user] = await Promise.all([
+    const [{ items, total }, facets, genreFacets, user] = await Promise.all([
         browseBooks(filters, PAGE_SIZE, (filters.page - 1) * PAGE_SIZE),
         listBookFacets(),
+        listGenreFacets(),
         getCurrentUser(),
     ]);
+    const categoryLabel = genreBySlug(filters.category)?.label ?? filters.category;
     // Open catalogs are searched on the first page of a text query only, to save provider quota.
     const externalQuery = filters.q && filters.q.trim().length >= 2 && filters.page === 1 ? filters.q.trim() : null;
     const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -87,7 +90,7 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
                 <span className="font-semibold text-primary">{total} {filters.q ? "hasil" : "buku"}</span>{" "}
                 {filters.q ? <>untuk <span className="font-heading text-base font-semibold">&ldquo;{filters.q}&rdquo;</span></> : "di katalog TemuBaca"}
                 {(filters.category || filters.language) && (
-                    <span className="text-muted-foreground"> · {[filters.category, filters.language].filter(Boolean).join(" · ")}</span>
+                    <span className="text-muted-foreground"> · {[categoryLabel, filters.language].filter(Boolean).join(" · ")}</span>
                 )}
             </div>
 
@@ -96,7 +99,7 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
                     q={filters.q}
                     category={filters.category}
                     language={filters.language}
-                    categories={facets.categories}
+                    categories={genreFacets}
                     languages={facets.languages}
                 />
                 <section aria-label="Hasil katalog" className="flex flex-col gap-4">

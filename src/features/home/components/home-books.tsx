@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { EmptyState, SectionHeader } from "./section-header";
+import { primaryGenreLabel } from "@/features/books/genres";
 
 export type HomeBook = {
     id: string;
@@ -49,8 +50,8 @@ export function HomeBooks({ books, total, isAuthenticated }: { books: HomeBook[]
                                 </div>
                                 <h3 className="mt-4 line-clamp-2 font-heading text-lg leading-6 font-bold text-[#1f2924]">{book.title}</h3>
                                 <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat"}</p>
-                                {book.categories[0] && (
-                                    <p className="mt-3 w-fit rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">{book.categories[0]}</p>
+                                {primaryGenreLabel(book.categories) && (
+                                    <p className="mt-3 w-fit rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">{primaryGenreLabel(book.categories)}</p>
                                 )}
                                 <div className="mt-auto pt-4">
                                     <Link href={`/books/${book.id}`} className="flex min-h-10 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">

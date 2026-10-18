@@ -10,6 +10,7 @@ import { listUserCommunities } from "@/lib/db/queries/communities";
 import { getDeletionOverview } from "@/lib/db/queries/account-deletion";
 import { DeleteAccountDialog } from "@/features/account-deletion/components/delete-account-dialog";
 import { listUserInterests } from "@/lib/db/queries/interests";
+import { primaryGenreLabel } from "@/features/books/genres";
 
 export const metadata: Metadata = { title: "Profil saya" };
 
@@ -156,7 +157,7 @@ export default async function ProfilePage() {
                                         </span>
                                         <div className="min-w-0">
                                             <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                                {book.categories[0] && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{book.categories[0]}</span>}
+                                                {primaryGenreLabel(book.categories) && <span className="rounded bg-[#f1f0ea] px-2 py-0.5 font-semibold text-foreground/80">{primaryGenreLabel(book.categories)}</span>}
                                                 {book.publisher}
                                             </p>
                                             <h3 className="mt-1 font-heading text-base font-semibold"><Link href={`/books/${book.id}`} className="hover:underline">{book.title}</Link></h3>

@@ -19,6 +19,7 @@ import { BookListingForm } from "@/features/book-listings/components/book-listin
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-request-dialog";
+import { genresForSubjects } from "@/features/books/genres";
 import { conditionNoteFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
 
@@ -71,6 +72,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
     const [isBookmarked, openRequests] = user
         ? await Promise.all([hasBookmark(user.id, book.id), findOpenRequestsForListings(user.id, listings.map((listing) => listing.id))])
         : [false, new Map<string, { id: string; status: string }>()];
+    const bookGenres = genresForSubjects(book.categories);
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
     const details = [
         ["ISBN", book.isbn],
@@ -93,10 +95,10 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
             <nav aria-label="Breadcrumb" className="py-3 text-[13px] text-muted-foreground">
                 <ol className="flex list-none flex-wrap items-center gap-1 p-0">
                     <li><Link href="/books" className="hover:text-foreground">Jelajahi</Link></li>
-                    {book.categories[0] && (
+                    {bookGenres[0] && (
                         <>
                             <li aria-hidden="true"><ChevronRight className="size-3" /></li>
-                            <li><Link href={`/books?category=${encodeURIComponent(book.categories[0])}`} className="hover:text-foreground">{book.categories[0]}</Link></li>
+                            <li><Link href={`/books?category=${bookGenres[0].slug}`} className="hover:text-foreground">{bookGenres[0].label}</Link></li>
                         </>
                     )}
                     <li aria-hidden="true"><ChevronRight className="size-3" /></li>
@@ -165,10 +167,12 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                 <div className="flex min-w-0 flex-col gap-6">
                     <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
                         <div className="flex flex-wrap items-start justify-between gap-3">
-                            {book.categories.length > 0 ? (
-                                <ul aria-label="Kategori" className="flex list-none flex-wrap gap-2 p-0">
-                                    {book.categories.slice(0, 2).map((category) => (
-                                        <li key={category} className="rounded bg-[#e7efe8] px-2 py-0.5 text-xs font-semibold text-secondary-foreground">{category}</li>
+                            {bookGenres.length > 0 ? (
+                                <ul aria-label="Genre" className="flex list-none flex-wrap gap-2 p-0">
+                                    {bookGenres.slice(0, 2).map((genre) => (
+                                        <li key={genre.slug}>
+                                            <Link href={`/books?category=${genre.slug}`} className="inline-flex rounded bg-[#e7efe8] px-2 py-0.5 text-xs font-semibold text-secondary-foreground hover:bg-[#d9e6db]">{genre.label}</Link>
+                                        </li>
                                     ))}
                                 </ul>
                             ) : <span />}
