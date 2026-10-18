@@ -194,10 +194,8 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 ## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)
 
 - **Tidak ada lagi baris dummy** (`5eed0000-…`): profil, listing, komunitas, acara, merchandise, dan keanggotaan dummy sudah dihapus beserta auditnya, begitu pula listing QA *Ronggeng Dukuh Paruk*.
-- **Katalog: 21 buku asli**, semuanya rekaman Open Library. Tujuh di antaranya bekas buku dummy yang diubah di tempat (ID `5eed0000-…01xx` tetap supaya listing dan laporan yang merujuknya utuh); "Filosofi Teras" dihapus karena tidak ada padanan persis. Sisanya diimpor lewat `POST /api/books/import`. Tahun terbit mengikuti data Open Library (mis. "Bumi Manusia" tercatat 1972 di sana).
+- **Katalog production: 14 buku**, semuanya rekaman Open Library dan diimpor lewat `POST /api/books/import`. Pada 18 Okt 2026, atas permintaan pemilik repo, semua baris berprefix `5eed0000` dihapus dari production: 7 buku bekas dummy (termasuk Bumi Manusia, Laut Bercerita, dan Pulang), 18 log sinkron, listing Bumi Manusia milik Ilyas Maulana, serta laporan REVIEWING dan REJECTED yang menargetkan buku itu. DB lokal yang sudah dibuat sebelumnya masih menyimpan salinan 21 buku.
 - **Komunitas, acara, dan merchandise kosong.** Jangan dikarang; isi hanya dengan data sungguhan dari pemilik repo.
-- Listing "Bumi Manusia" milik **Ilyas Maulana** adalah data pengguna sungguhan: jangan disentuh.
-- Laporan "Informasi keliru" (REVIEWING, buku Bumi Manusia) milik pemilik repo: **jangan diubah**. Laporan QA REJECTED (buku Pulang) masih ada.
 - `app_settings.catalog` berisi nilai default, dengan 2 baris audit `SETTINGS_UPDATED`.
 - **Akun per 18 Okt:** pemilik repo (admin), Ilyas Maulana, Sayli, dan Naura (akun uji yang dibuat pemilik di browser pane). Belum ada pinjaman, komunitas, pengajuan, atau unggahan Storage; bucket `community-evidence` belum terbuat.
 - Data uji sementara untuk uji klik dialog (3 listing di buku "Amba", 3 permintaan pinjam, komunitas "[QA] Komunitas Uji") **sudah dihapus**. DB kembali ke 1 listing, 0 permintaan, 0 komunitas.
