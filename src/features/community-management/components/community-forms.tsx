@@ -34,10 +34,10 @@ function IconInput({ icon, ...props }: { icon: ReactNode } & React.ComponentProp
 function ProfileFields({ values, set, errors }: { values: ProfileValues; set: (key: keyof ProfileValues, value: string) => void; errors: FieldErrors }) {
     return (
         <>
-            <Field label={<CountedLabel label="Nama Komunitas" length={values.name.length} max={50} />} required error={errors.name}>
+            <Field label={<CountedLabel label="Nama Komunitas" length={values.name.length} max={50} required />} error={errors.name}>
                 {(control) => <TextInput {...control} value={values.name} maxLength={50} onChange={(event) => set("name", event.target.value)} placeholder="mis. Klub Buku Menteng" />}
             </Field>
-            <Field label={<CountedLabel label="Deskripsi" length={values.description.length} max={1000} />} required error={errors.description}>
+            <Field label={<CountedLabel label="Deskripsi" length={values.description.length} max={1000} required />} error={errors.description}>
                 {(control) => <TextArea {...control} rows={4} value={values.description} maxLength={1000} onChange={(event) => set("description", event.target.value)} placeholder="Siapa kalian, seberapa sering berkumpul, dan siapa yang boleh ikut." />}
             </Field>
             <Field label="Wilayah dan Titik Pertemuan Publik" required error={errors.publicLocation} hint="Gunakan nama ruang publik, bukan alamat rumah. Pilih tempat yang mudah dijangkau transportasi umum.">

@@ -64,10 +64,10 @@ export function EventForm({ communityId, eventId, initial }: { communityId: stri
             </Link>
             <ErrorSummary errors={errors} message={message} />
             <FormSection title={eventId ? "Ubah Acara" : "Buat Acara"} description="Acara berstatus Terbit tampil di halaman komunitas dan agenda publik.">
-                <Field label={<CountedLabel label="Judul Acara" length={values.title.length} max={100} />} required error={errors.title}>
+                <Field label={<CountedLabel label="Judul Acara" length={values.title.length} max={100} required />} error={errors.title}>
                     {(control) => <TextInput {...control} value={values.title} maxLength={100} onChange={(event) => set("title", event.target.value)} placeholder="Contoh: Lingkar Baca Akhir Pekan #15" />}
                 </Field>
-                <Field label={<CountedLabel label="Deskripsi" length={values.description.length} max={1000} />} required error={errors.description}>
+                <Field label={<CountedLabel label="Deskripsi" length={values.description.length} max={1000} required />} error={errors.description}>
                     {(control) => <TextArea {...control} rows={4} value={values.description} maxLength={1000} onChange={(event) => set("description", event.target.value)} placeholder="Ceritakan tentang acara ini: tema, siapa yang boleh hadir, dan apa yang perlu dibawa." />}
                 </Field>
 

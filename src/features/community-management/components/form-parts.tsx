@@ -23,10 +23,14 @@ export function ErrorSummary({ errors, message }: { errors: Record<string, strin
 }
 
 /** Label with an optional "(opsional)" marker and a live character counter. */
-export function CountedLabel({ label, optional, length, max }: { label: string; optional?: boolean; length?: number; max?: number }) {
+export function CountedLabel({ label, optional, required, length, max }: { label: string; optional?: boolean; required?: boolean; length?: number; max?: number }) {
     return (
         <span className="flex items-center justify-between gap-2">
-            <span>{label} {optional && <span className="font-normal text-muted-foreground">(opsional)</span>}</span>
+            <span>
+                {label}
+                {required && <span aria-hidden="true" className="text-destructive"> *</span>}
+                {optional && <span className="font-normal text-muted-foreground"> (opsional)</span>}
+            </span>
             {max !== undefined && <span aria-hidden="true" className="text-xs font-normal text-muted-foreground">{length ?? 0}/{max}</span>}
         </span>
     );

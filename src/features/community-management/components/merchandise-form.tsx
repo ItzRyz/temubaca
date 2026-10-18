@@ -86,7 +86,7 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
                         </div>
                     </div>
                     <div className="flex flex-col gap-4">
-                        <Field label={<CountedLabel label="Nama item" length={values.title.length} max={80} />} required error={errors.title}>
+                        <Field label={<CountedLabel label="Nama item" length={values.title.length} max={80} required />} error={errors.title}>
                             {(control) => <TextInput {...control} value={values.title} maxLength={80} onChange={(event) => set("title", event.target.value)} placeholder="Mis. Tote Bag Kanvas Pramoedya" />}
                         </Field>
                         <Field label={<CountedLabel label="Kategori" optional />} error={errors.category}>
