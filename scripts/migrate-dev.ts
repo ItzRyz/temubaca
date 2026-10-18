@@ -35,7 +35,7 @@ async function main() {
 
     const pool = new Pool({ connectionString: databaseUrl, ssl: getDatabaseTlsConfig("development", process.env.DATABASE_SSL_CA), max: 1 });
     try {
-        console.log(`Target: ${useCloud ? "cloud (.env)" : new URL(databaseUrl).hostname}`);
+        console.log(`Target: ${new URL(databaseUrl).hostname}${useCloud ? " (--cloud)" : ""}`);
         // A fresh database (the local stack) has no Drizzle bookkeeping yet.
         await pool.query(`create schema if not exists drizzle`);
         await pool.query(`create table if not exists drizzle."__drizzle_migrations__" (id serial primary key, hash text not null, created_at bigint)`);
