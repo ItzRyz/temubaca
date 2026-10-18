@@ -12,6 +12,7 @@
     "check": "bun run typecheck && bun run lint && bun run test",
     "db:migrate:dev": "bun scripts/migrate-dev.ts",
     "db:local": "bun scripts/local-db.ts",
+    "books:import": "bun scripts/import-books.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
