@@ -224,6 +224,15 @@ Audit kode lokal pada 2026-10-10. Status berikut menunjukkan progres implementas
     - Unggah logo dan foto merchandise, karena belum ada penyimpanan gambar publik.
     - Menu "Hubungi/Ikuti Komunitas".
   - **Verifikasi:** form pengajuan diuji dengan fetch tiruan dan permintaan API yang tidak menulis data. Halaman Kelola belum dilihat di browser karena DB dev belum punya komunitas.
+- Hapus akun, ekspor, dan retensi (DEC-11; node `210:1145`, `147:807`, `161:859`):
+  - **Dialog Hapus Akun:** tersedia di Profil Saya (Privasi & Data) dan di Kendali Data Saya. Dialog menampilkan daftar data nyata, tautan "Unduh salinan data saya dulu", konfirmasi ketik HAPUS, dan masa tenggang 14 hari. Daftar penghalang (pinjaman aktif, komunitas terverifikasi) menonaktifkan tombol.
+  - **Selama masa tenggang:** banner "Akunmu dijadwalkan dihapus" dengan tombol Batalkan tampil di semua halaman, dan akun menjadi baca-saja (`requireUser`/`requireApiUser` menolak tulis).
+  - **Ekspor:** `/api/me/export` mengunduh berkas JSON.
+  - **Pengurus:** tombol "Jadikan pemilik" untuk menyerahkan komunitas ke pengurus aktif.
+  - **Admin Data Pengguna:** statistik dan filter Menunggu Penghapusan/Dihapus, serta status per akun.
+  - **Admin Pengaturan → Retensi & Data:** menampilkan kebijakan, ringkasan tugas terakhir, dan tombol "Jalankan sekarang" (dengan konfirmasi).
+  - **Verifikasi:** konten server dan API sudah diperiksa (konfirmasi salah → 400, batal tanpa jadwal → 409, endpoint internal tersembunyi tanpa secret). Klik dialog di browser belum diuji karena jendela app tertutup aplikasi lain saat pengujian; alurnya diuji lewat integrasi PGlite.
+  - **Belum diputuskan:** penjadwal harian (DEC-01), kanal dukungan, dan SLA laporan.
 - Layar Figma lain (peta ruang baca, peminjaman, pengelola komunitas, admin Data Komunitas/Buku/Pengguna/Katalog Eksternal/Pengaturan) belum di-slice.
 
 ## Data dummy — 2026-10-10

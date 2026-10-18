@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, Link2, UserMinus, X } from "lucide-react";
+import { Check, Copy, Crown, Link2, UserMinus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -22,6 +22,7 @@ export function TeamPanel({ communityId, managers, invites }: {
     const [link, setLink] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
     const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+    const [confirmTransfer, setConfirmTransfer] = useState<string | null>(null);
     const [message, setMessage] = useState<{ tone: "error" | "success"; text: string } | null>(null);
 
     function act(run: () => Promise<{ ok: boolean; message?: string }>, success?: string) {
@@ -61,7 +62,17 @@ export function TeamPanel({ communityId, managers, invites }: {
                         {managers.map((manager) => (
                             <li key={manager.userId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                                 <span className="font-medium">{manager.displayName}</span>
-                                {confirmRemove === manager.userId ? (
+                                {confirmTransfer === manager.userId ? (
+                                    <span className="flex flex-wrap items-center gap-2">
+                                        <span className="text-xs">Jadikan {manager.displayName} pemilik? Anda menjadi pengurus.</span>
+                                        <button type="button" disabled={pending} onClick={() => act(async () => {
+                                            const result = await sendCommunityRequest(`/api/communities/${communityId}/owner`, "POST", { userId: manager.userId });
+                                            if (result.ok) router.push(`/communities/${communityId}/manage/events`);
+                                            return result.ok ? { ok: true } : { ok: false, message: result.message };
+                                        })} className="min-h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60">Ya, serahkan</button>
+                                        <button type="button" onClick={() => setConfirmTransfer(null)} className="min-h-9 rounded-md border border-border px-3 text-xs font-semibold">Batal</button>
+                                    </span>
+                                ) : confirmRemove === manager.userId ? (
                                     <span className="flex items-center gap-2">
                                         <span className="text-xs text-destructive">Cabut akses pengurus?</span>
                                         <button type="button" disabled={pending} onClick={() => act(() => simple(`/api/communities/${communityId}/managers/${manager.userId}`), `${manager.displayName} tidak lagi menjadi pengurus.`)}
@@ -69,9 +80,14 @@ export function TeamPanel({ communityId, managers, invites }: {
                                         <button type="button" onClick={() => setConfirmRemove(null)} className="min-h-9 rounded-md border border-border px-3 text-xs font-semibold">Batal</button>
                                     </span>
                                 ) : (
-                                    <button type="button" onClick={() => setConfirmRemove(manager.userId)} className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-destructive hover:bg-destructive/5">
-                                        <UserMinus aria-hidden="true" className="size-3.5" /> Cabut
-                                    </button>
+                                    <span className="flex flex-wrap gap-2">
+                                        <button type="button" onClick={() => { setConfirmRemove(null); setConfirmTransfer(manager.userId); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold hover:bg-muted">
+                                            <Crown aria-hidden="true" className="size-3.5" /> Jadikan pemilik
+                                        </button>
+                                        <button type="button" onClick={() => { setConfirmTransfer(null); setConfirmRemove(manager.userId); }} className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-semibold text-destructive hover:bg-destructive/5">
+                                            <UserMinus aria-hidden="true" className="size-3.5" /> Cabut
+                                        </button>
+                                    </span>
                                 )}
                             </li>
                         ))}

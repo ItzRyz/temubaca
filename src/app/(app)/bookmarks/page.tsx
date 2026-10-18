@@ -10,6 +10,8 @@ import { listUserInterests } from "@/lib/db/queries/interests";
 import { getBookRecommendations } from "@/features/recommendations/queries";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
 import { ClearDataDialog } from "@/features/bookmarks/components/clear-data-dialog";
+import { DeleteAccountDialog } from "@/features/account-deletion/components/delete-account-dialog";
+import { getDeletionOverview } from "@/lib/db/queries/account-deletion";
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +45,7 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
 
     const [saved, interests] = await Promise.all([listSavedBooks(user.id), listUserInterests(user.id)]);
     // Only the Minat tab needs catalog categories and recommendations.
+    const deletion = tab === "data" ? await getDeletionOverview(user.id) : null;
     const [facets, recommendations] = tab === "interests"
         ? await Promise.all([listBookFacets(16), getBookRecommendations(user.id)])
         : [null, null];
@@ -261,9 +264,18 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                     <ul className="mt-4 flex list-disc flex-col gap-2 pl-5 text-sm leading-6 text-foreground/85">
                         <li>Bookmark dan minat hanya terlihat olehmu dan dipakai untuk rekomendasi dasar di TemuBaca.</li>
                         <li>Hapus satu bookmark lewat tab Buku Disimpan dan satu minat lewat tab Minat &amp; Preferensi, atau hapus semuanya sekaligus di bawah ini.</li>
-                        <li>Penghapusan akun dan pengaturan retensi data belum tersedia; kebijakannya masih menunggu keputusan DEC-11.</li>
+                        <li>Hapus akun menonaktifkan akun selama 14 hari (bisa dibatalkan), lalu menghapus data pribadi. Riwayat pinjam dan laporan yang menyangkut orang lain disimpan dengan nama &quot;Akun dihapus&quot;.</li>
                     </ul>
                     <ClearDataDialog bookmarkCount={saved.length} interestCount={interests.length} />
+                    {deletion && (
+                        <div className="mt-6 flex flex-col gap-3 border-t border-border pt-5">
+                            <h3 className="font-heading text-base font-semibold">Akun dan salinan data</h3>
+                            <div className="flex flex-wrap gap-2">
+                                <a href="/api/me/export" download className="inline-flex min-h-11 items-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">Unduh salinan data saya</a>
+                                {!user.deletionRequestedAt && <DeleteAccountDialog bookmarks={deletion.bookmarks} interests={deletion.interests} listings={deletion.listings} blockers={deletion.blockers} />}
+                            </div>
+                        </div>
+                    )}
                 </section>
             )}
 

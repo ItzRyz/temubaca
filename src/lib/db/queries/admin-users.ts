@@ -23,6 +23,8 @@ export async function listUsersForAdmin(options: { query?: string; role?: Role }
             createdAt: userProfiles.createdAt,
             suspendedAt: userProfiles.suspendedAt,
             suspendedReason: userProfiles.suspendedReason,
+            deletionScheduledFor: userProfiles.deletionScheduledFor,
+            deletedAt: userProfiles.deletedAt,
             listingCount: sql<number>`(select count(*)::int from "book_listings" where "book_listings"."ownerId" = "user_profiles"."id")`,
             managedCommunityCount: sql<number>`(
                 select count(distinct "communities"."id")::int from "communities"
@@ -55,9 +57,11 @@ export async function countUsers() {
         .select({
             total: sql<number>`count(*)::int`,
             suspended: sql<number>`count(*) filter (where ${userProfiles.suspendedAt} is not null)::int`,
+            pendingDeletion: sql<number>`count(*) filter (where ${userProfiles.deletionRequestedAt} is not null and ${userProfiles.deletedAt} is null)::int`,
+            deleted: sql<number>`count(*) filter (where ${userProfiles.deletedAt} is not null)::int`,
         })
         .from(userProfiles);
-    return { total: row?.total ?? 0, suspended: row?.suspended ?? 0 };
+    return { total: row?.total ?? 0, suspended: row?.suspended ?? 0, pendingDeletion: row?.pendingDeletion ?? 0, deleted: row?.deleted ?? 0 };
 }
 
 /** Suspend or reinstate an account and record it in the admin audit log, atomically. */

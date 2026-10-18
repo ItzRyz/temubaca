@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/lib/auth";
+import { DeletionPendingBanner } from "@/features/account-deletion/components/delete-account-dialog";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
     const user = await getCurrentUser();
@@ -19,6 +20,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
                     </p>
                 </div>
             )}
+            {user.deletionScheduledFor && <DeletionPendingBanner scheduledFor={user.deletionScheduledFor.toISOString()} />}
             <div className="flex-1">{children}</div>
             <SiteFooter />
         </div>

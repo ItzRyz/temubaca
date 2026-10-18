@@ -21,7 +21,7 @@ const labelText: Record<AccountLabel, string> = {
     BOOK_OWNER: "Pemilik Buku",
     READER: "Pembaca",
 };
-const statusViews = { all: "Semua", active: "Aktif", suspended: "Ditangguhkan" } as const;
+const statusViews = { all: "Semua", active: "Aktif", suspended: "Ditangguhkan", deletion: "Menunggu Penghapusan", deleted: "Dihapus" } as const;
 type StatusView = keyof typeof statusViews;
 
 const auditText: Record<string, string> = {
@@ -63,7 +63,13 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
     const [me, counts, all, auth] = await Promise.all([getCurrentUser(), countUsers(), listUsersForAdmin({ query, role }), listAuthEmails()]);
     const rows = all
-        .filter((row) => view === "all" || (view === "suspended") === Boolean(row.suspendedAt))
+        .filter((row) => {
+            if (view === "deleted") return Boolean(row.deletedAt);
+            if (row.deletedAt) return view === "all";
+            if (view === "deletion") return Boolean(row.deletionScheduledFor);
+            if (view === "suspended") return Boolean(row.suspendedAt);
+            return view === "all" || !row.suspendedAt;
+        })
         .map((row) => ({ ...row, label: accountLabel(row), maskedEmail: maskEmail(auth.emails.get(row.id)) }));
     const active = rows.find((row) => row.id === selected) ?? rows[0];
     const [trail, reportsAbout] = active ? await Promise.all([listUserAuditTrail(active.id), listReportsAboutUser(active.id)]) : [[], []];
@@ -78,9 +84,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
     const stats: { label: string; value: React.ReactNode; icon: LucideIcon; tone: string }[] = [
         { label: "Total Pengguna", value: counts.total, icon: UsersRound, tone: "bg-[#ebe9e1] text-foreground/80" },
-        { label: "Aktif", value: counts.total - counts.suspended, icon: CircleCheck, tone: "bg-[#d6efdf] text-primary" },
+        { label: "Aktif", value: counts.total - counts.suspended - counts.deleted, icon: CircleCheck, tone: "bg-[#d6efdf] text-primary" },
         { label: "Ditangguhkan", value: counts.suspended, icon: Ban, tone: "bg-destructive/10 text-destructive" },
-        { label: "Menunggu Penghapusan", value: "—", icon: Trash2, tone: "bg-[#ebe9e1] text-foreground/80" },
+        { label: "Menunggu Penghapusan", value: counts.pendingDeletion, icon: Trash2, tone: "bg-[#ebe9e1] text-foreground/80" },
     ];
 
     return (
@@ -183,6 +189,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                                     ? <EmailReveal key={active.id} userId={active.id} masked={active.maskedEmail} />
                                     : <dl className="col-span-2"><dt className="text-xs text-muted-foreground">Email</dt><dd className="mt-0.5 text-muted-foreground">Tidak tersedia</dd></dl>}
                             </div>
+                            {active.deletedAt ? (
+                                <p className="mt-3 rounded-lg bg-[#ebe9e1] px-3 py-2 text-sm">Akun dihapus dan dianonimkan {dateTime.format(active.deletedAt)}.</p>
+                            ) : active.deletionScheduledFor && (
+                                <p className="mt-3 rounded-lg bg-[#fbecc4] px-3 py-2 text-sm text-[#5c3d00]">Pengguna meminta hapus akun. Dihapus otomatis {dateTime.format(active.deletionScheduledFor)} bila tidak dibatalkan.</p>
+                            )}
                             {active.suspendedAt && (
                                 <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                                     Ditangguhkan {dateTime.format(active.suspendedAt)}: {active.suspendedReason ?? "tanpa alasan tercatat"}
@@ -244,7 +255,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                         <AccountActionPanel key={active.id} userId={active.id} role={active.role} suspended={Boolean(active.suspendedAt)} isSelf={active.id === me?.id} />
                         <p className="flex gap-2 border-t border-border p-5 text-xs leading-5 text-muted-foreground">
                             <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                            Permintaan hapus akun belum tersedia sampai kebijakan retensi diputuskan (DEC-11).
+                            Hapus akun dilakukan sendiri oleh pengguna (DEC-11): masa tenggang 14 hari, lalu data pribadi dihapus oleh tugas retensi di Pengaturan → Retensi &amp; Data.
                         </p>
                     </section>
                 )}

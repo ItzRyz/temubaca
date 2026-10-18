@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CatalogSettingsForm } from "@/features/settings/components/catalog-settings-form";
+import { RunRetentionButton } from "@/features/account-deletion/components/retention-panel";
+import { AUDIT_RETENTION_MONTHS, DELETION_GRACE_DAYS, LOAN_HISTORY_RETENTION_MONTHS, REPORT_DETAILS_RETENTION_MONTHS } from "@/features/account-deletion/rules";
+import { countPendingDeletions, getLastRetentionRun } from "@/lib/db/queries/account-deletion";
 import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +20,7 @@ const sections = {
     map: { label: "Peta & Lokasi", pending: "Penyedia peta, geocoding, dan kebijakan lokasi menunggu keputusan DEC-07." },
     moderation: { label: "Moderasi & Publikasi", pending: "Belum ada aturan moderasi yang dapat diatur. Keputusan tinjauan saat ini selalu dilakukan manual oleh admin di menu Peninjauan." },
     borrowing: { label: "Aturan Pinjam", pending: "Aturan pinjam mengikuti DEC-02 dan belum dapat diubah dari sini: lama pinjam 7/14/21/30 hari sesuai batas pemilik, konfirmasi serah terima dan pengembalian oleh kedua pihak, pengingat sekali per 24 jam, tanpa denda. Perpanjangan belum diputuskan." },
-    retention: { label: "Retensi & Data", pending: "Retensi data, penghapusan akun, dan backup menunggu keputusan DEC-11." },
+    retention: { label: "Retensi & Data", pending: null },
 } as const;
 type Section = keyof typeof sections;
 
@@ -52,7 +55,9 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
                 </nav>
 
                 <div className="min-w-0">
-                    {current.pending ? (
+                    {section === "retention" ? (
+                        <RetentionSection />
+                    ) : current.pending ? (
                         <section aria-labelledby="section-title" className="rounded-xl border border-border bg-card p-6">
                             <h2 id="section-title" className="font-heading text-xl font-semibold">{current.label}</h2>
                             <p className="mt-3 flex gap-2 rounded-lg bg-[#f1f0ea] p-4 text-sm leading-6 text-muted-foreground">
@@ -72,5 +77,47 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
                 </div>
             </div>
         </main>
+    );
+}
+
+/** DEC-11 policy (fixed in code) plus the last run of the retention job. */
+async function RetentionSection() {
+    const [lastRun, pendingDeletions] = await Promise.all([getLastRetentionRun(), countPendingDeletions()]);
+    const rules = [
+        ["Hapus akun", `Akun dinonaktifkan ${DELETION_GRACE_DAYS} hari dan dapat dibatalkan pengguna, lalu data pribadi dihapus dan riwayat bersama dianonimkan ("Akun dihapus"). Ditolak selama ada pinjaman berjalan/sengketa atau komunitas terverifikasi milik akun.`],
+        ["Detail laporan", `Dihapus ${REPORT_DETAILS_RETENTION_MONTHS} bulan setelah laporan diputus; alasan dan hasil tetap disimpan.`],
+        ["Jejak audit admin", `Dihapus setelah ${AUDIT_RETENTION_MONTHS} bulan.`],
+        ["Riwayat pinjam selesai", `Dihapus ${LOAN_HISTORY_RETENTION_MONTHS} bulan setelah pinjaman ditolak, dibatalkan, dikembalikan, atau dinyatakan hilang.`],
+        ["Bukti verifikasi komunitas", `Dihapus ${AUDIT_RETENTION_MONTHS} bulan setelah ditinjau, termasuk berkasnya.`],
+        ["Ekspor data", "Pengguna dapat mengunduh salinan JSON datanya dari Profil atau Kendali Data Saya."],
+        ["Backup", "Mengikuti kebijakan bawaan Supabase; data yang sudah dihapus bisa tetap ada di backup sampai backup itu kedaluwarsa."],
+    ];
+    return (
+        <section aria-labelledby="retention-title" className="rounded-xl border border-border bg-card p-6">
+            <h2 id="retention-title" className="font-heading text-xl font-semibold">Retensi &amp; Data</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Kebijakan DEC-11 (18 Okt 2026). Batas waktu ditetapkan di kode dan tidak dapat diubah dari sini.</p>
+            <dl className="mt-4 divide-y divide-border rounded-lg border border-border text-sm">
+                {rules.map(([term, detail]) => (
+                    <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr]">
+                        <dt className="font-medium">{term}</dt>
+                        <dd className="text-muted-foreground">{detail}</dd>
+                    </div>
+                ))}
+            </dl>
+            <div className="mt-6 flex flex-col gap-3">
+                <h3 className="font-heading text-base font-semibold">Tugas retensi</h3>
+                <p className="text-sm text-muted-foreground">
+                    {pendingDeletions} akun menunggu penghapusan.{" "}
+                    {lastRun
+                        ? `Terakhir dijalankan ${dateTime.format(new Date(lastRun.ranAt))}: ${lastRun.accountsDeleted} akun dihapus${lastRun.accountsBlocked ? `, ${lastRun.accountsBlocked} tertahan` : ""}, ${lastRun.reportDetails} detail laporan, ${lastRun.auditEntries} catatan audit, ${lastRun.loans} riwayat pinjam, ${lastRun.evidence} bukti komunitas.`
+                        : "Belum pernah dijalankan."}
+                </p>
+                <p className="flex gap-2 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-muted-foreground">
+                    <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                    Penjadwal harian dapat memanggil POST /api/internal/retention dengan INTERNAL_API_SECRET setelah hosting diputuskan (DEC-01). Sampai saat itu jalankan manual di sini.
+                </p>
+                <RunRetentionButton />
+            </div>
+        </section>
     );
 }

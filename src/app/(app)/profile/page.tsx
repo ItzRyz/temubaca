@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { countUserBookmarks, listSavedBooks } from "@/lib/db/queries/bookmarks";
 import { countUserBookListings } from "@/lib/db/queries/books";
 import { listUserCommunities } from "@/lib/db/queries/communities";
+import { getDeletionOverview } from "@/lib/db/queries/account-deletion";
+import { DeleteAccountDialog } from "@/features/account-deletion/components/delete-account-dialog";
 import { listUserInterests } from "@/lib/db/queries/interests";
 
 export const metadata: Metadata = { title: "Profil saya" };
@@ -30,12 +32,13 @@ export default async function ProfilePage() {
     const user = await getCurrentUser();
     if (!user) redirect("/login");
 
-    const [listingCount, bookmarkCount, saved, communities, interests] = await Promise.all([
+    const [listingCount, bookmarkCount, saved, communities, interests, deletion] = await Promise.all([
         countUserBookListings(user.id),
         countUserBookmarks(user.id),
         listSavedBooks(user.id, 3),
         listUserCommunities(user.id),
         listUserInterests(user.id),
+        getDeletionOverview(user.id),
     ]);
 
     const stats = [
@@ -173,13 +176,23 @@ export default async function ProfilePage() {
                             {[
                                 ["Lokasi perangkat", "Belum dipakai. Fitur peta dan izin lokasi masih menunggu keputusan DEC-07; pencarian manual tetap tersedia."],
                                 ["Notifikasi permintaan pinjam", "Belum ada notifikasi email atau push. Permintaan, pengingat, dan status pinjaman tampil di Buku Saya, tab Peminjaman."],
-                                ["Unduh atau hapus akun dan data", "Belum tersedia. Kebijakan retensi dan penghapusan akun masih menunggu DEC-11."],
                             ].map(([term, detail]) => (
                                 <div key={term} className="py-3">
                                     <dt className="font-medium">{term}</dt>
                                     <dd className="mt-0.5 text-xs text-muted-foreground">{detail}</dd>
                                 </div>
                             ))}
+                            <div className="py-3">
+                                <dt className="font-medium">Unduh atau hapus akun dan data</dt>
+                                <dd className="mt-0.5 text-xs text-muted-foreground">Salinan data berupa berkas JSON. Akun yang dihapus dinonaktifkan dulu selama 14 hari dan bisa dibatalkan.</dd>
+                                <dd className="mt-3 flex flex-wrap gap-2">
+                                    <a href="/api/me/export" download className="inline-flex min-h-10 items-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">Unduh salinan data</a>
+                                    {!user.deletionRequestedAt && (
+                                        <DeleteAccountDialog bookmarks={deletion.bookmarks} interests={deletion.interests} listings={deletion.listings} blockers={deletion.blockers}
+                                            triggerClassName="inline-flex min-h-10 items-center gap-2 rounded-lg border border-destructive px-4 text-sm font-semibold text-destructive hover:bg-destructive/5" />
+                                    )}
+                                </dd>
+                            </div>
                         </dl>
                     </section>
                 </div>
