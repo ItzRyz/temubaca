@@ -50,6 +50,11 @@ const sorts = { newest: "Terbaru", title: "Judul A–Z" } as const;
 type Sort = keyof typeof sorts;
 const PAGE_SIZE = 10;
 
+/** Free-text notes are shown inside a sentence that adds its own period. */
+function withoutFinalPeriod(text: string | null | undefined) {
+    return text?.trim().replace(/\.+$/, "") || null;
+}
+
 function single(value: string | string[] | undefined) {
     return typeof value === "string" ? value : undefined;
 }
@@ -230,12 +235,12 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                                     const appeal = appeals.get(listing.id);
                                                     return (
                                                         <div className="mt-1">
-                                                            <p className="text-destructive">Alasan moderator: {listing.hiddenReason ?? "tidak dicantumkan"}.</p>
+                                                            <p className="text-destructive">Alasan moderator: {withoutFinalPeriod(listing.hiddenReason) ?? "tidak dicantumkan"}.</p>
                                                             {appeal?.status === "PENDING" ? (
                                                                 <p className="mt-1 text-foreground/80">Banding sedang ditinjau (diajukan {timeAgo(appeal.createdAt, now)}). Listing tetap tersembunyi sampai ada keputusan.</p>
                                                             ) : (
                                                                 <>
-                                                                    {appeal?.status === "REJECTED" && <p className="mt-1 text-foreground/80">Banding sebelumnya ditolak: {appeal.reviewNote ?? "tanpa catatan"}.</p>}
+                                                                    {appeal?.status === "REJECTED" && <p className="mt-1 text-foreground/80">Banding sebelumnya ditolak: {withoutFinalPeriod(appeal.reviewNote) ?? "tanpa catatan"}.</p>}
                                                                     <AppealDialog listingId={listing.id} bookTitle={listing.book.title} hiddenAt={listing.hiddenAt.toISOString()} hiddenReason={listing.hiddenReason} />
                                                                 </>
                                                             )}

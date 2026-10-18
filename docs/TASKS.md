@@ -242,7 +242,7 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
   - Pemilik listing yang disembunyikan admin dapat mengajukan banding dari Buku Saya: alasan dari daftar tetap, penjelasan 10–500 karakter, dan foto JPG/PNG opsional (privat, di bucket bukti).
   - Satu banding terbuka per listing.
   - Admin memutuskan di Data Buku (filter "Banding", badge di sidebar). Diterima: listing tampil lagi dan tercatat di `verifications`. Ditolak: listing tetap tersembunyi. Alasan keputusan tampil di Buku Saya.
-  - Migrasi `0011_listing_appeals`. Diuji di PGlite; dialog belum diklik di browser karena DB dev belum punya listing tersembunyi.
+  - Migrasi `0011_listing_appeals`. Diuji di PGlite, dan di browser dengan data uji sementara serta fetch tiruan: validasi, tolak foto non-JPG/PNG, galat 409, status "sedang ditinjau", filter dan badge admin, alasan wajib. Riwayat pinjaman dan ringkasan Dashboard juga diperiksa dengan data uji itu, yang sudah dihapus lagi.
 - Riwayat pinjaman dan ringkasan Dashboard (18 Okt 2026):
   - Kartu pinjaman punya bagian "Riwayat" yang bisa dibuka, dari `borrow_events`, dengan pelaku relatif terhadap pembaca (Anda, pihak lain, pengelola, sistem).
   - `/dashboard` menampilkan jumlah perlu tindakan, sedang kupinjamkan, sedang kupinjam, dan terlambat, beserta tiga pinjaman teratas yang perlu tindakan.

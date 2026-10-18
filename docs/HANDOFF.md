@@ -208,7 +208,6 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 - Transisi pinjam, komunitas, dan hapus akun dengan dua akun nyata. Semua dialog sudah diuji klik dengan fetch tiruan, dan semua alur sudah diuji di PGlite.
 - Unggah berkas bukti dan foto banding ke Supabase Storage, serta pembukaan lewat URL bertanda tangan.
-- Dialog Ajukan Banding dan panel keputusan admin di browser (belum ada listing tersembunyi di DB dev).
 - Tugas retensi terhadap DB dev (belum pernah dijalankan; menulis audit `RETENTION_RUN`).
 - Alur daftar OTP dengan email sungguhan (reset kata sandi sudah diuji pemilik).
 - Tombol Keluar di `/logout` (sengaja tidak diklik agar sesi pemilik tetap aktif).
