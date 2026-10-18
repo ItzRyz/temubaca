@@ -1,6 +1,6 @@
 # Serah Terima Sesi — TemuBaca
 
-Dokumen ini untuk melanjutkan pekerjaan di sesi atau akun Claude Code lain. Baca seluruhnya sebelum mengubah kode. Status per 17 Oktober 2026 di `master`. Setelah dokumen ini di-commit, `git log` adalah sumber status terbaru.
+Dokumen ini untuk melanjutkan pekerjaan di sesi atau akun Claude Code lain. Baca seluruhnya sebelum mengubah kode. Status per 18 Oktober 2026 di `master`. Setelah dokumen ini di-commit, `git log` adalah sumber status terbaru.
 
 ## 1. Aturan kerja (wajib)
 
@@ -37,7 +37,7 @@ bun run dev
 bun run check
 ```
 
-`check` = tsc + eslint + bun test (saat ini **64 tes lulus**, termasuk tes migrasi PGlite untuk 21 tabel).
+`check` = tsc + eslint + bun test (saat ini **119 tes lulus**, termasuk tes integrasi PGlite untuk migrasi 24 tabel, siklus pinjam, pengelolaan komunitas, dan hapus akun/retensi). `bun run build` juga lulus tanpa peringatan.
 
 ```bash
 bun run db:migrate:dev
@@ -48,17 +48,53 @@ Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk mene
 ### Database
 
 - DB di `.env` adalah Supabase remote (pooler `ap-southeast-1`). Pemilik repo **menyetujuinya sebagai DB dev** untuk migrasi dan data uji.
-- Migrasi **0000–0007 sudah diterapkan**, dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
+- Migrasi **0000–0010 sudah diterapkan** (0008 pinjam, 0009 komunitas, 0010 hapus akun/retensi), dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
 - Helper `enumCheck` di `schema.ts` menulis literal, bukan `$1`. Tanpa itu, `drizzle-kit generate` menghasilkan DDL tidak valid dan mencoba membuat ulang semua check constraint.
-- Setelah skema berubah, **restart dev server**. HMR tidak memuat ulang modul skema, dan errornya muncul sebagai `Cannot read properties of undefined (reading 'replace')`.
+- Setelah skema berubah, **restart dev server**. HMR tidak memuat ulang modul skema, dan errornya muncul sebagai `Cannot read properties of undefined (reading 'replace')`. Kalau error itu masih ada setelah restart, hentikan server, hapus `.next/dev` (cache Turbopack), lalu jalankan lagi.
 
 ### Variabel lingkungan yang dipakai
 
-`SUPABASE_SERVICE_ROLE_KEY` (email di Data Pengguna; khusus server, `src/lib/supabase/admin.ts`), `GOOGLE_BOOKS_API_KEY` (tanpa key kena 429), `OPEN_LIBRARY_BASE_URL`, Upstash. Keduanya **sudah diisi** di `.env` milik pemilik repo.
+`SUPABASE_SERVICE_ROLE_KEY` (email di Data Pengguna, hapus pengguna Auth saat retensi, dan bucket bukti komunitas; khusus server, `src/lib/supabase/admin.ts` dan `storage.ts`), `GOOGLE_BOOKS_API_KEY` (tanpa key kena 429), `OPEN_LIBRARY_BASE_URL`, Upstash. Keduanya **sudah diisi** di `.env` milik pemilik repo. `INTERNAL_API_SECRET` (min. 32 karakter) **belum diisi**; tanpa itu `POST /api/internal/retention` untuk penjadwal mengembalikan 404.
 
 ## 4. Yang sudah selesai
 
-### Sejak handoff sebelumnya (`2ead832`)
+### Sejak handoff 17 Okt (`c1cf5e6`)
+
+```
+6a979e8 chore(tooling): Supabase MCP server and Supabase agent skills
+8ddee6d fix(ui): keep the required marker next to counted labels
+33a9ca4 feat(ui): Hapus Akun dialog, deletion banner, and retention settings
+b926d04 feat(accounts): DEC-11 account deletion, data export, and retention
+2680034 feat(ui): Ajukan Komunitas, Kelola Komunitas, and community evidence for admins
+5c5568d feat(communities): DEC-04 community applications, managers, and content API
+637503e feat(ui): Ajukan Pinjam, the Peminjaman tab of Buku Saya, and loan disputes for admins
+8ffd23b feat(borrowing): DEC-02 loan lifecycle, API, and history
+3b14d6a feat(ui): clear bookmarks and interests dialog, and the revised footer
+2f97908 feat(ui): report dialog states and the Minat tab of Bookmark
+d384768 feat(listings): Tambah Buku dialog and the Koleksi view of Buku Saya
+0a70f93 feat(ui): slice revised Detail Buku, Komunitas & Acara, and Profil Komunitas
+53448bd feat(ui): move report, catalog filter, and listing forms to shared components
+d07fca3 feat(ui): shared form components and a dev component catalog (TB-015)
+```
+
+- **Form bersama (TB-015):** `src/components/ui/form.tsx` dipakai semua form. Katalog komponen di `/dev/components` (404 di production).
+- **Slicing:** revisi Detail Buku, Komunitas & Acara, Profil Komunitas, Tambah Buku, Buku Saya - Koleksi, state dialog laporan, tab Minat, dialog Hapus Bookmark & Minat, dan footer. Rinciannya ada di `TASKS.md`, bagian catatan slicing.
+- **Pinjam (DEC-02):**
+  - Aturan transisi ada di `src/features/borrowing/lifecycle.ts`, query bertransaksi dengan row lock di `src/lib/db/queries/borrowing.ts`, dan API di `/api/borrow-requests`, `/api/borrowings`, dan `/api/admin/borrowings`.
+  - UI: tombol Ajukan Pinjam di Detail Buku, tab Peminjaman di Buku Saya (kedua arah), dialog Tolak dan Laporkan Masalah, serta halaman admin Sengketa Pinjam (`/admin/loans`).
+- **Komunitas (DEC-04/05):**
+  - Aturan ada di `src/features/community-management/rules.ts`, query di `community-management.ts` dan `community-content.ts`.
+  - Rute: Ajukan Komunitas (`/communities/new`), Komunitas Saya (`/communities/mine`), Kelola (`/communities/[id]/manage`: profil + verifikasi, acara, merchandise, pengurus), dan undangan pengurus (`/communities/invite/[token]`).
+  - Bukti verifikasi berupa tautan, dengan catatan atau berkas opsional. Berkas disimpan di bucket privat `community-evidence`; bucket ini dibuat otomatis saat unggahan pertama.
+  - Admin melihat bukti di Peninjauan dan Data Komunitas.
+- **Hapus akun dan retensi (DEC-11):**
+  - Aturan ada di `src/features/account-deletion/rules.ts`, tugasnya di `retention.ts`.
+  - Masa tenggang 14 hari, dengan banner dan tombol Batalkan. Penghalang: pinjaman aktif dan komunitas terverifikasi milik akun; kepemilikan bisa diserahkan lewat "Jadikan pemilik" di Pengurus.
+  - Ekspor JSON tersedia di `/api/me/export`.
+  - Retensi: detail laporan dihapus setelah 12 bulan; audit, riwayat pinjam selesai, dan bukti komunitas setelah 24 bulan. Tombol "Jalankan sekarang" ada di Pengaturan → Retensi & Data.
+- **Tooling:** server MCP Supabase di `.mcp.json` (otentikasi lewat `claude /mcp` belum dilakukan) dan skill resmi Supabase di `.agents/skills`. `.claude/skills` berisi salinan skill yang sama, karena git di Windows tidak menyimpan symlink.
+
+### Handoff sebelumnya (`2ead832`)
 
 ```
 b0433df chore(dev): stop logging Server Function arguments
@@ -103,19 +139,22 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 
 ## 5. Keputusan yang masih terbuka (jangan dibangun dulu)
 
-DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library utama dan Google Books pelengkap; aturan atribusi tampilan, cache, dan kuota production masih terbuka. Dampak langsung:
+DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya ada di `DECISIONS.md`. Yang masih terbuka:
 
-- **DEC-02** memblokir Peminjaman (dan "Pinjaman selesai", "Aturan Pinjam").
-- **DEC-04** memblokir pengajuan komunitas oleh warga dan Pengelola Komunitas (TB-030/032/033).
-- **DEC-07** memblokir Peta Ruang Baca dan pengaturan "Peta & Lokasi".
-- **DEC-11** memblokir permintaan hapus akun dan "Retensi & Data".
+- **DEC-01** (hosting/auth/DB final): memblokir staging, deployment, penjadwal retensi harian, dan konfigurasi koneksi production (TB-044, TB-048 s.d. TB-050).
+- **DEC-03/DEC-12** (checkout, stok, pengiriman merchandise): memblokir TB-035. Merchandise tetap katalog dengan transaksi di luar platform.
+- **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
+- **DEC-07** (peta/lokasi): memblokir Peta Ruang Baca, Peta Literasi v2, Peta & Lokasi di Pengaturan, TB-026/027, dan rekomendasi komunitas TB-041.
+- **DEC-08, DEC-09, DEC-10**: layanan ML rekomendasi, target pengguna/wilayah/bahasa, serta tanggal rilis dan metrik.
+- **DEC-13** (ketersediaan perpustakaan): memblokir TB-023.
+- **Sisa DEC-02:** aturan Perpanjang. **Sisa DEC-11:** kanal dukungan, SLA laporan, durasi backup production.
 
 ## 6. Langkah berikutnya (rekomendasi)
 
-1. TB-042 tinjauan alur kritis, TB-043 logging operasional, TB-015 katalog komponen form (lihat daftar lengkap di percakapan terakhir / TASKS.md).
-2. Uji tampilan kegagalan provider TB-021 di browser (saat ini hanya tes unit).
-4. **Uji alur daftar OTP** dengan email sungguhan (bagian reset sudah diuji pemilik).
-5. Pra-rilis TB-047 s.d. TB-050: perlu rotasi kredensial dan keputusan hosting DEC-01.
+1. **Tanpa keputusan baru:** Ajukan Banding listing tersembunyi (Figma `301:2608`), riwayat pinjaman per kartu, ringkasan pinjaman di Dashboard, checklist SOP peninjauan, dan framework E2E (Playwright) untuk alur pinjam.
+2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
+3. **Keputusan DEC-01**, lalu pra-rilis TB-047 s.d. TB-050: rotasi kredensial, policy RLS dan role runtime, staging, penjadwal retensi.
+4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.
 
 ## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)
 
@@ -125,6 +164,8 @@ DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library 
 - Listing "Bumi Manusia" milik **Ilyas Maulana** adalah data pengguna sungguhan: jangan disentuh.
 - Laporan "Informasi keliru" (REVIEWING, buku Bumi Manusia) milik pemilik repo: **jangan diubah**. Laporan QA REJECTED (buku Pulang) masih ada.
 - `app_settings.catalog` berisi nilai default, dengan 2 baris audit `SETTINGS_UPDATED`.
+- **Akun per 18 Okt:** pemilik repo (admin), Ilyas Maulana, Sayli, dan Naura (akun uji yang dibuat pemilik di browser pane). Belum ada pinjaman, komunitas, pengajuan, atau unggahan Storage; bucket `community-evidence` belum terbuat.
+- Data uji sementara untuk uji klik dialog (3 listing di buku "Amba", 3 permintaan pinjam, komunitas "[QA] Komunitas Uji") **sudah dihapus**. DB kembali ke 1 listing, 0 permintaan, 0 komunitas.
 
 ## 8. Catatan teknis dan jebakan
 
@@ -136,10 +177,16 @@ DEC-01, 02, 03, 04, 07, 11, 13 masih terbuka. DEC-06 **sebagian**: Open Library 
 - Helper API di `@/lib/api`: `withApiHandler`, `parseBody`, `parseParams`, `apiSuccess`, `ConflictError`, `NotFoundError`, `requireApiRateLimit`. Guard: `requireAdmin` (`@/lib/permissions/guards`). Skema param umum ada di `@/lib/validation/common`.
 - Token desain ada di `src/app/globals.css`. Untuk teks sekunder pakai `text-muted-foreground` (`#5d6760`).
 - Setelah mutasi dari client, panggil `router.refresh()` atau `router.replace(...)`.
+- **Browser pane yang tersembunyi atau tertutup jendela lain tidak me-render halaman**, sehingga hydration tidak pernah selesai dan tombol client tidak bereaksi. Tampilkan pane dulu sebelum menguji klik. Untuk verifikasi tanpa render, ambil HTML lewat `fetch` dan uji API langsung.
+- Uji klik memakai fetch tiruan (`window.fetch` diganti sementara) supaya tidak ada data yang tertulis. Bila butuh data, buat fixture dengan penanda `[QA]`, catat ID-nya, lalu hapus dan verifikasi jumlah baris kembali seperti semula.
+- Self-join tabel profil di Drizzle memakai `alias()` dari `drizzle-orm/pg-core` (lihat `borrowing.ts`), bukan `sql` mentah.
 - Jebakan alat uji browser: screenshot dengan emulasi viewport tidak stabil, jadi ukur layout lewat iframe tersembunyi + `scrollWidth`. `get_page_text` kadang menangkap fallback `loading.tsx` ("Memuat TemuBaca…"); ambil teks lagi setelah jeda.
 
 ## 9. Belum diverifikasi
 
+- Transisi pinjam, komunitas, dan hapus akun dengan dua akun nyata. Semua dialog sudah diuji klik dengan fetch tiruan, dan semua alur sudah diuji di PGlite.
+- Unggah berkas bukti ke Supabase Storage dan pembukaan lewat URL bertanda tangan.
+- Tugas retensi terhadap DB dev (belum pernah dijalankan; menulis audit `RETENTION_RUN`).
 - Alur daftar OTP dengan email sungguhan (reset kata sandi sudah diuji pemilik).
 - Tombol Keluar di `/logout` (sengaja tidak diklik agar sesi pemilik tetap aktif).
 - Tindakan Tangguhkan/Pulihkan dari halaman Data Komunitas (endpointnya sama dengan Peninjauan, yang sudah diuji).
