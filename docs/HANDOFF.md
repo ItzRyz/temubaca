@@ -188,7 +188,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 1. **Tanpa keputusan baru:** perluas E2E anggota (serah terima sampai kembali, tolak/batal/sengketa, Tambah Buku, komunitas, hapus akun) dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
 2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
-3. **Pra-rilis TB-047 s.d. TB-050** (DEC-01 sudah diputuskan): rotasi kredensial, tambahkan `https://temubaca.vercel.app` ke URL Auth Supabase, lalu policy RLS dan role runtime. Project staging (slot gratis kedua, `ap-southeast-1`) opsional.
+3. **Pra-rilis TB-047 s.d. TB-050** (DEC-01 sudah diputuskan): rotasi kredensial, (Site URL Auth Supabase sudah `https://temubaca.vercel.app` sejak 18 Okt 2026), lalu policy RLS dan role runtime. Project staging (slot gratis kedua, `ap-southeast-1`) opsional.
 4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.
 
 ## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)
