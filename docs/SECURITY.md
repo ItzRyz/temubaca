@@ -8,6 +8,17 @@ Autentikasi membuktikan identitas; otorisasi memeriksa peran dan kepemilikan unt
 
 Server Action autentikasi mengembalikan pesan generik untuk kegagalan provider yang tidak dikenal, agar tidak mengungkap keberadaan akun atau detail infrastruktur. URL callback email memakai `NEXT_PUBLIC_APP_URL`, bukan header `Origin` yang dikirim request.
 
+### Database dan Data API (TB-049)
+
+- Aplikasi mengakses Postgres langsung lewat Drizzle, tidak pernah lewat Data API Supabase (`supabase.from`). Klien browser hanya memakai Supabase Auth.
+- Migrasi `0012_lock_down_data_api`:
+  - mencabut semua hak tabel di `public` dari `anon` dan `authenticated`, termasuk default untuk tabel baru. Publishable key tidak bisa membaca atau menulis data walaupun nanti ada policy yang keliru;
+  - mencabut `EXECUTE` fungsi trigger `SECURITY DEFINER` (`handle_new_user`, `rls_auto_enable`) dari role API;
+  - membuat role runtime `temubaca_app`: hanya `SELECT/INSERT/UPDATE/DELETE`, tanpa DDL dan tanpa `BYPASSRLS`. Setiap tabel punya policy `temubaca_app_all`.
+- **Tabel baru wajib** diberi policy `temubaca_app_all`. Tes migrasi gagal bila ada tabel tanpa policy atau tanpa grant.
+- Runtime (`DATABASE_URL` di Vercel dan lokal) memakai `temubaca_app`. Migrasi memakai role pemilik (`DIRECT_URL`, atau `DATABASE_URL` di `.env` dengan `--cloud`).
+- `bun scripts/runtime-role.ts` membuat password baru setiap kali dijalankan, jadi skrip ini sekaligus alat rotasi.
+
 Laporan hanya dapat dibuat oleh pengguna yang masuk dan target publik yang didukung harus benar-benar ada. Daftar dan catatan hasil hanya dapat dibaca/diubah oleh akun `ADMIN`; pembaruan tidak otomatis menyembunyikan konten. Isi laporan tetap merupakan data sensitif. Sesuai DEC-11, detailnya dihapus 12 bulan setelah laporan diputus; alasan dan hasil tetap disimpan.
 
 ## Data
@@ -38,6 +49,14 @@ Koneksi PostgreSQL production dan migrasi untuk host non-lokal memverifikasi CA 
 ### Tindak lanjut kredensial
 
 Isi lokal `.env.example` sebelumnya memuat nilai yang menyerupai kredensial layanan. File tersebut kini berisi placeholder saja. Perlakukan password database, token Upstash, dan API key email yang pernah berada di sana sebagai terekspos sampai pemilik layanan memastikan dan merotasinya. Jangan salin nilai lama ke konfigurasi deployment atau commit.
+
+Langkah rotasi (TB-047). Pemilik akun melakukannya di dashboard tiap layanan, lalu memperbarui `.env` lokal dan environment Vercel:
+1. **Password database (`postgres`):** Supabase → Project Settings → Database → Reset database password. Perbarui `DATABASE_URL` di `.env`. Role pemilik hanya dipakai migrasi dan skrip, jadi Vercel tidak perlu diubah karena Vercel memakai `temubaca_app`.
+2. **Password `temubaca_app`:** `bun scripts/runtime-role.ts --cloud --vercel`, lalu redeploy.
+3. **Service role / secret key Supabase:** Project Settings → API Keys → buat secret key baru dan cabut yang lama. Perbarui `SUPABASE_SERVICE_ROLE_KEY` di `.env` dan Vercel (production + preview).
+4. **Upstash:** Database → Reset credentials. Perbarui `UPSTASH_REDIS_REST_TOKEN` di `.env` dan Vercel.
+5. **Resend / API key email dan Google Books:** buat key baru, cabut yang lama, lalu perbarui `.env` dan Vercel.
+6. Redeploy Vercel (push ke `master`, atau Redeploy di dashboard), lalu cek situs dan endpoint cron.
 
 ### Dependensi
 
