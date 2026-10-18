@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { ProfileSettingsForm } from "@/features/profile/components/profile-settings-form";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 
 export default async function SettingsPage() {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     return (
         <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-12 sm:px-8 sm:py-16">

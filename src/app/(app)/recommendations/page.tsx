@@ -1,14 +1,14 @@
-import { redirect } from "next/navigation";
 
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { RecommendationList } from "@/features/recommendations/components/recommendation-list";
 import { getBookRecommendations } from "@/features/recommendations/queries";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { listBookFacets } from "@/lib/db/queries/books";
 
 export default async function RecommendationsPage() {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
     const [result, facets] = await Promise.all([getBookRecommendations(user.id), listBookFacets(16)]);
 
     return (

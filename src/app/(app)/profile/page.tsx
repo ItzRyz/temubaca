@@ -1,9 +1,9 @@
 import { ArrowRight, BadgeCheck, Bookmark, BookOpen, ShieldCheck, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { countUserBookmarks, listSavedBooks } from "@/lib/db/queries/bookmarks";
 import { countUserBookListings } from "@/lib/db/queries/books";
 import { listUserCommunities } from "@/lib/db/queries/communities";
@@ -30,7 +30,7 @@ const cardClass = "rounded-2xl border border-border bg-card p-5 sm:p-6";
 
 export default async function ProfilePage() {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     const [listingCount, bookmarkCount, saved, communities, interests, deletion] = await Promise.all([
         countUserBookListings(user.id),

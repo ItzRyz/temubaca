@@ -1,9 +1,10 @@
 import "server-only";
 
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { countCommunityContent, getCommunityAccess } from "@/lib/db/queries/community-management";
 import { uuidSchema } from "@/lib/validation/common";
 
@@ -13,7 +14,7 @@ import { communityCapabilities, type CommunityStatus } from "./rules";
 export const loadManageContext = cache(async (communityId: string) => {
     if (!uuidSchema.safeParse(communityId).success) notFound();
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
     const access = await getCommunityAccess(user.id, communityId);
     if (!access?.role) notFound();
     const status = access.community.status as CommunityStatus;

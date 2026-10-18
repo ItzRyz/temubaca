@@ -1,9 +1,9 @@
 import { ArrowRight, Bookmark, BookOpen, Info, Library, Search, ShieldCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { listSavedBooks } from "@/lib/db/queries/bookmarks";
 import { listBookFacets } from "@/lib/db/queries/books";
 import { listUserInterests } from "@/lib/db/queries/interests";
@@ -36,7 +36,7 @@ function single(value: string | string[] | undefined) {
 
 export default async function BookmarksPage({ searchParams }: BookmarksPageProps) {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     const params = await searchParams;
     const tab: Tab = tabs.some((item) => item.value === params.tab) ? (params.tab as Tab) : "saved";

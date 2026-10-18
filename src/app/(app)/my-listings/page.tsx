@@ -1,7 +1,6 @@
 import { AlertTriangle, ArrowLeftRight, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, EyeOff, HandHeart, Hourglass, Lock, MapPin, Search, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { AddBookDialog } from "@/features/book-listings/components/add-book-dialog";
 import { BookListingAvailability } from "@/features/book-listings/components/book-listing-availability";
@@ -10,6 +9,7 @@ import { BookListingEditor } from "@/features/book-listings/components/book-list
 import { LoansPanel, loanStats, type LoanFilter, type LoanView } from "@/features/borrowing/components/loans-panel";
 import { loanGroup } from "@/features/borrowing/lifecycle";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { listLoansForUser } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
 import { AppealDialog } from "@/features/listing-appeals/components/appeal-dialog";
@@ -56,7 +56,7 @@ function single(value: string | string[] | undefined) {
 
 export default async function MyListingsPage({ searchParams }: MyListingsPageProps) {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     const params = await searchParams;
     const filter: Filter = filters.some((item) => item.value === params.filter) ? (params.filter as Filter) : "all";

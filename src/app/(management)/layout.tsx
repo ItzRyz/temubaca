@@ -1,7 +1,8 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { countCommunitiesByStatus } from "@/lib/db/queries/communities";
 import { countReportsByStatus } from "@/lib/db/queries/reports";
 import { countOpenBorrowingDisputes } from "@/lib/db/queries/borrowing";
@@ -9,7 +10,7 @@ import { countPendingAppeals } from "@/lib/db/queries/listing-appeals";
 
 export default async function ManagementLayout({ children }: LayoutProps<"/">) {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
     if (user.role !== "ADMIN") notFound();
 
     const [pendingReports, reviewingReports, pendingCommunities, openDisputes, pendingAppeals] = await Promise.all([

@@ -2,7 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { applyRememberMeLifetime, REMEMBER_ME_COOKIE } from './session-cookies'
 
+/** Mirrors `REQUEST_PATH_HEADER` in `src/lib/auth/login-redirect.ts` (kept local: the proxy cannot import server-only code). */
+const REQUEST_PATH_HEADER = 'x-temubaca-path'
+
 export async function updateSession(request: NextRequest) {
+  // Lets server components send guests to /login?next=<this page>.
+  request.headers.set(REQUEST_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`)
   let supabaseResponse = NextResponse.next({
     request,
   })

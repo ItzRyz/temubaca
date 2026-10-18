@@ -1,13 +1,13 @@
-import { redirect } from "next/navigation";
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { DeletionPendingBanner } from "@/features/account-deletion/components/delete-account-dialog";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     return (
         <div className="flex min-h-screen flex-col bg-background">

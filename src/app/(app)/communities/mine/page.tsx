@@ -1,10 +1,10 @@
 import { Ban, ChevronRight, CircleCheck, Clock, Plus, UsersRound, XCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { MAX_PENDING_APPLICATIONS } from "@/features/community-management/rules";
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { listManagedCommunities } from "@/lib/db/queries/community-management";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ const status = {
 /** Communities the reader owns or helps manage, with the entry point to apply for a new one. */
 export default async function MyCommunitiesPage() {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
     const communities = await listManagedCommunities(user.id);
     const pending = communities.filter((item) => item.role === "owner" && item.status === "PENDING").length;
     const canApply = pending < MAX_PENDING_APPLICATIONS;

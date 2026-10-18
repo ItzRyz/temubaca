@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
+import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { countUserBookmarks } from "@/lib/db/queries/bookmarks";
 import { countUserBookListings } from "@/lib/db/queries/books";
 import { countUserInterests } from "@/lib/db/queries/interests";
@@ -10,7 +10,7 @@ import { loanGroup } from "@/features/borrowing/lifecycle";
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
-    if (!user) redirect("/login");
+    if (!user) return redirectToLogin();
 
     const now = new Date();
     const [bookmarks, listings, interests, loans] = await Promise.all([
