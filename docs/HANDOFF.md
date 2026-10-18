@@ -163,6 +163,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 
 DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya ada di `DECISIONS.md`. Yang masih terbuka:
 
+- **Deploy:** https://temubaca.vercel.app (proyek Vercel `temubaca`, scope itzryzs-projects, auto-deploy dari `master`). Untuk sementara terhubung ke **Supabase dev**. Environment production dan preview diisi dari `.env`, ditambah `DATABASE_SSL_CA`, `DATABASE_POOL_MAX=3`, `INTERNAL_API_SECRET`, dan `CRON_SECRET` (acak, disimpan sensitive di Vercel). Framework proyek harus `nextjs`; tanpa itu semua halaman 404.
 - **DEC-01** sudah diputuskan (Vercel + Supabase, staging di project Supabase terpisah, Vercel Cron, region Singapura: Vercel `sin1`, Supabase `ap-southeast-1`). Yang masih terbuka: paket production, domain, dan backup.
 - **DEC-03/DEC-12** (checkout, stok, pengiriman merchandise): memblokir TB-035. Merchandise tetap katalog dengan transaksi di luar platform.
 - **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
