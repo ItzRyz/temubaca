@@ -37,7 +37,13 @@ bun run dev
 bun run check
 ```
 
-`check` = tsc + eslint + bun test (saat ini **119 tes lulus**, termasuk tes integrasi PGlite untuk migrasi 24 tabel, siklus pinjam, pengelolaan komunitas, dan hapus akun/retensi). `bun run build` juga lulus tanpa peringatan.
+`check` = tsc + eslint + bun test (saat ini **128 tes lulus**, termasuk tes integrasi PGlite untuk migrasi 24 tabel, siklus pinjam, pengelolaan komunitas, dan hapus akun/retensi). `bun run build` juga lulus tanpa peringatan.
+
+```bash
+bun run test:e2e
+```
+
+Smoke E2E Playwright untuk alur tamu (14 tes, desktop + mobile). Memakai dev server yang sedang jalan, atau menjalankannya sendiri.
 
 ```bash
 bun run db:migrate:dev
@@ -48,7 +54,7 @@ Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk mene
 ### Database
 
 - DB di `.env` adalah Supabase remote (pooler `ap-southeast-1`). Pemilik repo **menyetujuinya sebagai DB dev** untuk migrasi dan data uji.
-- Migrasi **0000–0010 sudah diterapkan** (0008 pinjam, 0009 komunitas, 0010 hapus akun/retensi), dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
+- Migrasi **0000–0011 sudah diterapkan** (0008 pinjam, 0009 komunitas, 0010 hapus akun/retensi, 0011 banding listing), dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
 - Helper `enumCheck` di `schema.ts` menulis literal, bukan `$1`. Tanpa itu, `drizzle-kit generate` menghasilkan DDL tidak valid dan mencoba membuat ulang semua check constraint.
 - Setelah skema berubah, **restart dev server**. HMR tidak memuat ulang modul skema, dan errornya muncul sebagai `Cannot read properties of undefined (reading 'replace')`. Kalau error itu masih ada setelah restart, hentikan server, hapus `.next/dev` (cache Turbopack), lalu jalankan lagi.
 
@@ -57,6 +63,22 @@ Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk mene
 `SUPABASE_SERVICE_ROLE_KEY` (email di Data Pengguna, hapus pengguna Auth saat retensi, dan bucket bukti komunitas; khusus server, `src/lib/supabase/admin.ts` dan `storage.ts`), `GOOGLE_BOOKS_API_KEY` (tanpa key kena 429), `OPEN_LIBRARY_BASE_URL`, Upstash. Keduanya **sudah diisi** di `.env` milik pemilik repo. `INTERNAL_API_SECRET` (min. 32 karakter) **belum diisi**; tanpa itu `POST /api/internal/retention` untuk penjadwal mengembalikan 404.
 
 ## 4. Yang sudah selesai
+
+### Setelah pembaruan dokumen 18 Okt (`12f1ca5`)
+
+```
+a8b9a32 chore(tooling): keep one copy of the Supabase skills in git
+d9bf3e6 test(e2e): Playwright smoke tests for guest flows
+e8bb99c fix(auth): send guests back to the page they asked for after login
+e25491e feat(borrowing): loan history on each card and a loan summary on the dashboard
+80d02dd feat(moderation): Ajukan Banding for hidden listings
+```
+
+- **Ajukan Banding** (Figma `301:2608`): banding pemilik untuk listing yang disembunyikan, diputus admin di Data Buku. Migrasi 0011.
+- **Riwayat pinjaman** di tiap kartu dan **ringkasan pinjaman** di Dashboard.
+- **TB-042:** audit guard API dan uji tanpa sesi. Redirect login kini membawa `?next=`; proxy menyimpan path di header `x-temubaca-path`, dan `redirectToLogin()` ada di `src/lib/auth/login-redirect.ts`.
+- **Playwright:** `playwright.config.ts` dan `e2e/guest.e2e.ts`. Chromium headless terpasang di cache Playwright mesin ini.
+- **Skills:** hanya `.claude/skills` yang di-commit; `.agents/` di-gitignore.
 
 ### Sejak handoff 17 Okt (`c1cf5e6`)
 
@@ -151,7 +173,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 ## 6. Langkah berikutnya (rekomendasi)
 
-1. **Tanpa keputusan baru:** Ajukan Banding listing tersembunyi (Figma `301:2608`), riwayat pinjaman per kartu, ringkasan pinjaman di Dashboard, checklist SOP peninjauan, dan framework E2E (Playwright) untuk alur pinjam.
+1. **Tanpa keputusan baru:** E2E dengan login (perlu akun uji khusus dan sebaiknya DB staging), uji akun anggota terhadap portal admin, dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
 2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
 3. **Keputusan DEC-01**, lalu pra-rilis TB-047 s.d. TB-050: rotasi kredensial, policy RLS dan role runtime, staging, penjadwal retensi.
 4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.
@@ -185,7 +207,8 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 ## 9. Belum diverifikasi
 
 - Transisi pinjam, komunitas, dan hapus akun dengan dua akun nyata. Semua dialog sudah diuji klik dengan fetch tiruan, dan semua alur sudah diuji di PGlite.
-- Unggah berkas bukti ke Supabase Storage dan pembukaan lewat URL bertanda tangan.
+- Unggah berkas bukti dan foto banding ke Supabase Storage, serta pembukaan lewat URL bertanda tangan.
+- Dialog Ajukan Banding dan panel keputusan admin di browser (belum ada listing tersembunyi di DB dev).
 - Tugas retensi terhadap DB dev (belum pernah dijalankan; menulis audit `RETENTION_RUN`).
 - Alur daftar OTP dengan email sungguhan (reset kata sandi sudah diuji pemilik).
 - Tombol Keluar di `/logout` (sengaja tidak diklik agar sesi pemilik tetap aktif).

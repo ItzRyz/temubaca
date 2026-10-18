@@ -146,13 +146,14 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
 | TB-033 | Berjalan | Kelola Merchandise: harga tetap atau tanpa harga tetap, ketersediaan + keterangan, kontak komunitas atau kontak khusus, tampil/sembunyi; hanya pemilik/pengurus komunitas terverifikasi. Foto belum bisa diunggah. |
 | TB-034 | Berjalan | Katalog dan detail publik hanya menampilkan merchandise terbit dari komunitas terverifikasi. Detail menampilkan kontak pembelian (dinonaktifkan saat habis) dan menyatakan transaksi terjadi di luar TemuBaca. Checkout menunggu DEC-03/DEC-12. |
 | TB-035 | Tertahan | Checkout dan pesanan menunggu DEC-03. |
-| TB-041–TB-046 | Belum dimulai | Rekomendasi komunitas menunggu lokasi (DEC-07). Tinjauan alur kritis, operasional, deployment, uji penerimaan, dan go/no-go belum berjalan; tugas retensi DEC-11 (bagian dari TB-043) sudah ada tetapi penjadwalnya menunggu DEC-01. |
+| TB-041, TB-043–TB-046 | Belum dimulai | Rekomendasi komunitas menunggu lokasi (DEC-07). Tinjauan alur kritis, operasional, deployment, uji penerimaan, dan go/no-go belum berjalan; tugas retensi DEC-11 (bagian dari TB-043) sudah ada tetapi penjadwalnya menunggu DEC-01. |
+| TB-042 | Berjalan | Audit guard API, uji akses tanpa sesi, redirect login dengan `?next=`, dan uji render state gagal katalog sudah dilakukan (lihat catatan 18 Okt). Belum: uji akun anggota terhadap portal admin, screen reader, dan multi-user. |
 | TB-036 | Berjalan sebagian | API menerima laporan buku/listing/komunitas/acara/merchandise/akun, dashboard admin, antrean, dan perubahan status/catatan tersedia. Form laporan punya alasan per jenis konten dan state gagal/batas laporan. Detail laporan yang sudah diputus dihapus otomatis setelah 12 bulan (DEC-11). Banding listing tersembunyi (Figma `301:2608`) belum dibuat; uji moderator/staging belum berjalan. |
 | TB-040 | Berjalan | Halaman rekomendasi buku baseline dan pengelolaan minat pengguna tersedia; pencocokan kategori persis dengan fallback katalog terbaru. Belum ada evaluasi relevansi atau QA pengguna. |
 | TB-047 | Belum dimulai | Placeholder ditulis; pemilik akun masih perlu mencabut/merotasi kredensial lama jika aktif. |
 | TB-048 | Tertahan | Hosting belum dipilih pada DEC-01; driver runtime kini `node-postgres`, `DIRECT_URL` diprioritaskan untuk migrasi, tetapi URL/TLS/pool size belum diuji terhadap staging. |
 | TB-049 | Tertahan | Belum ada policy RLS eksplisit atau role database runtime yang ditinjau; harus diselesaikan sebelum production. |
-| TB-050 | Belum dimulai | Unit dan migrasi PGlite lulus; staging integration/E2E dan pemeriksaan browser belum berjalan. |
+| TB-050 | Berjalan sebagian | Unit dan integrasi PGlite lulus (128 tes). Smoke E2E Playwright untuk alur tamu tersedia (`bun run test:e2e`, 14 tes desktop + mobile). E2E dengan login dan pengujian staging menunggu akun uji dan DEC-01. |
 
 ## Catatan implementasi lanjutan — 2026-10-10
 
@@ -237,6 +238,20 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
   - **Admin Pengaturan → Retensi & Data:** menampilkan kebijakan, ringkasan tugas terakhir, dan tombol "Jalankan sekarang" (dengan konfirmasi).
   - **Verifikasi:** konten server dan API sudah diperiksa (konfirmasi salah → 400, batal tanpa jadwal → 409, endpoint internal tersembunyi tanpa secret). Klik dialog di browser belum diuji karena jendela app tertutup aplikasi lain saat pengujian; alurnya diuji lewat integrasi PGlite.
   - **Belum diputuskan:** penjadwal harian (DEC-01), kanal dukungan, dan SLA laporan.
+- Ajukan Banding (node `301:2608`, 18 Okt 2026):
+  - Pemilik listing yang disembunyikan admin dapat mengajukan banding dari Buku Saya: alasan dari daftar tetap, penjelasan 10–500 karakter, dan foto JPG/PNG opsional (privat, di bucket bukti).
+  - Satu banding terbuka per listing.
+  - Admin memutuskan di Data Buku (filter "Banding", badge di sidebar). Diterima: listing tampil lagi dan tercatat di `verifications`. Ditolak: listing tetap tersembunyi. Alasan keputusan tampil di Buku Saya.
+  - Migrasi `0011_listing_appeals`. Diuji di PGlite; dialog belum diklik di browser karena DB dev belum punya listing tersembunyi.
+- Riwayat pinjaman dan ringkasan Dashboard (18 Okt 2026):
+  - Kartu pinjaman punya bagian "Riwayat" yang bisa dibuka, dari `borrow_events`, dengan pelaku relatif terhadap pembaca (Anda, pihak lain, pengelola, sistem).
+  - `/dashboard` menampilkan jumlah perlu tindakan, sedang kupinjamkan, sedang kupinjam, dan terlambat, beserta tiga pinjaman teratas yang perlu tindakan.
+- Tinjauan alur kritis TB-042 (18 Okt 2026):
+  - Audit semua route API: setiap endpoint tulis memakai guard (`requireApiUser`, `requireAdmin`, `requireCommunityCapability`, `requireBookListingOwner`, atau secret internal). Yang tanpa guard hanya GET publik.
+  - Tanpa sesi: 12 endpoint tulis mengembalikan 401, dan 10 halaman privat mengarahkan ke login tanpa membocorkan konten.
+  - Temuan yang diperbaiki: redirect login kini membawa `?next=` sehingga pengguna kembali ke halaman asal.
+  - State gagal katalog terbuka (TB-021) kini diuji render untuk kelima kondisi.
+  - Belum: akses non-admin ke portal admin dengan akun anggota, screen reader, dan uji multi-user.
 - Layar Figma lain (peta ruang baca, peminjaman, pengelola komunitas, admin Data Komunitas/Buku/Pengguna/Katalog Eksternal/Pengaturan) belum di-slice.
 
 ## Data dummy — 2026-10-10

@@ -7,11 +7,21 @@
 ```bash
 bun run check
 bun run build
+bun run test:e2e
 bunx drizzle-kit check
 git diff --check
 ```
 
 `bun run check` menjalankan typecheck, lint, dan unit/integration test dengan Bun. Build tetap terpisah dan bukan pengganti tes perilaku.
+
+`bun run test:e2e` menjalankan smoke E2E Playwright (`e2e/*.e2e.ts`, Chromium desktop dan Pixel 7) terhadap dev server di `localhost:3000`; server dijalankan otomatis bila belum ada. Setel `E2E_BASE_URL` untuk staging. Per 18 Okt 2026 cakupannya alur tamu:
+- halaman utama, katalog, pencarian, dan detail buku tanpa overflow horizontal;
+- ajakan masuk sebelum meminjam;
+- redirect halaman privat ke `/login?next=…`;
+- tautan Ajukan Komunitas;
+- undangan tidak valid dan halaman 404.
+
+Semua 14 tes lulus. Alur yang butuh login belum masuk E2E karena belum ada akun uji khusus. Kredensial uji dan data seed untuk staging perlu disiapkan dulu (TB-050).
 
 Pada 2026-10-10, semua migrasi SQL dijalankan berurutan terhadap PostgreSQL in-memory PGlite dan berhasil membuat 18 tabel publik. Ini memeriksa sintaks dan urutan migrasi, bukan menggantikan pengujian terhadap PostgreSQL/Supabase staging. Perilaku RLS, koneksi pooler, dan perbedaan provider masih perlu diuji di staging.
 
@@ -27,6 +37,6 @@ Pada build lokal yang lebih baru, route publik berbasis komunitas/acara ditandai
 
 - Unit: validasi schema, policy/ownership, normalisasi data eksternal setelah provider dipilih.
 - Integrasi: Route Handlers dengan database uji, session tanpa login, pemilik vs pengguna lain, konflik listing/bookmark, dan rate limit.
-- E2E: pencarian → detail → bookmark; buat dan kelola listing; alur peminjaman hanya setelah `DEC-02` disetujui.
+- E2E: alur tamu sudah ada. Berikutnya: pencarian → detail → bookmark; buat dan kelola listing; alur peminjaman dua akun (DEC-02 sudah diputuskan); komunitas; hapus akun. Semuanya butuh akun uji dan DB staging terpisah.
 - Manual: keyboard, layar kecil, loading/error/empty state, dan pemeriksaan lokasi publik agar tidak menampilkan alamat rumah.
 - Migrasi: terapkan semua migrasi pada database uji kosong dan bandingkan hasilnya dengan `src/lib/db/schema.ts` sebelum staging/produksi.
