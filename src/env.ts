@@ -15,7 +15,8 @@ const serverSchema = z.object({
 
     DATABASE_URL: postgresConnectionUrlSchema,
 
-    DATABASE_SSL_CA: z.string().trim().min(1).optional(),
+    // Single-line PEM with literal `\n` (as in .env.example and Vercel env vars) is unescaped here.
+    DATABASE_SSL_CA: z.string().trim().min(1).transform((value) => value.replace(/\\n/g, "\n")).optional(),
 
     DIRECT_URL: postgresConnectionUrlSchema.optional(),
 
