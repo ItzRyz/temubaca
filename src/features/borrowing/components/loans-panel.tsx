@@ -5,7 +5,7 @@ import type { LoanItem } from "@/lib/db/queries/borrowing";
 import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
 
-import { allowedActions, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
+import { allowedActions, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
 import { LoanActions } from "./loan-actions";
 
 export type LoanView = "pinjamkan" | "pinjam";
@@ -127,6 +127,21 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                     )}
                     {(loan.state === "LOST" || loan.state === "RETURNED") && loan.resolutionNote && (
                         <p className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">Keputusan pengelola: {loan.resolutionNote}</p>
+                    )}
+
+                    {loan.events.length > 0 && (
+                        <details className="mt-3 text-xs">
+                            <summary className="cursor-pointer font-semibold text-primary">Riwayat ({loan.events.length})</summary>
+                            <ol className="mt-2 flex list-none flex-col gap-1.5 border-l border-border p-0 pl-4 text-muted-foreground">
+                                {loan.events.map((event) => (
+                                    <li key={event.id}>
+                                        <span className="font-medium text-foreground">{loanEventLabels[event.type] ?? event.type}</span>
+                                        {" "}{event.by === "you" ? "oleh Anda" : event.by === "other" ? `oleh ${loan.otherParty.displayName}` : event.by === "admin" ? "oleh pengelola" : ""}
+                                        {event.note && !["Pemilik", "Peminjam"].includes(event.note) ? ` (${event.note})` : ""} • {dateTimeFormatter.format(event.createdAt)}
+                                    </li>
+                                ))}
+                            </ol>
+                        </details>
                     )}
 
                     <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">

@@ -169,3 +169,18 @@ export function loanGroup(loan: LoanSnapshot, role: LoanRole, now = new Date()):
             return "history";
     }
 }
+
+/** Labels for `borrow_events.type`, shared by the loan cards and the admin dispute page. */
+export const loanEventLabels: Record<string, string> = {
+    REQUESTED: "Permintaan diajukan",
+    APPROVED: "Permintaan diterima",
+    REJECTED: "Permintaan ditolak",
+    CANCELLED: "Dibatalkan",
+    HANDOVER_CONFIRMED: "Serah terima dikonfirmasi",
+    BORROWING_STARTED: "Pinjaman dimulai",
+    RETURN_CONFIRMED: "Pengembalian dikonfirmasi",
+    RETURNED: "Buku dikembalikan",
+    REMINDER_SENT: "Pengingat dikirim",
+    DISPUTE_OPENED: "Masalah dilaporkan",
+    DISPUTE_RESOLVED: "Sengketa diputuskan",
+};

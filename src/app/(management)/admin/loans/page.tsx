@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ResolveDisputePanel } from "@/features/borrowing/components/resolve-dispute-panel";
+import { loanEventLabels as eventText } from "@/features/borrowing/lifecycle";
 import { listBorrowEvents, listBorrowingDisputes } from "@/lib/db/queries/borrowing";
 import { cn } from "@/lib/utils";
 
@@ -14,19 +15,6 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 const dateTime = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 const date = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" });
 
-const eventText: Record<string, string> = {
-    REQUESTED: "Permintaan diajukan",
-    APPROVED: "Permintaan diterima",
-    REJECTED: "Permintaan ditolak",
-    CANCELLED: "Dibatalkan",
-    HANDOVER_CONFIRMED: "Serah terima dikonfirmasi",
-    BORROWING_STARTED: "Pinjaman dimulai",
-    RETURN_CONFIRMED: "Pengembalian dikonfirmasi",
-    RETURNED: "Buku dikembalikan",
-    REMINDER_SENT: "Pengingat dikirim",
-    DISPUTE_OPENED: "Masalah dilaporkan",
-    DISPUTE_RESOLVED: "Sengketa diputuskan",
-};
 
 /** Loan disputes opened through "Laporkan Masalah" (DEC-02); an admin rules them returned or lost. */
 export default async function AdminLoansPage({ searchParams }: PageProps) {

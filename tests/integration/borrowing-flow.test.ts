@@ -109,6 +109,10 @@ describe("full lifecycle", () => {
 
         const history = (await borrowing.listBorrowEvents(requestId)).map((event) => event.type);
         expect(history).toEqual(["REQUESTED", "APPROVED", "HANDOVER_CONFIRMED", "HANDOVER_CONFIRMED", "BORROWING_STARTED", "RETURN_CONFIRMED", "RETURN_CONFIRMED", "RETURNED"]);
+
+        // Each side sees who acted relative to themselves.
+        const [ownerView] = (await borrowing.listLoansForUser(OWNER)).filter((item) => item.requestId === requestId);
+        expect(ownerView.events.map((event) => event.by)).toEqual(["other", "you", "you", "other", "system", "other", "you", "system"]);
     });
 });
 

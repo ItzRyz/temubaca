@@ -313,6 +313,8 @@ export type LoanItem = {
     disputedAt: Date | null;
     resolutionNote: string | null;
     cancelledByOther: boolean;
+    /** Oldest first; `by` is relative to the reader of the list. */
+    events: { id: string; type: string; note: string | null; createdAt: Date; by: "you" | "other" | "system" | "admin" }[];
 };
 
 /** Every loan the user takes part in, as owner ("Dipinjamkan ke kawan") or borrower ("Saya pinjam"). */
@@ -336,6 +338,13 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
         .where(or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)))
         .orderBy(desc(borrowRequests.updatedAt))
         .limit(200);
+
+    const requestIds = rows.map((row) => row.request.id);
+    const eventRows = requestIds.length > 0
+        ? await db.select().from(borrowEvents).where(inArray(borrowEvents.requestId, requestIds)).orderBy(borrowEvents.createdAt)
+        : [];
+    const eventsByRequest = new Map<string, typeof eventRows>();
+    for (const event of eventRows) eventsByRequest.set(event.requestId, [...(eventsByRequest.get(event.requestId) ?? []), event]);
 
     return rows.map(({ request, borrowing, listingId, ownerId, book, requesterName, ownerName }) => {
         const role: LoanRole = ownerId === userId ? "owner" : "requester";
@@ -365,6 +374,16 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             disputedAt: borrowing?.disputedAt ?? null,
             resolutionNote: borrowing?.resolutionNote ?? null,
             cancelledByOther: request.status === "CANCELLED" && request.cancelledById !== null && request.cancelledById !== userId,
+            events: (eventsByRequest.get(request.id) ?? []).map((event) => ({
+                id: event.id,
+                type: event.type,
+                note: event.note,
+                createdAt: event.createdAt,
+                by: event.actorId === null ? "system" as const
+                    : event.actorId === userId ? "you" as const
+                        : event.actorId === request.requesterId || event.actorId === ownerId ? "other" as const
+                            : "admin" as const,
+            })),
         };
     });
 }
