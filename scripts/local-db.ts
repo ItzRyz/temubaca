@@ -9,6 +9,8 @@
  * 2. Applies the Drizzle migrations, then supabase/migrations (the auth trigger needs the tables).
  * 3. Copies the public `books` catalog from the cloud project (`--no-books` skips it). No accounts,
  *    listings, or other personal data are copied.
+ * 4. Points the app's DATABASE_URL at the runtime role `temubaca_app` (scripts/runtime-role.ts), as
+ *    in production; DIRECT_URL keeps the owner for migrations.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -87,6 +89,9 @@ async function main() {
 
     await applySupabaseMigrations(env.DATABASE_URL);
     if (!process.argv.includes("--no-books")) await copyBooks(env.DATABASE_URL);
+
+    const role = spawnSync("bun", ["scripts/runtime-role.ts"], { stdio: "inherit", shell: true });
+    if (role.status !== 0) throw new Error("Setting up the runtime role failed.");
 }
 
 main().catch((error: unknown) => {

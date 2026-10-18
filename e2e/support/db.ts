@@ -9,9 +9,11 @@ import { e2eAccounts } from "./accounts";
  */
 export async function cleanE2eData() {
     const emails = Object.values(e2eAccounts).map((account) => account.email).filter(Boolean);
-    if (!process.env.DATABASE_URL || emails.length === 0) return;
+    // Cleanup reads auth.users, so it needs the owner connection, not the runtime role.
+    const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+    if (!databaseUrl || emails.length === 0) return;
 
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+    const pool = new Pool({ connectionString: databaseUrl, max: 1 });
     const client = await pool.connect();
     try {
         await client.query("begin");

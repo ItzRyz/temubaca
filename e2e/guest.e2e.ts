@@ -29,6 +29,8 @@ test.describe("guest smoke", () => {
     test("a guest is asked to sign in before borrowing", async ({ page }) => {
         await page.goto("/books?q=Bumi");
         await page.getByRole("link", { name: /Bumi Manusia/ }).first().click();
+        // The detail page can take a while to compile on a cold dev server.
+        await page.waitForURL(/\/books\/[0-9a-f-]{36}/, { timeout: 60_000 });
         const signIn = page.getByRole("link", { name: "Masuk untuk meminjam" });
         if (await signIn.count()) {
             await expect(signIn.first()).toHaveAttribute("href", /\/login\?next=%2Fbooks%2F/);

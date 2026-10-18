@@ -39,5 +39,26 @@ describe("database migrations", () => {
 
         expect(tables.rows[0]?.count).toBe(25);
         expect(rlsTables.rows[0]?.count).toBe(25);
+
+        // TB-049: every table is reachable by the runtime role through its policy and grants.
+        // A new table without `temubaca_app_all` would be invisible to the app in production.
+        const withoutAppAccess = await database.query<{ tablename: string }>(
+            `select t.tablename from pg_tables t where t.schemaname = 'public' and (
+                not exists (select 1 from pg_policies p where p.schemaname = 'public' and p.tablename = t.tablename and p.policyname = 'temubaca_app_all')
+                or not has_table_privilege('temubaca_app', format('public.%I', t.tablename), 'select, insert, update, delete'))`,
+        );
+        expect(withoutAppAccess.rows.map((row) => row.tablename)).toEqual([]);
+    });
+
+    test("the runtime role cannot change the schema", async () => {
+        await database.exec("set role temubaca_app");
+        try {
+            await expect(database.exec("create table public.should_fail (id int)")).rejects.toThrow();
+            await expect(database.exec("drop table public.books")).rejects.toThrow();
+            const rows = await database.query<{ count: number }>("select count(*)::int as count from public.books");
+            expect(rows.rows[0]?.count).toBe(0);
+        } finally {
+            await database.exec("reset role");
+        }
     });
 });
