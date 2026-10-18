@@ -5,7 +5,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { listSavedBooks } from "@/lib/db/queries/bookmarks";
-import { listBookFacets } from "@/lib/db/queries/books";
+import { listGenreFacets } from "@/lib/db/queries/books";
 import { listUserInterests } from "@/lib/db/queries/interests";
 import { getBookRecommendations } from "@/features/recommendations/queries";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
@@ -48,7 +48,7 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
     // Only the Minat tab needs catalog categories and recommendations.
     const deletion = tab === "data" ? await getDeletionOverview(user.id) : null;
     const [facets, recommendations] = tab === "interests"
-        ? await Promise.all([listBookFacets(16), getBookRecommendations(user.id)])
+        ? await Promise.all([listGenreFacets(), getBookRecommendations(user.id)])
         : [null, null];
     const availableCount = saved.filter((book) => book.availableCopies > 0).length;
     const needle = query.toLocaleLowerCase("id-ID");
@@ -204,14 +204,14 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                 <section aria-label="Minat dan preferensi">
                     <InterestManager
                         interests={interests.map(({ id, subject }) => ({ id, subject }))}
-                        suggestions={(facets?.categories ?? []).map((facet) => facet.value)}
+                        suggestions={(facets ?? []).map((facet) => ({ slug: facet.value, label: facet.label }))}
                     />
 
                     <section aria-labelledby="prefs-title" className="mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
                         <h2 id="prefs-title" className="font-heading text-xl font-semibold">Preferensi Rekomendasi</h2>
                         <p className="mt-1 text-sm text-muted-foreground">Cara TemuBaca memakai data Anda saat ini.</p>
                         <ul className="mt-4 flex list-none flex-col divide-y divide-border border-t border-border p-0 text-sm">
-                            <li className="flex gap-3 py-3"><Sparkles aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Minat dicocokkan dengan kategori buku</span><span className="text-xs text-muted-foreground">Buku yang kategorinya sama dengan minat Anda diurutkan lebih dulu.</span></span></li>
+                            <li className="flex gap-3 py-3"><Sparkles aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Minat dicocokkan dengan genre buku</span><span className="text-xs text-muted-foreground">Buku yang cocok dengan lebih banyak minat Anda diurutkan lebih dulu.</span></span></li>
                             <li className="flex gap-3 py-3"><Bookmark aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Buku yang sudah disimpan tidak direkomendasikan ulang</span><span className="text-xs text-muted-foreground">Pengaturan memakai bookmark sebagai sinyal rekomendasi belum tersedia.</span></span></li>
                             <li className="flex gap-3 py-3"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span><span className="block font-medium">Lokasi tidak dipakai</span><span className="text-xs text-muted-foreground">Rekomendasi berbasis lokasi umum menunggu kebijakan lokasi (DEC-07).</span></span></li>
                         </ul>

@@ -213,7 +213,7 @@ export async function listGenreFacets() {
         .sort((a, b) => b.total - a.total);
 }
 
-/** Most common raw provider subjects and languages (interest suggestions use the raw subjects). */
+/** Most common raw provider subjects and languages. */
 export async function listBookFacets(limit = 8) {
     const [categories, languages] = await Promise.all([
         db.execute<{ value: string; total: number }>(sql`

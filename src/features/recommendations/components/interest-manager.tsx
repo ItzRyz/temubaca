@@ -9,11 +9,12 @@ import { cn } from "@/lib/utils";
 import { addInterest, deleteInterest } from "../actions";
 
 type Interest = { id: string; subject: string };
+type GenreSuggestion = { slug: string; label: string };
 
 const chipClass = "inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60";
 
-/** Figma "Minat & Preferensi" (179:1344): tap a category to select or release it. */
-export function InterestManager({ interests, suggestions }: { interests: Interest[]; suggestions: string[] }) {
+/** Figma "Minat & Preferensi" (179:1344): tap a genre to select or release it. A genre interest is saved as its label. */
+export function InterestManager({ interests, suggestions }: { interests: Interest[]; suggestions: GenreSuggestion[] }) {
     const [pending, startTransition] = useTransition();
     const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
     const [custom, setCustom] = useState("");
@@ -21,7 +22,7 @@ export function InterestManager({ interests, suggestions }: { interests: Interes
         change.removeId ? current.filter((item) => item.id !== change.removeId) : [...current, { id: `pending-${change.add}`, subject: change.add ?? "" }]);
 
     const selected = new Set(optimistic.map((item) => item.subject.toLocaleLowerCase("id-ID")));
-    const others = suggestions.filter((subject) => !selected.has(subject.toLocaleLowerCase("id-ID")));
+    const others = suggestions.filter((genre) => !selected.has(genre.label.toLocaleLowerCase("id-ID")));
 
     function add(subject: string) {
         const value = subject.trim();
@@ -71,11 +72,11 @@ export function InterestManager({ interests, suggestions }: { interests: Interes
             <h3 className="mt-5 text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Kategori lain</h3>
             {others.length > 0 && (
                 <ul className="mt-2 flex list-none flex-wrap gap-2 p-0">
-                    {others.map((subject) => (
-                        <li key={subject}>
-                            <button type="button" disabled={pending} onClick={() => add(subject)} aria-pressed="false" aria-label={`${subject}. Ketuk untuk memilih`}
+                    {others.map((genre) => (
+                        <li key={genre.slug}>
+                            <button type="button" disabled={pending} onClick={() => add(genre.label)} aria-pressed="false" aria-label={`${genre.label}. Ketuk untuk memilih`}
                                 className={cn(chipClass, "border-border bg-card text-foreground hover:bg-muted")}>
-                                <Plus aria-hidden="true" className="size-4" /> {subject}
+                                <Plus aria-hidden="true" className="size-4" /> {genre.label}
                             </button>
                         </li>
                     ))}
