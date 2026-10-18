@@ -152,7 +152,7 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
 | TB-040 | Berjalan | Halaman rekomendasi buku baseline dan pengelolaan minat pengguna tersedia; pencocokan kategori persis dengan fallback katalog terbaru. Belum ada evaluasi relevansi atau QA pengguna. |
 | TB-047 | Belum dimulai | Placeholder ditulis; pemilik akun masih perlu mencabut/merotasi kredensial lama jika aktif. |
 | TB-048 | Berjalan sebagian | DEC-01 diputuskan: Vercel + Supabase. Ukuran pool kini diatur lewat `DATABASE_POOL_MAX` (default 10, kecil di Vercel). `vercel.json` berisi Vercel Cron untuk retensi. Deploy pertama (18 Okt 2026): proyek Vercel `temubaca` (itzryzs-projects) tertaut ke GitHub `master`, live di https://temubaca.vercel.app. Project Supabase cloud ini kini production; dev dan E2E pindah ke Supabase lokal (Docker). TLS ketat ke pooler memakai `DATABASE_SSL_CA` (Supabase Root 2021 CA, satu baris dengan `
-`) dan `DATABASE_POOL_MAX=3`. Belum: project Supabase staging/production terpisah, dan domain sendiri. |
+`) dan `DATABASE_POOL_MAX=3`. Belum: project staging opsional dan domain sendiri. |
 | TB-049 | Tertahan | Belum ada policy RLS eksplisit atau role database runtime yang ditinjau; harus diselesaikan sebelum production. |
 | TB-050 | Berjalan sebagian | Unit dan integrasi PGlite lulus (128 tes). E2E Playwright (`bun run test:e2e`, 19 tes): alur tamu (desktop + mobile) dan alur anggota dengan dua akun uji khusus di dev (`bun scripts/e2e-accounts.ts`; data uji dihapus otomatis). Pengujian staging menunggu project Supabase staging dan deploy Vercel (DEC-01 sudah diputuskan). |
 
