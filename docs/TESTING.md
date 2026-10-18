@@ -21,7 +21,7 @@ git diff --check
 - tautan Ajukan Komunitas;
 - undangan tidak valid dan halaman 404.
 
-Alur dengan login ada di `e2e/member.e2e.ts` (desktop saja, berurutan). Tes ini memakai dua akun uji khusus di Supabase dev, "E2E Pemilik" dan "E2E Peminjam". Buat atau perbarui akun itu dengan:
+Alur dengan login ada di `e2e/member.e2e.ts` (desktop saja, berurutan). Tes ini memakai dua akun uji khusus di Supabase lokal (`bunx supabase start` lalu `bun run db:local`), "E2E Pemilik" dan "E2E Peminjam". Buat atau perbarui akun itu dengan:
 
 ```bash
 bun scripts/e2e-accounts.ts

@@ -26,6 +26,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Aplikasi Next.js di-hosting di **Vercel**.
   - Auth, Postgres, dan Storage tetap di **Supabase**.
   - Staging memakai **project Supabase terpisah** dengan migrasi yang sama, plus deploy Vercel staging sendiri. Data staging tidak bercampur dengan dev atau production.
+  - **Revisi 18 Okt 2026 (paket gratis Supabase, dua project):** project cloud yang ada menjadi production. Dev dan E2E berjalan di Supabase lokal (Docker, `supabase start` + `bun run db:local`). Staging di project cloud kedua bersifat opsional, dan dibuat bila perlu menguji preview deploy terhadap DB terpisah.
   - Region **Singapura** untuk keduanya: fungsi Vercel di `sin1` (`regions` di `vercel.json`) dan project Supabase staging/production di `ap-southeast-1`. Fungsi dan database berada di region yang sama.
   - Tugas retensi harian dijalankan **Vercel Cron** (`vercel.json`, pukul 19.00 UTC = 02.00 WIB). Cron memanggil `GET /api/internal/retention` dengan `Authorization: Bearer $CRON_SECRET`.
 - **Konteks:** DEC-01 memblokir staging, deployment, penjadwal retensi, dan konfigurasi koneksi production (TB-044, TB-048 s.d. TB-050).

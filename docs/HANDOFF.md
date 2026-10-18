@@ -46,14 +46,26 @@ bun run test:e2e
 E2E Playwright, 19 tes: alur tamu (desktop + mobile) dan alur anggota dengan dua akun uji (desktop). Memakai dev server yang sedang jalan, atau menjalankannya sendiri. Akun uji dibuat dengan `bun scripts/e2e-accounts.ts`, yang menulis kredensial ke `.env.e2e` (di-gitignore). Data uji dihapus otomatis sebelum dan sesudah run.
 
 ```bash
+bunx supabase start
+bun run db:local
+```
+
+Dev dan E2E memakai **Supabase lokal di Docker** (port 556xx, karena 543xx dipakai project Supabase lain di mesin ini). `db:local`:
+- menulis `.env.development.local` dari `supabase status`;
+- menerapkan migrasi Drizzle lalu trigger auth di `supabase/migrations`;
+- menyalin tabel `books` dari cloud (tanpa akun atau data pribadi).
+
+Next dev dan semua skrip membaca `.env.development.local` sebelum `.env` (`scripts/load-env.ts`), jadi pekerjaan lokal tidak menyentuh cloud. Email OTP lokal masuk ke Mailpit di http://127.0.0.1:55624, dan Studio ada di http://127.0.0.1:55623. Hentikan stack dengan `bunx supabase stop`.
+
+```bash
 bun run db:migrate:dev
 ```
 
-Perintah ini menampilkan migrasi yang pending. Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. Tidak ada lagi seed dummy: `scripts/retire-seed-data.ts` (sekali jalan, sudah diterapkan) menggantinya dengan data asli. Tambah buku lewat pencarian di `/books` atau sinkron di Data Buku.
+Perintah ini menampilkan migrasi yang pending di DB lokal. Tambahkan `-- --apply` untuk menerapkannya, atau `-- --apply --cloud` untuk project cloud (production). Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. Tidak ada lagi seed dummy: `scripts/retire-seed-data.ts` (sekali jalan, sudah diterapkan) menggantinya dengan data asli. Tambah buku lewat pencarian di `/books` atau sinkron di Data Buku.
 
 ### Database
 
-- DB di `.env` adalah Supabase remote (pooler `ap-southeast-1`). Pemilik repo **menyetujuinya sebagai DB dev** untuk migrasi dan data uji.
+- DB di `.env` adalah Supabase cloud (pooler `ap-southeast-1`). Sejak 18 Okt 2026 project ini menjadi **production** dan dipakai https://temubaca.vercel.app. Dev, data uji, dan E2E pindah ke Supabase lokal (lihat di atas). Akun E2E di cloud sudah dihapus.
 - Migrasi **0000–0011 sudah diterapkan** (0008 pinjam, 0009 komunitas, 0010 hapus akun/retensi, 0011 banding listing), dan `drizzle-kit check` lulus. `drizzle-kit migrate` tidak bisa tersambung (sertifikat pooler), jadi pakai `scripts/migrate-dev.ts`. Script ini mencatat hash SHA-256 file dan `when` jurnal di `drizzle."__drizzle_migrations__"`, sama seperti Drizzle.
 - Helper `enumCheck` di `schema.ts` menulis literal, bukan `$1`. Tanpa itu, `drizzle-kit generate` menghasilkan DDL tidak valid dan mencoba membuat ulang semua check constraint.
 - Setelah skema berubah, **restart dev server**. HMR tidak memuat ulang modul skema, dan errornya muncul sebagai `Cannot read properties of undefined (reading 'replace')`. Kalau error itu masih ada setelah restart, hentikan server, hapus `.next/dev` (cache Turbopack), lalu jalankan lagi.
@@ -163,8 +175,8 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 
 DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya ada di `DECISIONS.md`. Yang masih terbuka:
 
-- **Deploy:** https://temubaca.vercel.app (proyek Vercel `temubaca`, scope itzryzs-projects, auto-deploy dari `master`). Untuk sementara terhubung ke **Supabase dev**. Environment production dan preview diisi dari `.env`, ditambah `DATABASE_SSL_CA`, `DATABASE_POOL_MAX=3`, `INTERNAL_API_SECRET`, dan `CRON_SECRET` (acak, disimpan sensitive di Vercel). Framework proyek harus `nextjs`; tanpa itu semua halaman 404.
-- **DEC-01** sudah diputuskan (Vercel + Supabase, staging di project Supabase terpisah, Vercel Cron, region Singapura: Vercel `sin1`, Supabase `ap-southeast-1`). Yang masih terbuka: paket production, domain, dan backup.
+- **Deploy:** https://temubaca.vercel.app (proyek Vercel `temubaca`, scope itzryzs-projects, auto-deploy dari `master`). Terhubung ke project Supabase cloud, yang kini menjadi production. Environment production dan preview diisi dari `.env`, ditambah `DATABASE_SSL_CA`, `DATABASE_POOL_MAX=3`, `INTERNAL_API_SECRET`, dan `CRON_SECRET` (acak, disimpan sensitive di Vercel). Framework proyek harus `nextjs`; tanpa itu semua halaman 404.
+- **DEC-01** sudah diputuskan (Vercel + Supabase, project cloud = production, dev di Supabase lokal Docker, staging opsional di slot gratis kedua, Vercel Cron, region Singapura: Vercel `sin1`, Supabase `ap-southeast-1`). Yang masih terbuka: paket production, domain, dan backup.
 - **DEC-03/DEC-12** (checkout, stok, pengiriman merchandise): memblokir TB-035. Merchandise tetap katalog dengan transaksi di luar platform.
 - **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
 - **DEC-07** (peta/lokasi): memblokir Peta Ruang Baca, Peta Literasi v2, Peta & Lokasi di Pengaturan, TB-026/027, dan rekomendasi komunitas TB-041.
@@ -176,7 +188,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 1. **Tanpa keputusan baru:** perluas E2E anggota (serah terima sampai kembali, tolak/batal/sengketa, Tambah Buku, komunitas, hapus akun) dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
 2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
-3. **Pra-rilis TB-047 s.d. TB-050** (DEC-01 sudah diputuskan): rotasi kredensial, buat project Supabase staging di `ap-southeast-1` dan hubungkan repo ke Vercel, set environment (`DATABASE_URL` pooler, `DIRECT_URL`, `DATABASE_POOL_MAX`, `INTERNAL_API_SECRET`, `CRON_SECRET`), lalu policy RLS dan role runtime.
+3. **Pra-rilis TB-047 s.d. TB-050** (DEC-01 sudah diputuskan): rotasi kredensial, tambahkan `https://temubaca.vercel.app` ke URL Auth Supabase, lalu policy RLS dan role runtime. Project staging (slot gratis kedua, `ap-southeast-1`) opsional.
 4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.
 
 ## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)
