@@ -147,13 +147,13 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
 | TB-034 | Berjalan | Katalog dan detail publik hanya menampilkan merchandise terbit dari komunitas terverifikasi. Detail menampilkan kontak pembelian (dinonaktifkan saat habis) dan menyatakan transaksi terjadi di luar TemuBaca. Checkout menunggu DEC-03/DEC-12. |
 | TB-035 | Tertahan | Checkout dan pesanan menunggu DEC-03. |
 | TB-041, TB-043–TB-046 | Belum dimulai | Rekomendasi komunitas menunggu lokasi (DEC-07). Tinjauan alur kritis, operasional, deployment, uji penerimaan, dan go/no-go belum berjalan; tugas retensi DEC-11 (bagian dari TB-043) sudah ada tetapi penjadwalnya menunggu DEC-01. |
-| TB-042 | Berjalan | Audit guard API, uji akses tanpa sesi, redirect login dengan `?next=`, dan uji render state gagal katalog sudah dilakukan (lihat catatan 18 Okt). Belum: uji akun anggota terhadap portal admin, screen reader, dan multi-user. |
+| TB-042 | Berjalan | Audit guard API, uji akses tanpa sesi, redirect login dengan `?next=`, dan uji render state gagal katalog sudah dilakukan (lihat catatan 18 Okt). Akun anggota terhadap portal admin (halaman 404, API 403) dan alur pinjam dua akun kini masuk E2E. Belum: screen reader. |
 | TB-036 | Berjalan sebagian | API menerima laporan buku/listing/komunitas/acara/merchandise/akun, dashboard admin, antrean, dan perubahan status/catatan tersedia. Form laporan punya alasan per jenis konten dan state gagal/batas laporan. Detail laporan yang sudah diputus dihapus otomatis setelah 12 bulan (DEC-11). Banding listing tersembunyi (Figma `301:2608`) sudah ada: pemilik mengajukan dari Buku Saya, admin memutus di Data Buku. Uji moderator/staging belum berjalan. |
 | TB-040 | Berjalan | Halaman rekomendasi buku baseline dan pengelolaan minat pengguna tersedia; pencocokan kategori persis dengan fallback katalog terbaru. Belum ada evaluasi relevansi atau QA pengguna. |
 | TB-047 | Belum dimulai | Placeholder ditulis; pemilik akun masih perlu mencabut/merotasi kredensial lama jika aktif. |
 | TB-048 | Tertahan | Hosting belum dipilih pada DEC-01; driver runtime kini `node-postgres`, `DIRECT_URL` diprioritaskan untuk migrasi, tetapi URL/TLS/pool size belum diuji terhadap staging. |
 | TB-049 | Tertahan | Belum ada policy RLS eksplisit atau role database runtime yang ditinjau; harus diselesaikan sebelum production. |
-| TB-050 | Berjalan sebagian | Unit dan integrasi PGlite lulus (128 tes). Smoke E2E Playwright untuk alur tamu tersedia (`bun run test:e2e`, 14 tes desktop + mobile). E2E dengan login dan pengujian staging menunggu akun uji dan DEC-01. |
+| TB-050 | Berjalan sebagian | Unit dan integrasi PGlite lulus (128 tes). E2E Playwright (`bun run test:e2e`, 19 tes): alur tamu (desktop + mobile) dan alur anggota dengan dua akun uji khusus di dev (`bun scripts/e2e-accounts.ts`; data uji dihapus otomatis). Pengujian staging menunggu DEC-01. |
 
 ## Catatan implementasi lanjutan — 2026-10-10
 
@@ -251,7 +251,7 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18. Status berikut menunjuk
   - Tanpa sesi: 12 endpoint tulis mengembalikan 401, dan 10 halaman privat mengarahkan ke login tanpa membocorkan konten.
   - Temuan yang diperbaiki: redirect login kini membawa `?next=` sehingga pengguna kembali ke halaman asal.
   - State gagal katalog terbuka (TB-021) kini diuji render untuk kelima kondisi.
-  - Belum: akses non-admin ke portal admin dengan akun anggota, screen reader, dan uji multi-user.
+  - Belum: screen reader. Akses akun anggota ke portal admin dan uji dua akun sudah masuk E2E (`e2e/member.e2e.ts`).
 - Filter genre di `/books` (18 Okt 2026):
   - Filter kategori sebelumnya menampilkan 31 subjek mentah dari provider untuk 21 buku: berbahasa Inggris, tumpang tindih ("Fiction", "Indonesia, fiction", "Indonesian fiction"), dan sebagian bukan genre ("Earth (planet)", "New York Times reviewed").
   - Kini subjek dipetakan ke genre berbahasa Indonesia di `src/features/books/genres.ts` (termasuk genre manual Tambah Buku). Subjek yang tidak tercakup tidak ditawarkan.

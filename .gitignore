@@ -47,3 +47,6 @@ next-env.d.ts
 
 # Skill installer source copy; Claude Code reads .claude/skills (recreate with: npx skills add supabase/agent-skills)
 /.agents/
+
+# Playwright E2E sessions
+/e2e/.auth/

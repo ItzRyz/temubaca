@@ -37,13 +37,13 @@ bun run dev
 bun run check
 ```
 
-`check` = tsc + eslint + bun test (saat ini **128 tes lulus**, termasuk tes integrasi PGlite untuk migrasi 24 tabel, siklus pinjam, pengelolaan komunitas, dan hapus akun/retensi). `bun run build` juga lulus tanpa peringatan.
+`check` = tsc + eslint + bun test (saat ini **141 tes lulus**, termasuk tes integrasi PGlite untuk migrasi 24 tabel, siklus pinjam, pengelolaan komunitas, dan hapus akun/retensi). `bun run build` juga lulus tanpa peringatan.
 
 ```bash
 bun run test:e2e
 ```
 
-Smoke E2E Playwright untuk alur tamu (14 tes, desktop + mobile). Memakai dev server yang sedang jalan, atau menjalankannya sendiri.
+E2E Playwright, 19 tes: alur tamu (desktop + mobile) dan alur anggota dengan dua akun uji (desktop). Memakai dev server yang sedang jalan, atau menjalankannya sendiri. Akun uji dibuat dengan `bun scripts/e2e-accounts.ts`, yang menulis kredensial ke `.env.e2e` (di-gitignore). Data uji dihapus otomatis sebelum dan sesudah run.
 
 ```bash
 bun run db:migrate:dev
@@ -173,7 +173,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 ## 6. Langkah berikutnya (rekomendasi)
 
-1. **Tanpa keputusan baru:** E2E dengan login (perlu akun uji khusus dan sebaiknya DB staging), uji akun anggota terhadap portal admin, dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
+1. **Tanpa keputusan baru:** perluas E2E anggota (serah terima sampai kembali, tolak/batal/sengketa, Tambah Buku, komunitas, hapus akun) dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
 2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
 3. **Keputusan DEC-01**, lalu pra-rilis TB-047 s.d. TB-050: rotasi kredensial, policy RLS dan role runtime, staging, penjadwal retensi.
 4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.

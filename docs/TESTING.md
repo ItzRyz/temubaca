@@ -21,7 +21,22 @@ git diff --check
 - tautan Ajukan Komunitas;
 - undangan tidak valid dan halaman 404.
 
-Semua 14 tes lulus. Alur yang butuh login belum masuk E2E karena belum ada akun uji khusus. Kredensial uji dan data seed untuk staging perlu disiapkan dulu (TB-050).
+Alur dengan login ada di `e2e/member.e2e.ts` (desktop saja, berurutan). Tes ini memakai dua akun uji khusus di Supabase dev, "E2E Pemilik" dan "E2E Peminjam". Buat atau perbarui akun itu dengan:
+
+```bash
+bun scripts/e2e-accounts.ts
+```
+
+Skrip itu membuat akun yang emailnya sudah terkonfirmasi, menyetel kata sandi acak baru di tiap run, dan menulis kredensial ke `.env.e2e` (di-gitignore, tidak pernah dicetak). Tanpa `.env.e2e`, tes anggota dilewati.
+
+Global setup login sekali per akun dan menyimpan sesi di `e2e/.auth/` (di-gitignore). Global setup dan teardown menghapus semua data yang dibuat dua akun itu: listing, permintaan, event dan pinjaman, bookmark, minat, dan rekomendasi. Profilnya tetap ada. Cakupan per 18 Okt 2026:
+- halaman privat terbuka untuk anggota tanpa overflow;
+- anggota mendapat halaman 404 di `/admin`, `/admin/users`, `/admin/loans`, dan `/moderation/reports`, serta 403 dari API admin;
+- simpan buku, buku tampil di Bookmark, lalu lepas lagi;
+- pilih dan lepas minat baca;
+- alur pinjam dua akun: pemilik membuat listing, peminjam mengajukan dari halaman buku, pemilik menerima, lalu kedua pihak melihat tombol Konfirmasi Serah Terima.
+
+Total 19 tes lulus. `notFound()` di layout portal dipanggil setelah streaming dimulai, sehingga status HTTP tetap 200. Karena itu tes memeriksa isi halaman 404, bukan statusnya.
 
 Pada 2026-10-10, semua migrasi SQL dijalankan berurutan terhadap PostgreSQL in-memory PGlite dan berhasil membuat 18 tabel publik. Ini memeriksa sintaks dan urutan migrasi, bukan menggantikan pengujian terhadap PostgreSQL/Supabase staging. Perilaku RLS, koneksi pooler, dan perbedaan provider masih perlu diuji di staging.
 
@@ -37,6 +52,6 @@ Pada build lokal yang lebih baru, route publik berbasis komunitas/acara ditandai
 
 - Unit: validasi schema, policy/ownership, normalisasi data eksternal setelah provider dipilih.
 - Integrasi: Route Handlers dengan database uji, session tanpa login, pemilik vs pengguna lain, konflik listing/bookmark, dan rate limit.
-- E2E: alur tamu sudah ada. Berikutnya: pencarian → detail → bookmark; buat dan kelola listing; alur peminjaman dua akun (DEC-02 sudah diputuskan); komunitas; hapus akun. Semuanya butuh akun uji dan DB staging terpisah.
+- E2E: alur tamu dan alur anggota dasar sudah ada (lihat di atas). Berikutnya: serah terima sampai pengembalian, tolak/batal/sengketa, buat listing lewat dialog Tambah Buku, komunitas, dan hapus akun. Di staging, pakai DB terpisah.
 - Manual: keyboard, layar kecil, loading/error/empty state, dan pemeriksaan lokasi publik agar tidak menampilkan alamat rumah.
 - Migrasi: terapkan semua migrasi pada database uji kosong dan bandingkan hasilnya dengan `src/lib/db/schema.ts` sebelum staging/produksi.
