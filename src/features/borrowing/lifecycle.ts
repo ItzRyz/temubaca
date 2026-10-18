@@ -7,7 +7,8 @@ import { loanDayOptions } from "@/features/book-listings/listing-draft";
  * - the reader may cancel while waiting; either side may cancel after acceptance, before handover;
  * - handover and return each need a confirmation from both sides;
  * - the due date counts from handover; overdue loans get reminders, never fines;
- * - damage, loss, or a missing return becomes a dispute that an admin settles.
+ * - damage, loss, or a missing return becomes a dispute that an admin settles;
+ * - the reader may ask once, before the due date, for up to 14 more days; the owner accepts or declines.
  */
 
 export type LoanRole = "owner" | "requester";
@@ -23,7 +24,9 @@ export type LoanState =
     | "REJECTED"
     | "CANCELLED";
 
-export type LoanAction = "approve" | "reject" | "cancel" | "confirm_handover" | "confirm_return" | "remind" | "report_problem";
+export type LoanAction =
+    | "approve" | "reject" | "cancel" | "confirm_handover" | "confirm_return" | "remind" | "report_problem"
+    | "request_extension" | "approve_extension" | "reject_extension";
 
 export type LoanSnapshot = {
     requestStatus: string;
@@ -34,10 +37,14 @@ export type LoanSnapshot = {
     ownerReturnAt: Date | null;
     requesterReturnAt: Date | null;
     lastReminderAt: Date | null;
+    /** null until the reader asks for an extension; one request per loan. */
+    extensionStatus: string | null;
 };
 
 export const REMINDER_COOLDOWN_HOURS = 24;
 export const DEFAULT_LOAN_DAYS = 14;
+export const EXTENSION_MAX_DAYS = 14;
+export const extensionDayOptions = [7, 14] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const rejectionReasons = [
@@ -112,10 +119,23 @@ export function actionBlocker(loan: LoanSnapshot, role: LoanRole, action: LoanAc
         }
         case "report_problem":
             return state === "ACTIVE" || state === "OVERDUE" ? null : "Masalah hanya dapat dilaporkan untuk buku yang sedang dipinjam.";
+        case "request_extension":
+            if (ownSide) return "Hanya peminjam yang dapat mengajukan perpanjangan.";
+            if (state !== "ACTIVE") return "Perpanjangan hanya dapat diajukan sebelum tenggat.";
+            if (loan.extensionStatus) return "Perpanjangan hanya dapat diajukan satu kali.";
+            return loan.ownerReturnAt || loan.requesterReturnAt ? "Pengembalian sudah dikonfirmasi." : null;
+        case "approve_extension":
+        case "reject_extension":
+            if (!ownSide) return "Hanya pemilik buku yang dapat menanggapi perpanjangan.";
+            if (state !== "ACTIVE" && state !== "OVERDUE") return "Pinjaman ini tidak sedang berjalan.";
+            return loan.extensionStatus === "PENDING" ? null : "Tidak ada permintaan perpanjangan yang menunggu.";
     }
 }
 
-const allActions: LoanAction[] = ["approve", "reject", "cancel", "confirm_handover", "confirm_return", "remind", "report_problem"];
+const allActions: LoanAction[] = [
+    "approve", "reject", "cancel", "confirm_handover", "confirm_return", "remind", "report_problem",
+    "request_extension", "approve_extension", "reject_extension",
+];
 
 export function allowedActions(loan: LoanSnapshot, role: LoanRole, now = new Date()) {
     return allActions.filter((action) => actionBlocker(loan, role, action, now) === null);
@@ -154,6 +174,7 @@ export function loanGroup(loan: LoanSnapshot, role: LoanRole, now = new Date()):
         ? { handover: loan.ownerHandoverAt, returned: loan.ownerReturnAt }
         : { handover: loan.requesterHandoverAt, returned: loan.requesterReturnAt };
     const theirs = role === "owner" ? loan.requesterReturnAt : loan.ownerReturnAt;
+    if (role === "owner" && loan.extensionStatus === "PENDING" && (state === "ACTIVE" || state === "OVERDUE")) return "action";
     switch (state) {
         case "PENDING":
             return role === "owner" ? "action" : "waiting";
@@ -183,4 +204,7 @@ export const loanEventLabels: Record<string, string> = {
     REMINDER_SENT: "Pengingat dikirim",
     DISPUTE_OPENED: "Masalah dilaporkan",
     DISPUTE_RESOLVED: "Sengketa diputuskan",
+    EXTENSION_REQUESTED: "Perpanjangan diajukan",
+    EXTENSION_APPROVED: "Perpanjangan diterima",
+    EXTENSION_REJECTED: "Perpanjangan ditolak",
 };

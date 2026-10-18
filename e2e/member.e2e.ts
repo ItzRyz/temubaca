@@ -68,7 +68,7 @@ test("choose and release a reading interest", async ({ page }) => {
     await expect(page.getByText("Terpilih (0)")).toBeVisible();
 });
 
-test("borrow request from one member is approved by the owner", async ({ browser, page }) => {
+test("borrow request from one member is approved, handed over, and extended once", async ({ browser, page }) => {
     const book = await bookWithoutListings();
     const owner = await pageAs(browser, "owner");
     await owner.goto("/dashboard");
@@ -97,5 +97,28 @@ test("borrow request from one member is approved by the owner", async ({ browser
     // Borrower can now confirm the handover too.
     await page.reload();
     await expect(page.getByRole("button", { name: "Konfirmasi Serah Terima" }).first()).toBeVisible();
+
+    // Both confirm the handover; the loan starts.
+    await owner.getByRole("button", { name: "Konfirmasi Serah Terima" }).first().click();
+    await expect(owner.getByText("Menunggu peminjam mengonfirmasi serah terima").first()).toBeVisible();
+    await page.reload();
+    await page.getByRole("button", { name: "Konfirmasi Serah Terima" }).first().click();
+    await expect(page.getByText("Sedang Dipinjam").first()).toBeVisible();
+
+    // Borrower asks for one extension (DEC-02); the owner accepts it.
+    await page.getByRole("button", { name: "Perpanjang" }).first().click();
+    await page.getByText("14 hari", { exact: true }).click();
+    await page.getByRole("button", { name: "Kirim Permintaan" }).click();
+    await expect(page.getByText("Perpanjangan 14 hari menunggu jawaban pemilik.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Perpanjang" })).toHaveCount(0);
+
+    await owner.reload();
+    await expect(owner.getByText("E2E Peminjam meminta perpanjangan 14 hari.")).toBeVisible();
+    await owner.getByRole("button", { name: "Terima Perpanjangan" }).click();
+    await expect(owner.getByText("Perpanjangan 14 hari diterima. Tenggat sudah diperbarui.")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText("Perpanjangan 14 hari diterima. Tenggat sudah diperbarui.")).toBeVisible();
+    await expect(page.getByText(/sisa 28 hari/)).toBeVisible();
     await owner.context().close();
 });

@@ -8,6 +8,7 @@ import { FormAlert } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
 import type { LoanAction, LoanRole } from "../lifecycle";
+import { RejectExtensionDialog, RequestExtensionDialog } from "./extension-dialogs";
 import { RejectRequestDialog } from "./reject-request-dialog";
 import { ReportProblemDialog } from "./report-problem-dialog";
 
@@ -16,7 +17,7 @@ const outline = "flex min-h-10 w-full items-center justify-center gap-2 rounded-
 const danger = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-destructive bg-card px-4 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-60";
 
 /** Buttons for one loan card; the server re-checks every action against the DEC-02 rules. */
-export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, otherName, summary, hint }: {
+export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, otherName, summary, hint, dueAt = null, extensionDays = null }: {
     role: LoanRole;
     requestId: string;
     borrowingId: string | null;
@@ -25,6 +26,8 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
     otherName: string;
     summary: string;
     hint?: string;
+    dueAt?: Date | null;
+    extensionDays?: number | null;
 }) {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
@@ -33,7 +36,7 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
 
     function run(action: LoanAction) {
         setError("");
-        const onBorrowing = action === "confirm_return" || action === "remind";
+        const onBorrowing = action === "confirm_return" || action === "remind" || action === "approve_extension";
         startTransition(async () => {
             const result = await sendLoanRequest(
                 onBorrowing ? `/api/borrowings/${borrowingId}` : `/api/borrow-requests/${requestId}`,
@@ -51,6 +54,14 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
 
     return (
         <div className="flex w-full flex-col gap-2 lg:w-56">
+            {can("approve_extension") && (
+                <button type="button" disabled={pending} onClick={() => run("approve_extension")} className={primary}>
+                    <Check aria-hidden="true" className="size-4" /> Terima Perpanjangan
+                </button>
+            )}
+            {can("reject_extension") && borrowingId && (
+                <RejectExtensionDialog borrowingId={borrowingId} bookTitle={bookTitle} days={extensionDays} triggerClassName={danger} />
+            )}
             {can("approve") && (
                 <button type="button" disabled={pending} onClick={() => run("approve")} className={primary}>
                     <Check aria-hidden="true" className="size-4" /> Terima Permintaan
@@ -71,6 +82,9 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
                 <button type="button" disabled={pending} onClick={() => run("remind")} className={primary}>
                     <Bell aria-hidden="true" className="size-4" /> Kirim Pengingat
                 </button>
+            )}
+            {can("request_extension") && borrowingId && (
+                <RequestExtensionDialog borrowingId={borrowingId} bookTitle={bookTitle} summary={summary} dueAt={dueAt} triggerClassName={outline} />
             )}
             {can("report_problem") && borrowingId && (
                 <ReportProblemDialog borrowingId={borrowingId} bookTitle={bookTitle} summary={summary} triggerClassName={outline} />

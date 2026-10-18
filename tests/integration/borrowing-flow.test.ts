@@ -19,7 +19,7 @@ setDefaultTimeout(60_000);
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const OWNER = id(1), READER = id(2), OTHER_READER = id(3), STRANGER = id(4), ADMIN = id(5);
 const BOOK = id(100);
-const LISTING = id(200), SECOND_LISTING = id(201);
+const LISTING = id(200), SECOND_LISTING = id(201), THIRD_LISTING = id(202);
 
 let borrowing: typeof import("../../src/lib/db/queries/borrowing");
 
@@ -45,6 +45,7 @@ beforeAll(async () => {
     await testDb.insert(schema.bookListings).values([
         { id: LISTING, ownerId: OWNER, bookId: BOOK, condition: "GOOD", publicLocation: "Taman Suropati & TIM Cikini", borrowingRules: "Lama pinjam: 14 hari." },
         { id: SECOND_LISTING, ownerId: OWNER, bookId: BOOK, condition: "GOOD", publicLocation: "Taman Suropati", borrowingRules: "Lama pinjam: 7 hari." },
+        { id: THIRD_LISTING, ownerId: OWNER, bookId: BOOK, condition: "GOOD", publicLocation: "Taman Suropati", borrowingRules: "Lama pinjam: 7 hari." },
     ]);
     borrowing = await import("../../src/lib/db/queries/borrowing");
 });
@@ -148,5 +149,52 @@ describe("cancellation and disputes", () => {
         expect(dispute.reportedByOwner).toBe(true);
         const audit = await testDb.query.adminAuditLogs.findMany({ where: eq(schema.adminAuditLogs.targetId, loan.borrowingId!) });
         expect(audit.map((entry) => entry.action)).toEqual(["BORROWING_DISPUTE_RESOLVED"]);
+    });
+});
+
+describe("loan extension", () => {
+    test("the reader asks once; accepting moves the due date", async () => {
+        const { id: requestId } = await ask(READER, { listingId: THIRD_LISTING, loanDays: 7 });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "approve" });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "confirm_handover" });
+        await borrowing.actOnBorrowRequest(requestId, READER, { action: "confirm_handover" });
+        const [loan] = (await borrowing.listLoansForUser(OWNER)).filter((item) => item.requestId === requestId);
+        const borrowingId = loan.borrowingId!;
+
+        await expect(borrowing.actOnBorrowing(borrowingId, OWNER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("Hanya peminjam");
+        await expect(borrowing.actOnBorrowing(borrowingId, OWNER, { action: "approve_extension" })).rejects.toThrow("Tidak ada permintaan");
+        await borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: "Belum selesai dibaca." });
+        await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("satu kali");
+        await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "approve_extension" })).rejects.toThrow("Hanya pemilik");
+
+        const [pending] = (await borrowing.listLoansForUser(OWNER)).filter((item) => item.requestId === requestId);
+        expect(pending.extension).toEqual({ status: "PENDING", days: 7, note: "Belum selesai dibaca.", responseNote: null });
+        const result = await borrowing.actOnBorrowing(borrowingId, OWNER, { action: "approve_extension" });
+        expect(result.extensionStatus).toBe("APPROVED");
+
+        const [after] = (await borrowing.listLoansForUser(READER)).filter((item) => item.requestId === requestId);
+        expect(after.dueAt!.getTime() - loan.dueAt!.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+        await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("satu kali");
+        expect((await borrowing.listBorrowEvents(requestId)).map((event) => event.type).slice(-2)).toEqual(["EXTENSION_REQUESTED", "EXTENSION_APPROVED"]);
+    });
+
+    test("a declined extension keeps the due date and cannot be asked again", async () => {
+        const [loan] = (await borrowing.listLoansForUser(READER)).filter((item) => item.listingId === THIRD_LISTING);
+        await borrowing.actOnBorrowing(loan.borrowingId!, READER, { action: "confirm_return" });
+        await borrowing.actOnBorrowing(loan.borrowingId!, OWNER, { action: "confirm_return" });
+
+        const { id: requestId } = await ask(OTHER_READER, { listingId: THIRD_LISTING, loanDays: 7 });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "approve" });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "confirm_handover" });
+        await borrowing.actOnBorrowRequest(requestId, OTHER_READER, { action: "confirm_handover" });
+        const [active] = (await borrowing.listLoansForUser(OTHER_READER)).filter((item) => item.requestId === requestId);
+
+        await borrowing.actOnBorrowing(active.borrowingId!, OTHER_READER, { action: "request_extension", days: 14, note: undefined });
+        await borrowing.actOnBorrowing(active.borrowingId!, OWNER, { action: "reject_extension", note: "Bukunya akan saya pakai." });
+        const [after] = (await borrowing.listLoansForUser(OTHER_READER)).filter((item) => item.requestId === requestId);
+        expect(after.dueAt!.getTime()).toBe(active.dueAt!.getTime());
+        expect(after.extension?.status).toBe("REJECTED");
+        expect(after.extension?.responseNote).toBe("Bukunya akan saya pakai.");
+        await expect(borrowing.actOnBorrowing(active.borrowingId!, OTHER_READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("satu kali");
     });
 });

@@ -24,6 +24,7 @@ const base: LoanSnapshot = {
     ownerReturnAt: null,
     requesterReturnAt: null,
     lastReminderAt: null,
+    extensionStatus: null,
 };
 const active = { ...base, requestStatus: "COMPLETED", borrowingStatus: "ACTIVE", dueAt: new Date(now.getTime() + 3 * day) };
 const overdue = { ...active, dueAt: new Date(now.getTime() - 2 * day - 1000) };
@@ -57,7 +58,7 @@ describe("who may do what (DEC-02)", () => {
 
     test("handed-over loans cannot be cancelled; both confirm the return and either may report a problem", () => {
         expect(allowedActions(active, "owner", now)).toEqual(["confirm_return", "report_problem"]);
-        expect(allowedActions(active, "requester", now)).toEqual(["confirm_return", "report_problem"]);
+        expect(allowedActions(active, "requester", now)).toEqual(["confirm_return", "report_problem", "request_extension"]);
         expect(actionBlocker(active, "requester", "cancel", now)).not.toBeNull();
     });
 
@@ -116,5 +117,32 @@ describe("loan groups", () => {
         expect(loanGroup({ ...active, requesterReturnAt: now }, "owner", now)).toBe("action");
         expect(loanGroup({ ...active, requesterReturnAt: now }, "requester", now)).toBe("ongoing");
         expect(loanGroup({ ...active, borrowingStatus: "RETURNED" }, "owner", now)).toBe("history");
+    });
+});
+
+describe("loan extension rules", () => {
+    test("only the reader asks, once, before the due date", () => {
+        expect(actionBlocker(active, "requester", "request_extension", now)).toBeNull();
+        expect(actionBlocker(active, "owner", "request_extension", now)).toContain("Hanya peminjam");
+        expect(actionBlocker(overdue, "requester", "request_extension", now)).toContain("sebelum tenggat");
+        expect(actionBlocker({ ...active, extensionStatus: "REJECTED" }, "requester", "request_extension", now)).toContain("satu kali");
+        expect(actionBlocker({ ...active, requesterReturnAt: now }, "requester", "request_extension", now)).toContain("Pengembalian");
+    });
+
+    test("the owner answers a waiting request, also after the due date", async () => {
+        const { loanGroup } = await import("../../src/features/borrowing/lifecycle");
+        const asked = { ...active, extensionStatus: "PENDING" };
+        expect(allowedActions(asked, "owner", now)).toEqual(expect.arrayContaining(["approve_extension", "reject_extension"]));
+        expect(actionBlocker({ ...overdue, extensionStatus: "PENDING" }, "owner", "approve_extension", now)).toBeNull();
+        expect(actionBlocker(asked, "requester", "approve_extension", now)).toContain("Hanya pemilik");
+        expect(actionBlocker(active, "owner", "reject_extension", now)).toContain("Tidak ada permintaan");
+        expect(loanGroup(asked, "owner", now)).toBe("action");
+    });
+
+    test("the period is capped at 14 days", async () => {
+        const { borrowingActionSchema } = await import("../../src/lib/validation/schemas/borrowing.schema");
+        expect(borrowingActionSchema.safeParse({ action: "request_extension", days: 14 }).success).toBe(true);
+        expect(borrowingActionSchema.safeParse({ action: "request_extension", days: 15 }).success).toBe(false);
+        expect(borrowingActionSchema.safeParse({ action: "request_extension", days: 0 }).success).toBe(false);
     });
 });

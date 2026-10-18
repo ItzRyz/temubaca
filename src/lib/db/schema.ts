@@ -43,7 +43,9 @@ export const listingAvailabilityValues = ['AVAILABLE', 'UNAVAILABLE', 'RESERVED'
 export const borrowRequestStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 // OVERDUE is derived from dueAt at read time and never stored; DISPUTED waits for an admin decision (DEC-02).
 export const borrowingStatusValues = ['ACTIVE', 'OVERDUE', 'RETURNED', 'LOST', 'CANCELLED', 'DISPUTED'] as const;
-export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED'] as const;
+export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED', 'EXTENSION_REQUESTED', 'EXTENSION_APPROVED', 'EXTENSION_REJECTED'] as const;
+// One extension per loan (DEC-02): the borrower asks before the due date, the owner answers.
+export const loanExtensionStatusValues = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 export const bookAccessStatusValues = ['ACTIVE', 'REVOKED', 'EXPIRED'] as const;
 export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'] as const;
 export const membershipRoleValues = ['OWNER', 'MANAGER', 'MEMBER'] as const;
@@ -178,12 +180,14 @@ export const borrowings = pgTable('borrowings', {
     status: enumText(borrowingStatusValues).notNull().default('ACTIVE'), handedOverAt: nowDate(), dueAt: nowDate(), returnedAt: nowDate(),
     handoverProof: jsonb(), returnProof: jsonb(), note: text(),
     ownerReturnAt: nowDate(), requesterReturnAt: nowDate(), lastReminderAt: nowDate(),
+    extensionStatus: enumText(loanExtensionStatusValues), extensionDays: integer(), extensionNote: text(),
+    extensionRequestedAt: nowDate(), extensionRespondedAt: nowDate(), extensionResponseNote: text(),
     disputedAt: nowDate(), disputeReason: text(), disputeDetails: text(),
     disputedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     resolvedAt: nowDate(), resolutionNote: text(),
     resolvedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues)]).enableRLS();
+}, t => [index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues), enumCheck(t.extensionStatus, loanExtensionStatusValues), check('borrowings_extension_days_check', sql`${t.extensionDays} between 1 and 14`)]).enableRLS();
 
 export const communities = pgTable('communities', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }), name: text().notNull(),

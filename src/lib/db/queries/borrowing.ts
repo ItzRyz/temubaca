@@ -140,6 +140,7 @@ function snapshotOf(request: typeof borrowRequests.$inferSelect, borrowing: type
         ownerReturnAt: borrowing?.ownerReturnAt ?? null,
         requesterReturnAt: borrowing?.requesterReturnAt ?? null,
         lastReminderAt: borrowing?.lastReminderAt ?? null,
+        extensionStatus: borrowing?.extensionStatus ?? null,
     };
 }
 
@@ -243,6 +244,33 @@ export async function actOnBorrowing(borrowingId: string, userId: string, input:
                 await logEvent(tx, request.id, userId, "DISPUTE_OPENED", input.reason);
                 return { status: "DISPUTED" as const };
             }
+            case "request_extension": {
+                await tx
+                    .update(borrowings)
+                    .set({ extensionStatus: "PENDING", extensionDays: input.days, extensionNote: input.note ?? null, extensionRequestedAt: now, updatedAt: now })
+                    .where(eq(borrowings.id, borrowing.id));
+                await logEvent(tx, request.id, userId, "EXTENSION_REQUESTED", `${input.days} hari`);
+                return { status: loanState(snapshotOf(request, borrowing), now), extensionStatus: "PENDING" as const };
+            }
+            case "approve_extension": {
+                // The extra days count from the old due date, also when it has already passed.
+                const days = borrowing.extensionDays ?? 0;
+                const dueAt = new Date((borrowing.dueAt ?? now).getTime() + days * 24 * 60 * 60 * 1000);
+                await tx
+                    .update(borrowings)
+                    .set({ extensionStatus: "APPROVED", extensionRespondedAt: now, dueAt, updatedAt: now })
+                    .where(eq(borrowings.id, borrowing.id));
+                await logEvent(tx, request.id, userId, "EXTENSION_APPROVED", `${days} hari`);
+                return { status: loanState({ ...snapshotOf(request, borrowing), dueAt }, now), extensionStatus: "APPROVED" as const, dueAt };
+            }
+            case "reject_extension": {
+                await tx
+                    .update(borrowings)
+                    .set({ extensionStatus: "REJECTED", extensionRespondedAt: now, extensionResponseNote: input.note ?? null, updatedAt: now })
+                    .where(eq(borrowings.id, borrowing.id));
+                await logEvent(tx, request.id, userId, "EXTENSION_REJECTED", input.note);
+                return { status: loanState(snapshotOf(request, borrowing), now), extensionStatus: "REJECTED" as const };
+            }
         }
     });
 }
@@ -312,6 +340,7 @@ export type LoanItem = {
     disputeReason: string | null;
     disputedAt: Date | null;
     resolutionNote: string | null;
+    extension: { status: string; days: number | null; note: string | null; responseNote: string | null } | null;
     cancelledByOther: boolean;
     /** Oldest first; `by` is relative to the reader of the list. */
     events: { id: string; type: string; note: string | null; createdAt: Date; by: "you" | "other" | "system" | "admin" }[];
@@ -373,6 +402,9 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             disputeReason: borrowing?.disputeReason ?? null,
             disputedAt: borrowing?.disputedAt ?? null,
             resolutionNote: borrowing?.resolutionNote ?? null,
+            extension: borrowing?.extensionStatus
+                ? { status: borrowing.extensionStatus, days: borrowing.extensionDays, note: borrowing.extensionNote, responseNote: borrowing.extensionResponseNote }
+                : null,
             cancelledByOther: request.status === "CANCELLED" && request.cancelledById !== null && request.cancelledById !== userId,
             events: (eventsByRequest.get(request.id) ?? []).map((event) => ({
                 id: event.id,

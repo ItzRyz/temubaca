@@ -74,7 +74,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Migrasi `0008_borrowing_lifecycle` dan tabel riwayat `borrow_events`.
   - Endpoint `/api/borrow-requests`, `/api/borrowings`, dan `/api/admin/borrowings`.
   - TB-025 tidak lagi tertahan.
-  - **Perpanjangan (18 Okt 2026):** peminjam dapat mengajukan perpanjangan **satu kali** selama pinjaman berjalan dan sebelum tenggat. Pemilik menerima atau menolak. Tambahan waktu maksimal 14 hari dari tenggat lama. Opsi yang dipertimbangkan: tanpa perpanjangan, atau berkali-kali dengan persetujuan pemilik. Tombol "Perpanjang" dari Figma belum dibuat.
+  - **Perpanjangan (18 Okt 2026):** peminjam dapat mengajukan perpanjangan **satu kali** selama pinjaman berjalan dan sebelum tenggat. Pemilik menerima atau menolak. Tambahan waktu maksimal 14 hari dari tenggat lama. Opsi yang dipertimbangkan: tanpa perpanjangan, atau berkali-kali dengan persetujuan pemilik. Dibuat lewat migrasi `0013_loan_extension` (kolom `extension*` di `borrowings`, event `EXTENSION_*`), aksi `request_extension`/`approve_extension`/`reject_extension` di `PATCH /api/borrowings/[borrowingId]`, dan tombol "Perpanjang" di Buku Saya - Peminjaman.
 
 ## DEC-04 dan DEC-05 — Pengelolaan dan verifikasi komunitas (diputuskan 18 Okt 2026)
 

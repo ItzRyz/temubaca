@@ -63,6 +63,29 @@ function confirmationHint(loan: LoanItem) {
     return undefined;
 }
 
+/** Where the one extension request of this loan stands, from this side. */
+function ExtensionNotice({ loan }: { loan: LoanItem }) {
+    const extension = loan.extension!;
+    const days = `${extension.days ?? "-"} hari`;
+    if (extension.status === "PENDING") {
+        return (
+            <div className="mt-3 rounded-lg bg-[#fbecc4] px-3 py-2.5 text-sm text-[#5c3d00]">
+                <p className="font-semibold">{loan.role === "owner" ? `${loan.otherParty.displayName} meminta perpanjangan ${days}.` : `Perpanjangan ${days} menunggu jawaban pemilik.`}</p>
+                {loan.role === "owner" && extension.note && <p className="mt-0.5 italic">“{extension.note}”</p>}
+            </div>
+        );
+    }
+    if (extension.status === "APPROVED") {
+        return <p className="mt-3 rounded-lg bg-[#c9ecd6] px-3 py-2.5 text-sm text-primary">Perpanjangan {days} diterima. Tenggat sudah diperbarui.</p>;
+    }
+    return (
+        <div className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">
+            <p>Perpanjangan {days} ditolak. Tenggat tetap seperti semula.</p>
+            {extension.responseNote && <p className="mt-0.5 text-muted-foreground">Catatan pemilik: {extension.responseNote}</p>}
+        </div>
+    );
+}
+
 function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
     const badge = badgeFor(loan, now);
     const BadgeIcon = badge.icon;
@@ -116,6 +139,9 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                             Pemilik mengirim pengingat {timeAgo(loan.snapshot.lastReminderAt, now)}. Atur pengembalian di titik temu yang disepakati.
                         </p>
                     )}
+                    {(loan.state === "ACTIVE" || loan.state === "OVERDUE") && loan.extension && (
+                        <ExtensionNotice loan={loan} />
+                    )}
                     {loan.state === "REJECTED" && loan.rejectionReason && (
                         <div className="mt-3 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm">
                             <p className="text-[11px] font-semibold tracking-[0.06em] text-destructive uppercase">Alasan penolakan</p>
@@ -164,6 +190,8 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                     otherName={loan.otherParty.displayName}
                     summary={summary}
                     hint={confirmationHint(loan)}
+                    dueAt={loan.dueAt}
+                    extensionDays={loan.extension?.days ?? null}
                 />
             </div>
         </li>

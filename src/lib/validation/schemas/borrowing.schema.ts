@@ -5,7 +5,7 @@ import {
     borrowingStatusValues,
     bookAccessStatusValues,
 } from "@/lib/db/schema";
-import { problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
+import { EXTENSION_MAX_DAYS, problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
 
 import {
     requestIdParamSchema,
@@ -65,6 +65,15 @@ export const borrowingActionSchema = z.discriminatedUnion("action", [
             details: z.string().trim().min(10, "Jelaskan masalahnya minimal 10 karakter.").max(500, "Penjelasan maksimal 500 karakter."),
         })
         .strict(),
+    z
+        .object({
+            action: z.literal("request_extension"),
+            days: z.coerce.number().int().min(1).max(EXTENSION_MAX_DAYS, `Perpanjangan maksimal ${EXTENSION_MAX_DAYS} hari.`),
+            note: optionalText(200, "Pesan maksimal 200 karakter."),
+        })
+        .strict(),
+    z.object({ action: z.literal("approve_extension") }).strict(),
+    z.object({ action: z.literal("reject_extension"), note: optionalText(200, "Catatan maksimal 200 karakter.") }).strict(),
 ]);
 
 export const resolveBorrowingDisputeSchema = z
