@@ -14,7 +14,7 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 | DEC-08 | Apakah rekomendasi MVP perlu layanan ML terpisah, atau cukup baseline di aplikasi? | Kompleksitas dan deployment | Python/FastAPI kandidat |
 | DEC-09 | Target pengguna/usia, wilayah peluncuran, serta kebutuhan bahasa? | UX dan kebijakan | Sasaran 18–25 tercatat; belum dikunci |
 | DEC-10 | Tanggal, target kompetisi/demo, dan metrik keberhasilan? | Prioritas dan release | Belum tersedia |
-| DEC-11 | Retensi, penghapusan akun, backup, dukungan dan penanganan laporan? | Produksi dan kepatuhan | Terbuka |
+| DEC-11 | Retensi, penghapusan akun, backup, dukungan dan penanganan laporan? | Produksi dan kepatuhan | Diputuskan pemilik repo, 18 Okt 2026 untuk penghapusan akun, ekspor, dan retensi (lihat di bawah); kanal dukungan dan backup production masih terbuka |
 | DEC-12 | Harga merchandise, stok, varian, pengiriman dan hubungan penjual-pembeli? | Model listing/checkout | Terbuka |
 | DEC-13 | Bagaimana memodelkan ketersediaan buku di perpustakaan secara terpisah dari akses yang diberikan setelah permintaan pinjam? Tetapkan sumber data, pemilik pembaruan, status, kesegaran, dan penanganan duplikasi. | Skema, integrasi, akurasi UI, privasi dan operasional | Terbuka; TB-023 diblokir |
 
@@ -69,3 +69,26 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Endpoint baru di `/api/communities/...`, `/api/community-invites/accept`, dan `/api/admin/community-submissions/[submissionId]`.
   - TB-030, TB-032, dan TB-033 dapat dikerjakan.
   - Unggah logo dan foto merchandise belum dibuat; hanya berkas bukti yang disimpan.
+
+## DEC-11 — Penghapusan akun, ekspor, dan retensi (diputuskan 18 Okt 2026)
+
+- **Keputusan:**
+  - "Hapus Akun Saya" (konfirmasi dengan mengetik HAPUS) langsung menonaktifkan akun: akun menjadi baca-saja, listing disembunyikan, permintaan pinjam yang menunggu dibatalkan atau ditolak, dan status menjadi "Menunggu Penghapusan".
+  - Selama 14 hari pengguna dapat membatalkan setelah masuk lagi. Setelah itu tugas retensi menghapus bookmark, minat, listing tanpa riwayat, keanggotaan, dan komunitas yang belum terverifikasi. Listing dengan riwayat pinjam disembunyikan dan dibersihkan dari lokasi dan aturan. Nama di riwayat pinjam, laporan, dan jejak audit diganti "Akun dihapus", lalu pengguna Supabase Auth dihapus.
+  - Penghapusan ditolak selama masih ada pinjaman yang diterima, berjalan, atau dalam sengketa, atau selama pengguna memiliki komunitas terverifikasi. Kepemilikan dapat diserahkan ke pengurus aktif lewat menu Pengurus, atau admin diminta menangguhkan komunitasnya.
+  - Pengguna dapat mengunduh salinan datanya dalam JSON (maks. 3 kali per jam).
+  - Retensi: detail laporan yang sudah diputus dihapus setelah 12 bulan. Jejak audit admin, riwayat pinjaman yang selesai, dan bukti komunitas yang sudah ditinjau dihapus setelah 24 bulan.
+  - Backup mengikuti kebijakan bawaan Supabase.
+- **Konteks:** frame Figma Dialog Hapus Akun (`210:1145`), statistik "Menunggu Penghapusan" di Data Pengguna (`147:807`), dan bagian Retensi & Data di Pengaturan (`161:859`).
+- **Opsi yang dipertimbangkan:**
+  - Hapus langsung tanpa masa tenggang.
+  - Anonimkan tanpa syarat (pinjaman dibatalkan dan komunitas ditangguhkan otomatis).
+  - Tanpa ekspor.
+  - Simpan tanpa batas.
+- **Pemilik:** pemilik repo.
+- **Tanggal:** 18 Okt 2026.
+- **Dampak:**
+  - Migrasi `0010_account_deletion_and_retention`.
+  - Endpoint `/api/me/account-deletion`, `/api/me/export`, `/api/admin/retention`, `/api/internal/retention`, dan `/api/communities/[communityId]/owner`.
+  - Penjadwal harian menunggu hosting (DEC-01).
+  - Kanal dukungan pengguna dan SLA penanganan laporan belum diputuskan.

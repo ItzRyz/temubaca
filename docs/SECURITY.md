@@ -8,11 +8,17 @@ Autentikasi membuktikan identitas; otorisasi memeriksa peran dan kepemilikan unt
 
 Server Action autentikasi mengembalikan pesan generik untuk kegagalan provider yang tidak dikenal, agar tidak mengungkap keberadaan akun atau detail infrastruktur. URL callback email memakai `NEXT_PUBLIC_APP_URL`, bukan header `Origin` yang dikirim request.
 
-Laporan hanya dapat dibuat oleh pengguna yang masuk dan target publik yang didukung harus benar-benar ada. Daftar dan catatan hasil hanya dapat dibaca/diubah oleh akun `ADMIN`; pembaruan tidak otomatis menyembunyikan konten. Isi laporan tetap merupakan data sensitif dan perlu mengikuti keputusan retensi DEC-11.
+Laporan hanya dapat dibuat oleh pengguna yang masuk dan target publik yang didukung harus benar-benar ada. Daftar dan catatan hasil hanya dapat dibaca/diubah oleh akun `ADMIN`; pembaruan tidak otomatis menyembunyikan konten. Isi laporan tetap merupakan data sensitif. Sesuai DEC-11, detailnya dihapus 12 bulan setelah laporan diputus; alasan dan hasil tetap disimpan.
 
 ## Data
 
-Minimalkan data profil, lokasi, dan histori. Jangan menampilkan alamat rumah pemilik buku. Gunakan titik publik dan generalisasi lokasi. Lindungi token sesi, informasi kontak, laporan, serta catatan moderator. Tentukan retensi, ekspor, dan penghapusan bersama kebijakan produk.
+Minimalkan data profil, lokasi, dan histori. Jangan menampilkan alamat rumah pemilik buku. Gunakan titik publik dan generalisasi lokasi. Lindungi token sesi, informasi kontak, laporan, serta catatan moderator. Retensi, ekspor, dan penghapusan mengikuti DEC-11 (`docs/DECISIONS.md`):
+
+- **Hapus akun:** akun langsung menjadi baca-saja dan listing-nya disembunyikan. Setelah masa tenggang 14 hari, tugas retensi menghapus data pribadi, menganonimkan riwayat bersama ("Akun dihapus"), lalu menghapus pengguna Supabase Auth.
+- **Ekspor:** `GET /api/me/export` mengunduh salinan JSON data milik akun.
+- **Retensi otomatis:** detail laporan yang sudah diputus dihapus setelah 12 bulan. Jejak audit admin, riwayat pinjaman yang selesai, dan bukti komunitas yang sudah ditinjau dihapus setelah 24 bulan.
+- **Menjalankan tugas retensi:** admin dapat menekan "Jalankan sekarang" di Pengaturan → Retensi & Data, atau penjadwal memanggil `POST /api/internal/retention` dengan `Authorization: Bearer $INTERNAL_API_SECRET`. Penjadwal harian dipasang setelah hosting diputuskan (DEC-01).
+- **Backup:** mengikuti kebijakan bawaan paket Supabase yang dipakai. Data yang sudah dihapus dapat tetap ada di backup sampai backup itu kedaluwarsa. Catat jangka waktunya saat paket production dipilih.
 
 ## Input dan integrasi
 

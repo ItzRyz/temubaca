@@ -63,13 +63,14 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                 publicLocation: bookListings.publicLocation,
                 borrowingRules: bookListings.borrowingRules,
                 ownerSuspendedAt: userProfiles.suspendedAt,
+                ownerDeletionRequestedAt: userProfiles.deletionRequestedAt,
             })
             .from(bookListings)
             .innerJoin(userProfiles, eq(userProfiles.id, bookListings.ownerId))
             .where(eq(bookListings.id, input.listingId))
             .for("update", { of: bookListings });
 
-        if (!listing || listing.hiddenAt || listing.ownerSuspendedAt) throw new NotFoundError("Salinan buku tidak ditemukan.");
+        if (!listing || listing.hiddenAt || listing.ownerSuspendedAt || listing.ownerDeletionRequestedAt) throw new NotFoundError("Salinan buku tidak ditemukan.");
         if (listing.ownerId === requesterId) throw new ForbiddenError("Anda tidak dapat meminjam buku milik sendiri.");
         if (listing.availability !== "AVAILABLE") throw new ConflictError("Salinan ini sedang tidak ditawarkan.");
 

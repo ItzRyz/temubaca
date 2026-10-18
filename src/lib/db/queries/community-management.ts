@@ -290,3 +290,22 @@ export function getCommunityContacts(communityId: string) {
         columns: { id: true, status: true, contactEmail: true, instagramHandle: true, whatsappNumber: true },
     });
 }
+
+/** Hands the community to an active manager; the previous owner stays on as a manager (DEC-11 needs this before deletion). */
+export async function transferCommunityOwnership(communityId: string, ownerId: string, newOwnerId: string) {
+    return db.transaction(async (tx) => {
+        const [community] = await tx.select({ ownerId: communities.ownerId }).from(communities).where(eq(communities.id, communityId)).for("update");
+        if (!community || community.ownerId !== ownerId) throw new NotFoundError("Komunitas tidak ditemukan.");
+        const [manager] = await tx.select({ id: communityMemberships.id }).from(communityMemberships)
+            .where(and(eq(communityMemberships.communityId, communityId), eq(communityMemberships.userId, newOwnerId), eq(communityMemberships.role, "MANAGER"), eq(communityMemberships.status, "ACTIVE")));
+        if (!manager) throw new ConflictError("Kepemilikan hanya dapat diserahkan kepada pengurus aktif.");
+
+        const now = new Date();
+        await tx.update(communities).set({ ownerId: newOwnerId, updatedAt: now }).where(eq(communities.id, communityId));
+        await tx.update(communityMemberships).set({ role: "OWNER", updatedAt: now }).where(eq(communityMemberships.id, manager.id));
+        await tx.insert(communityMemberships)
+            .values({ userId: ownerId, communityId, role: "MANAGER", status: "ACTIVE" })
+            .onConflictDoUpdate({ target: [communityMemberships.userId, communityMemberships.communityId], set: { role: "MANAGER", status: "ACTIVE", updatedAt: now } });
+        return { communityId, ownerId: newOwnerId };
+    });
+}

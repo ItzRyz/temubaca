@@ -50,6 +50,12 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `POST` | `/api/communities/[communityId]/merchandise` | Pemilik atau pengurus | Menambah merchandise: harga tetap dalam IDR atau tanpa harga tetap, ketersediaan, kontak komunitas atau kontak khusus, tampil/sembunyi. Tidak ada transaksi di platform (DEC-03) |
 | `PUT`, `DELETE` | `/api/communities/[communityId]/merchandise/[itemId]` | Pemilik atau pengurus | Mengubah atau menghapus merchandise (diarsipkan bila pernah dipesan) |
 | `PATCH` | `/api/admin/community-submissions/[submissionId]` | Admin | `{ decision: CONFIRM\|DISMISS, note? }` (alasan wajib untuk `DISMISS`) untuk pembaruan verifikasi komunitas `VERIFIED`. Pengajuan komunitas baru diputus lewat peninjauan komunitas |
+| `POST` | `/api/me/account-deletion` | Wajib login | `{ confirm: "HAPUS" }`; menjadwalkan penghapusan 14 hari lagi (`{ scheduledFor }`). Akun menjadi baca-saja. `409` bila masih ada pinjaman diterima/berjalan/sengketa atau komunitas terverifikasi milik akun; 5 per jam |
+| `DELETE` | `/api/me/account-deletion` | Wajib login (termasuk akun dalam masa tenggang) | Membatalkan penghapusan yang dijadwalkan; `409` bila tidak ada |
+| `GET` | `/api/me/export` | Wajib login | Unduhan JSON berisi profil, minat, bookmark, listing, pinjaman, komunitas, dan laporan milik akun; 3 per jam |
+| `POST` | `/api/communities/[communityId]/owner` | Pemilik | `{ userId }`; menyerahkan kepemilikan ke pengurus aktif. Pemilik lama menjadi pengurus |
+| `POST` | `/api/admin/retention` | Admin | Menjalankan tugas retensi DEC-11 sekarang dan mengembalikan ringkasannya; tercatat sebagai `RETENTION_RUN`; 3 per jam |
+| `POST` | `/api/internal/retention` | `Authorization: Bearer $INTERNAL_API_SECRET` | Tugas retensi untuk penjadwal; `404` bila secret belum diset |
 | `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
 
 Rute kompatibilitas lama `/api/me/bookmarks/[bookId]` dan `/api/me/book-listings...` masih diarahkan ke handler yang sama.

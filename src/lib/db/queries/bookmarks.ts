@@ -154,7 +154,7 @@ export async function listSavedBooks(userId: string, limit = 100) {
                 select count(*)::int from "book_listings"
                 where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
                 and "book_listings"."hiddenAt" is null
-                and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null)
+                and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null)
             )`,
         })
         .from(bookmarks)

@@ -18,13 +18,16 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
         return null;
     }
 
-    return ensureUserProfile({
+    const profile = await ensureUserProfile({
         id: user.id,
         displayName: getProfileDisplayName(user.user_metadata),
     });
+    // An anonymised account whose auth user could not be removed yet must not act as a session.
+    return profile.deletedAt ? null : profile;
 }
 
 export const SUSPENDED_ACCOUNT_MESSAGE = "Akun kamu sedang ditangguhkan admin, jadi perubahan belum dapat disimpan.";
+export const DELETION_PENDING_MESSAGE = "Akunmu dijadwalkan dihapus. Batalkan penghapusan di Profil untuk menyimpan perubahan.";
 
 export async function requireUser(): Promise<UserProfile> {
     const user = await getCurrentUser();
@@ -36,6 +39,10 @@ export async function requireUser(): Promise<UserProfile> {
     // Suspended accounts may still sign in and read, but every guarded action is refused.
     if (user.suspendedAt) {
         throw new ForbiddenError(SUSPENDED_ACCOUNT_MESSAGE);
+    }
+    // During the DEC-11 grace period the account is read-only until the request is cancelled.
+    if (user.deletionRequestedAt) {
+        throw new ForbiddenError(DELETION_PENDING_MESSAGE);
     }
 
     return user;

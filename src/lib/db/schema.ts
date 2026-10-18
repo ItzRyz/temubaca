@@ -57,7 +57,7 @@ export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', '
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
@@ -67,6 +67,8 @@ export const userProfiles = pgTable('user_profiles', {
     // App-level suspension: the account can still sign in, but every write is refused (see requireUser).
     suspendedAt: nowDate(), suspendedReason: text(),
     suspendedById: uuid().references((): AnyPgColumn => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    // DEC-11: a deletion request deactivates the account for 14 days, then the retention job anonymises it.
+    deletionRequestedAt: nowDate(), deletionScheduledFor: nowDate(), deletedAt: nowDate(), authDeletedAt: nowDate(),
     createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }).enableRLS();
 
@@ -239,6 +241,8 @@ export const reports = pgTable('reports', {
     targetType: enumText(targetTypeValues).notNull(), targetId: uuid().notNull(), reason: text().notNull(), details: text(),
     status: enumText(reportStatusValues).notNull().default('PENDING'),
     reviewerId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }), outcome: text(), createdAt: createdAt(), reviewedAt: nowDate(), updatedAt: updatedAt(),
+    // DEC-11: details of decided reports are erased after 12 months; reason and outcome stay.
+    detailsPurgedAt: nowDate(),
 }, t => [index('reports_reporter_id_created_at_idx').on(t.reporterId, t.createdAt), index('reports_target_type_target_id_idx').on(t.targetType, t.targetId), index('reports_status_created_at_idx').on(t.status, t.createdAt), enumCheck(t.targetType, targetTypeValues), enumCheck(t.status, reportStatusValues)]).enableRLS();
 
 export const recommendations = pgTable('recommendations', {
