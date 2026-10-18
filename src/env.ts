@@ -19,6 +19,9 @@ const serverSchema = z.object({
 
     DIRECT_URL: postgresConnectionUrlSchema.optional(),
 
+    // Connections per server instance. Keep it small on Vercel with the Supabase transaction pooler.
+    DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
+
     SUPABASE_SERVICE_ROLE_KEY: z
         .string()
         .min(1, "SUPABASE_SERVICE_ROLE_KEY is required")
@@ -43,6 +46,12 @@ const serverSchema = z.object({
     INTERNAL_API_SECRET: z
         .string()
         .min(32, "INTERNAL_API_SECRET must be at least 32 characters")
+        .optional(),
+
+    // Vercel Cron sends `Authorization: Bearer $CRON_SECRET` with its GET requests.
+    CRON_SECRET: z
+        .string()
+        .min(32, "CRON_SECRET must be at least 32 characters")
         .optional(),
 
     UPSTASH_REDIS_REST_URL: httpsUrlSchema.optional(),
@@ -84,6 +93,7 @@ const serverEnv = serverSchema.safeParse({
     DATABASE_URL: process.env.DATABASE_URL,
     DATABASE_SSL_CA: process.env.DATABASE_SSL_CA,
     DIRECT_URL: process.env.DIRECT_URL,
+    DATABASE_POOL_MAX: process.env.DATABASE_POOL_MAX,
 
     SUPABASE_SERVICE_ROLE_KEY:
         process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -102,6 +112,9 @@ const serverEnv = serverSchema.safeParse({
 
     INTERNAL_API_SECRET:
         process.env.INTERNAL_API_SECRET,
+
+    CRON_SECRET:
+        process.env.CRON_SECRET,
 
     UPSTASH_REDIS_REST_URL:
         process.env.UPSTASH_REDIS_REST_URL,

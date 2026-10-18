@@ -163,7 +163,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 
 DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya ada di `DECISIONS.md`. Yang masih terbuka:
 
-- **DEC-01** (hosting/auth/DB final): memblokir staging, deployment, penjadwal retensi harian, dan konfigurasi koneksi production (TB-044, TB-048 s.d. TB-050).
+- **DEC-01** sudah diputuskan (Vercel + Supabase, staging di project Supabase terpisah, Vercel Cron). Yang masih terbuka: region, paket production, domain, dan backup.
 - **DEC-03/DEC-12** (checkout, stok, pengiriman merchandise): memblokir TB-035. Merchandise tetap katalog dengan transaksi di luar platform.
 - **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
 - **DEC-07** (peta/lokasi): memblokir Peta Ruang Baca, Peta Literasi v2, Peta & Lokasi di Pengaturan, TB-026/027, dan rekomendasi komunitas TB-041.
@@ -175,7 +175,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 
 1. **Tanpa keputusan baru:** perluas E2E anggota (serah terima sampai kembali, tolak/batal/sengketa, Tambah Buku, komunitas, hapus akun) dan uji screen reader. Checklist SOP peninjauan butuh isi SOP dari pemilik repo.
 2. **Uji nyata dengan dua akun:** pinjam (ajukan → terima → serah terima → kembali, plus tolak/batal/sengketa), komunitas (ajukan → setujui → acara/merchandise → undang pengurus → serahkan kepemilikan), unggah berkas bukti ke Storage, hapus akun (ajukan lalu batalkan), dan alur daftar OTP dengan email sungguhan.
-3. **Keputusan DEC-01**, lalu pra-rilis TB-047 s.d. TB-050: rotasi kredensial, policy RLS dan role runtime, staging, penjadwal retensi.
+3. **Pra-rilis TB-047 s.d. TB-050** (DEC-01 sudah diputuskan): rotasi kredensial, buat project Supabase staging dan hubungkan repo ke Vercel, set environment (`DATABASE_URL` pooler, `DIRECT_URL`, `DATABASE_POOL_MAX`, `INTERNAL_API_SECRET`, `CRON_SECRET`), lalu policy RLS dan role runtime.
 4. Halaman kebijakan dari footer Figma (Pedoman Komunitas, Privasi, Syarat, Titik Temu Aman, Etika Bertukar, Verifikasi Anggota). Isinya harus dari pemilik repo.
 
 ## 7. Isi DB dev (setelah seed dipensiunkan, 17 Okt 2026)

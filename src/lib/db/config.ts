@@ -6,7 +6,7 @@ import { getDatabaseTlsConfig } from "./ssl";
 export const databaseConfig = {
     url: env.DATABASE_URL,
 
-    maxConnections: 10,
+    maxConnections: env.DATABASE_POOL_MAX,
 
     connectionTimeout: 10_000,
 

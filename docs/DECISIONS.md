@@ -4,7 +4,7 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 
 | ID | Pertanyaan | Dampak | Status |
 |---|---|---|---|
-| DEC-01 | Platform mana yang menjadi sumber autentikasi, hosting, dan database final? | Arsitektur, biaya, akses | Terbuka |
+| DEC-01 | Platform mana yang menjadi sumber autentikasi, hosting, dan database final? | Arsitektur, biaya, akses | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah); region dan paket production masih terbuka |
 | DEC-02 | Apa aturan lengkap siklus pinjam, tenggat, pembatalan, pengembalian, kerusakan, dan sengketa? | Data, UI, keselamatan | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah); perpanjangan pinjaman masih terbuka |
 | DEC-03 | Merchandise MVP berupa katalog dengan transaksi di luar platform atau checkout/pesanan di TemuBaca? | Scope, pembayaran, hukum, operasional, data alamat | Terbuka; checkout diblokir |
 | DEC-04 | Siapa yang boleh membuat/mengelola komunitas dan bagaimana verifikasinya? | Role, moderasi, kualitas data | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah) |
@@ -19,6 +19,31 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 | DEC-13 | Bagaimana memodelkan ketersediaan buku di perpustakaan secara terpisah dari akses yang diberikan setelah permintaan pinjam? Tetapkan sumber data, pemilik pembaruan, status, kesegaran, dan penanganan duplikasi. | Skema, integrasi, akurasi UI, privasi dan operasional | Terbuka; TB-023 diblokir |
 
 Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; alasan; pemilik; tanggal; dampak pada dokumen/task**. Setelah diputuskan, perbarui dokumen terkait dan tandai task yang diblokir. Jangan menyimpulkan keputusan dari teknologi kandidat atau narasi kompetisi di dokumen lama.
+
+## DEC-01 — Hosting, auth, dan database (diputuskan 18 Okt 2026)
+
+- **Keputusan:**
+  - Aplikasi Next.js di-hosting di **Vercel**.
+  - Auth, Postgres, dan Storage tetap di **Supabase**.
+  - Staging memakai **project Supabase terpisah** dengan migrasi yang sama, plus deploy Vercel staging sendiri. Data staging tidak bercampur dengan dev atau production.
+  - Tugas retensi harian dijalankan **Vercel Cron** (`vercel.json`, pukul 19.00 UTC = 02.00 WIB). Cron memanggil `GET /api/internal/retention` dengan `Authorization: Bearer $CRON_SECRET`.
+- **Konteks:** DEC-01 memblokir staging, deployment, penjadwal retensi, dan konfigurasi koneksi production (TB-044, TB-048 s.d. TB-050).
+- **Opsi yang dipertimbangkan:**
+  - Hosting: Vercel, VPS/Docker (Railway, Fly.io, VPS sendiri), atau Cloudflare/Netlify lewat adapter.
+  - Auth/DB: tetap Supabase, atau ganti sebagian (Postgres atau auth lain).
+  - Staging: project Supabase terpisah, Supabase Branching, atau memakai project dev.
+  - Penjadwal: cron hosting, Supabase `pg_cron`, atau GitHub Actions.
+- **Alasan:**
+  - Vercel mendukung fitur Next.js 16 yang dipakai (proxy, RSC, server actions) tanpa adapter.
+  - Supabase sudah dipakai dan teruji, jadi tidak perlu migrasi.
+  - Project staging terpisah memenuhi syarat TB-050 (layanan terpisah).
+  - Cron ikut hosting, jadi tidak ada layanan tambahan.
+- **Pemilik:** pemilik repo.
+- **Tanggal:** 18 Okt 2026.
+- **Dampak:**
+  - Fungsi Vercel bersifat serverless. `DATABASE_URL` runtime memakai pooler Supabase mode transaksi (port 6543), dengan `DATABASE_POOL_MAX` kecil (mis. 3). `DIRECT_URL` (koneksi langsung atau mode sesi) dipakai untuk migrasi.
+  - `vercel.json` berisi jadwal cron. `GET /api/internal/retention` disembunyikan (404) tanpa `CRON_SECRET`.
+  - Masih terbuka: region Vercel dan Supabase (sebaiknya sama, mis. Singapura), paket Vercel dan Supabase production, domain, dan jangka waktu backup.
 
 ## DEC-02 — Siklus pinjam (diputuskan 18 Okt 2026)
 
@@ -90,5 +115,5 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Dampak:**
   - Migrasi `0010_account_deletion_and_retention`.
   - Endpoint `/api/me/account-deletion`, `/api/me/export`, `/api/admin/retention`, `/api/internal/retention`, dan `/api/communities/[communityId]/owner`.
-  - Penjadwal harian menunggu hosting (DEC-01).
+  - Penjadwal harian: Vercel Cron (DEC-01).
   - Kanal dukungan pengguna dan SLA penanganan laporan belum diputuskan.
