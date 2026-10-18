@@ -11,6 +11,9 @@ import { LoansPanel, loanStats, type LoanFilter, type LoanView } from "@/feature
 import { loanGroup } from "@/features/borrowing/lifecycle";
 import { getCurrentUser } from "@/lib/auth";
 import { listLoansForUser } from "@/lib/db/queries/borrowing";
+import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
+import { AppealDialog } from "@/features/listing-appeals/components/appeal-dialog";
+import { timeAgo } from "@/lib/format/relative-time";
 import { listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +72,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     const now = new Date();
 
     const [listings, loans] = await Promise.all([listUserBookListings(user.id), listLoansForUser(user.id, now)]);
+    const appeals = await latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id));
     const loansNeedingAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length;
     const statusOf = (listing: (typeof listings)[number]) => (listing.hiddenAt ? "HIDDEN" : listing.availability);
     const counts: Record<Filter, number> = {
@@ -222,11 +226,22 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                                                     <span className={`rounded-full px-2.5 py-0.5 font-semibold ${status.className}`}>{status.label}</span>
                                                     {status.note}
                                                 </p>
-                                                {listing.hiddenAt && (
-                                                    <p className="mt-1 text-destructive">
-                                                        Alasan: {listing.hiddenReason ?? "tidak dicantumkan"}. Hubungi admin bila menurutmu ini keliru; pengajuan banding belum tersedia.
-                                                    </p>
-                                                )}
+                                                {listing.hiddenAt && (() => {
+                                                    const appeal = appeals.get(listing.id);
+                                                    return (
+                                                        <div className="mt-1">
+                                                            <p className="text-destructive">Alasan moderator: {listing.hiddenReason ?? "tidak dicantumkan"}.</p>
+                                                            {appeal?.status === "PENDING" ? (
+                                                                <p className="mt-1 text-foreground/80">Banding sedang ditinjau (diajukan {timeAgo(appeal.createdAt, now)}). Listing tetap tersembunyi sampai ada keputusan.</p>
+                                                            ) : (
+                                                                <>
+                                                                    {appeal?.status === "REJECTED" && <p className="mt-1 text-foreground/80">Banding sebelumnya ditolak: {appeal.reviewNote ?? "tanpa catatan"}.</p>}
+                                                                    <AppealDialog listingId={listing.id} bookTitle={listing.book.title} hiddenAt={listing.hiddenAt.toISOString()} hiddenReason={listing.hiddenReason} />
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <p className="mt-1">Kondisi: {conditionLabels[listing.condition] ?? listing.condition}</p>
                                             </div>
                                             <BookListingAvailability listingId={listing.id} initialAvailability={listing.availability} />

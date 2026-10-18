@@ -13,7 +13,7 @@ function initialsOf(name: string) {
 }
 
 /** Admin portal navigation (Figma "Peninjauan" 143:807). Items without a page yet are shown as unavailable. */
-export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number; disputes: number } }) {
+export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number; disputes: number; appeals: number } }) {
     const pathname = usePathname();
     const items: NavItem[] = [
         {
@@ -31,7 +31,7 @@ export function AdminSidebar({ displayName, pending }: { displayName: string; pe
             badgeDetail: `${pending.disputes} sengketa pinjam menunggu keputusan`,
         },
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
-        { href: "/admin/books", label: "Data Buku", icon: BookOpen },
+        { href: "/admin/books", label: "Data Buku", icon: BookOpen, badge: pending.appeals, badgeDetail: `${pending.appeals} banding listing menunggu keputusan` },
         { href: "/admin/users", label: "Data Pengguna", icon: UserRound },
         { href: "/admin/settings", label: "Pengaturan", icon: Settings2 },
     ];

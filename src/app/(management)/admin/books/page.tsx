@@ -19,6 +19,8 @@ import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { hasGoogleBooksKey } from "@/lib/external/books/registry";
 import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
+import { AppealReviewPanel } from "@/features/listing-appeals/components/appeal-dialog";
+import { listAppealsForListing, listPendingAppeals } from "@/lib/db/queries/listing-appeals";
 
 export const metadata: Metadata = { title: "Data buku" };
 export const dynamic = "force-dynamic";
@@ -42,7 +44,8 @@ const catalogStatusUi: Record<CatalogRecordStatus, { label: string; icon: Lucide
     DUPLICATE: { label: "Duplikat", icon: Copy, className: "bg-[#dfe7f7] text-[#24407a]" },
 };
 
-const listingViews = { all: "Semua", AVAILABLE: "Tersedia", RESERVED: "Dipesan", HIDDEN: "Disembunyikan", reported: "Dilaporkan" } as const;
+const listingViews = { all: "Semua", AVAILABLE: "Tersedia", RESERVED: "Dipesan", HIDDEN: "Disembunyikan", reported: "Dilaporkan", appeal: "Banding" } as const;
+const appealStatusText: Record<string, string> = { PENDING: "Menunggu keputusan", APPROVED: "Diterima", REJECTED: "Ditolak", REVOKED: "Dicabut" };
 const catalogViews = { all: "Semua", FRESH: "Terbaru", STALE: "Usang", FAILED: "Gagal", DUPLICATE: "Duplikat" } as const;
 type ListingView = keyof typeof listingViews;
 type CatalogView = keyof typeof catalogViews;
@@ -172,17 +175,19 @@ function StatCards({ items }: { items: { label: string; value: React.ReactNode; 
 }
 
 async function ListingsTab({ view, query, selected, hrefFor }: TabProps<ListingView>) {
-    const [all, available, reserved, hidden] = await Promise.all([
+    const [all, available, reserved, hidden, pendingAppeals] = await Promise.all([
         listListingsForAdmin({ query }),
         countVisibleListings("AVAILABLE"),
         countVisibleListings("RESERVED"),
         countHiddenListings(),
+        listPendingAppeals(),
     ]);
+    const appealed = new Set(pendingAppeals.map((appeal) => appeal.listingId));
     const rows = all
         .map((row) => ({ ...row, adminStatus: listingAdminStatus(row) }))
-        .filter((row) => view === "all" || (view === "reported" ? row.reportCount > 0 : row.adminStatus === view));
+        .filter((row) => view === "all" || (view === "reported" ? row.reportCount > 0 : view === "appeal" ? appealed.has(row.id) : row.adminStatus === view));
     const active = rows.find((row) => row.id === selected) ?? rows[0];
-    const history = active ? await listListingModerationHistory(active.id) : [];
+    const [history, appeals] = active ? await Promise.all([listListingModerationHistory(active.id), listAppealsForListing(active.id)]) : [[], []];
     const now = new Date();
 
     return (
@@ -262,6 +267,28 @@ async function ListingsTab({ view, query, selected, hrefFor }: TabProps<ListingV
                                 <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">Disembunyikan {timeAgo(active.hiddenAt, now)}: {active.hiddenReason ?? "tanpa alasan tercatat"}</p>
                             )}
                         </div>
+                        {appeals.length > 0 && (
+                            <div className="border-t border-border p-5">
+                                <SectionTitle>Banding pemilik</SectionTitle>
+                                <ol className="mt-3 flex list-none flex-col gap-3 p-0">
+                                    {appeals.map((appeal) => (
+                                        <li key={appeal.id} className="rounded-lg border border-border p-3 text-sm">
+                                            <p className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                                                <span>{timeAgo(appeal.createdAt, now)}</span>
+                                                <span className="rounded-full bg-[#ebe9e1] px-2 py-0.5 font-semibold text-foreground">{appealStatusText[appeal.status] ?? appeal.status}</span>
+                                            </p>
+                                            <p className="mt-1.5 font-semibold">{appeal.reason}</p>
+                                            <p className="mt-1 whitespace-pre-line text-foreground/85">{appeal.details}</p>
+                                            {appeal.fileName && (
+                                                <a href={`/api/listing-appeals/${appeal.id}/file`} className="mt-1.5 inline-flex text-xs font-semibold text-primary hover:underline">Lihat foto bukti: {appeal.fileName}</a>
+                                            )}
+                                            {appeal.reviewNote && <p className="mt-1.5 text-xs text-muted-foreground">Keputusan: {appeal.reviewNote}</p>}
+                                            {appeal.status === "PENDING" && <AppealReviewPanel appealId={appeal.id} />}
+                                        </li>
+                                    ))}
+                                </ol>
+                            </div>
+                        )}
                         <div className="border-t border-border p-5">
                             <SectionTitle>Laporan terkait</SectionTitle>
                             {active.reportCount > 0 ? (

@@ -158,6 +158,21 @@ export const bookListings = pgTable('book_listings', {
     createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('book_listings_owner_id_idx').on(t.ownerId), index('book_listings_book_id_idx').on(t.bookId), index('book_listings_availability_idx').on(t.availability), enumCheck(t.condition, bookConditionValues), enumCheck(t.availability, listingAvailabilityValues)]).enableRLS();
 
+/** Owner appeal against an admin hiding their listing (Figma 301:2608); one open appeal per listing. */
+export const listingAppeals = pgTable('listing_appeals', {
+    id: id(), listingId: uuid().notNull().references(() => bookListings.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    ownerId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    reason: text().notNull(), details: text().notNull(),
+    // Optional photo in the private evidence bucket; only the owner and admins can open it.
+    filePath: text(), fileName: text(), fileType: text(), fileSize: integer(),
+    status: enumText(verificationStatusValues).notNull().default('PENDING'),
+    reviewerId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }), reviewNote: text(),
+    createdAt: createdAt(), reviewedAt: nowDate(),
+}, t => [
+    index('listing_appeals_listing_idx').on(t.listingId, t.createdAt), index('listing_appeals_status_idx').on(t.status, t.createdAt), enumCheck(t.status, verificationStatusValues),
+    uniqueIndex('listing_appeals_one_open_idx').on(t.listingId).where(sql`${t.status} = 'PENDING'`),
+]).enableRLS();
+
 export const borrowings = pgTable('borrowings', {
     id: id(), requestId: uuid().notNull().unique().references(() => borrowRequests.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     status: enumText(borrowingStatusValues).notNull().default('ACTIVE'), handedOverAt: nowDate(), dueAt: nowDate(), returnedAt: nowDate(),
