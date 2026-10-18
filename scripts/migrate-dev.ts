@@ -7,8 +7,11 @@
  *
  *   bun scripts/migrate-dev.ts          # list pending migrations
  *   bun scripts/migrate-dev.ts --apply  # apply them
+ *
+ * Targets the local Supabase stack when `.env.development.local` exists; add `--cloud` for the
+ * cloud project in `.env` (see scripts/load-env.ts).
  */
-import "dotenv/config";
+import { useCloud } from "./load-env";
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -32,6 +35,10 @@ async function main() {
 
     const pool = new Pool({ connectionString: databaseUrl, ssl: getDatabaseTlsConfig("development", process.env.DATABASE_SSL_CA), max: 1 });
     try {
+        console.log(`Target: ${useCloud ? "cloud (.env)" : new URL(databaseUrl).hostname}`);
+        // A fresh database (the local stack) has no Drizzle bookkeeping yet.
+        await pool.query(`create schema if not exists drizzle`);
+        await pool.query(`create table if not exists drizzle."__drizzle_migrations__" (id serial primary key, hash text not null, created_at bigint)`);
         const applied = new Set((await pool.query<{ hash: string }>(`select hash from drizzle."__drizzle_migrations__"`)).rows.map((row) => row.hash));
         const pending = migrations.filter((migration) => !applied.has(migration.hash));
 

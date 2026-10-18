@@ -1,5 +1,6 @@
 /**
- * Create or refresh the two dedicated E2E accounts on the development Supabase project.
+ * Create or refresh the two dedicated E2E accounts on the local Supabase stack (or the project in
+ * `.env` when `.env.development.local` does not exist).
  *
  *   bun scripts/e2e-accounts.ts
  *
@@ -13,7 +14,7 @@ import { writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 
-config({ path: [".env.local", ".env"], quiet: true });
+config({ path: [".env.development.local", ".env.local", ".env"], quiet: true });
 
 const accounts = [
     { key: "OWNER", email: "e2e-pemilik@temubaca.test", displayName: "E2E Pemilik" },

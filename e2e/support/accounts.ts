@@ -1,6 +1,6 @@
 import { config } from "dotenv";
 
-config({ path: [".env.e2e", ".env.local", ".env"], quiet: true });
+config({ path: [".env.e2e", ".env.development.local", ".env.local", ".env"], quiet: true });
 
 export type E2eRole = "owner" | "borrower";
 
