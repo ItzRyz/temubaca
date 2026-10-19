@@ -11,7 +11,7 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 | DEC-05 | Apakah acara/komunitas/merchandise dimoderasi sebelum publikasi? | Alur admin dan waktu tayang | Diputuskan pemilik repo, 18 Okt 2026: komunitas baru ditinjau; konten komunitas terverifikasi langsung tampil |
 | DEC-06 | Provider katalog buku final dan aturan penggunaan/atribusi apa? | Kelengkapan, cache, legalitas | Sebagian: pemilik repo (17 Okt 2026) memilih Open Library sebagai sumber utama dan Google Books sebagai pelengkap; adapter dipakai untuk sinkron ulang oleh admin. Atribusi dan sinkron ulang otomatis diputuskan 18 Okt 2026 (lihat di bawah); kuota production masih terbuka |
 | DEC-07 | Provider peta, geocoding, dan kebijakan lokasi apa? | Biaya, privasi, akurasi | Terbuka. Pemilik repo belum punya preferensi (18 Okt 2026). Leaflet/OSM dengan lokasi tingkat kecamatan/kota tetap kandidat |
-| DEC-08 | Apakah rekomendasi MVP perlu layanan ML terpisah, atau cukup baseline di aplikasi? | Kompleksitas dan deployment | Terbuka. Pemilik repo belum punya preferensi (18 Okt 2026). Baseline di aplikasi (TB-040) tetap berjalan; Python/FastAPI kandidat. Pertanyaan turunan ML-01–ML-08 dan R-07 dicatat 19 Okt 2026 (lihat di bawah) |
+| DEC-08 | Apakah rekomendasi MVP perlu layanan ML terpisah, atau cukup baseline di aplikasi? | Kompleksitas dan deployment | Diputuskan pemilik repo, 19 Okt 2026: ML Service menjadi sumber utama, baseline TB-040 sebagai cadangan; keputusan turunan ML-01–ML-08 dan R-07 (lihat di bawah) |
 | DEC-09 | Target pengguna/usia, wilayah peluncuran, serta kebutuhan bahasa? | UX dan kebijakan | Diputuskan pemilik repo, 18 Okt 2026: semua usia 13+, seluruh Indonesia (lihat di bawah) |
 | DEC-10 | Tanggal, target kompetisi/demo, dan metrik keberhasilan? | Prioritas dan release | Tanggal diputuskan pemilik repo, 18 Okt 2026: 30 Okt 2026 dengan fitur lengkap (lihat di bawah); metrik keberhasilan masih terbuka |
 | DEC-11 | Retensi, penghapusan akun, backup, dukungan dan penanganan laporan? | Produksi dan kepatuhan | Diputuskan pemilik repo, 18 Okt 2026 untuk penghapusan akun, ekspor, dan retensi (lihat di bawah); kanal dukungan (surel + laporan di aplikasi) dan backup diputuskan 18 Okt 2026 |
@@ -186,30 +186,36 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Sumber data, status, kesegaran, dan penanganan duplikasi ditetapkan setelah riset itu.
   - TB-023 tetap tertahan sampai sumber data pertama tersedia. Sampai saat itu, bagian perpustakaan tetap ditandai belum tersedia.
 
-## DEC-08 dan ML-01–ML-08 — Integrasi ML Service (terbuka, dicatat 19 Okt 2026)
+## DEC-08 dan ML-01–ML-08 — Integrasi ML Service (diputuskan 19 Okt 2026)
+
+- **Keputusan:**
+
+  | ID | Pertanyaan | Keputusan | Opsi lain yang dipertimbangkan |
+  |---|---|---|---|
+  | DEC-08 | Apakah rekomendasi memakai ML Service? | ML Service menjadi sumber utama. Saat ML Service gagal atau melewati batas waktu, website memakai baseline TB-040. | Baseline di aplikasi saja |
+  | ML-01 | Dari mana data buku untuk model? | Model TF-IDF dilatih ulang dari katalog TemuBaca dan mengembalikan UUID TemuBaca. | Memetakan `book_id` Goodbooks ke UUID lewat ISBN |
+  | ML-02 | Bagaimana data sampai ke ML Service? | Website menyediakan endpoint ekspor snapshot katalog dan komunitas publik, dilindungi token. ML Service mengambilnya berkala lalu melatih ulang. | Kandidat dikirim per request; ML Service membaca DB langsung |
+  | ML-03 | Bahasa analyzer TF-IDF | Inggris + Indonesia. | Inggris saja |
+  | ML-04 | Sumber minat komunitas | Kolom tag minat baru di `communities`, diisi pengelola. | Diturunkan dari deskripsi |
+  | ML-05 | Sumber lokasi pengguna | Kode wilayah Kemendagri kab/kota di profil, dipilih pengguna (R-11). Tanpa koordinat. | Tanpa lokasi |
+  | ML-06 | Kapan rekomendasi dihitung | Live per request, batas waktu ±3 detik, baseline sebagai cadangan. | Terjadwal dan disimpan di `recommendations` |
+  | ML-07 | Hosting ML Service | FastAPI Cloud. | Vercel Python Function; Render/Railway/Fly; Hugging Face Spaces |
+  | R-07 | Proteksi endpoint ML Service | Token internal wajib untuk semua `/api/*`; `/health` tetap terbuka. | Token hanya untuk `/api/routing/*`; token hanya di production |
+  | ML-08 | Dataset Goodbooks-10k yang di-commit | Dihapus dari repo setelah model dari katalog TemuBaca berjalan. | Dipertahankan setelah lisensi diperiksa |
 
 - **Konteks:**
   - Repo ML Service (`emorgency/TemuBaca---ML-Service`, FastAPI) merekomendasikan `book_id` Goodbooks-10k (10.000 buku berbahasa Inggris). Katalog TemuBaca berisi buku Open Library/Google Books dengan UUID. Belum ada pemetaan di antara keduanya.
   - Data komunitas ML Service berupa lima baris demo (`C001`–`C005`) di kode. Tabel `communities` hanya punya `publicLocation` teks bebas, tanpa minat dan kode wilayah. Profil pengguna tidak punya lokasi.
   - Website belum memanggil ML Service. `/api/recommendations` memakai baseline di aplikasi (TB-040). Kolom `recommendations.modelVersion` sudah ada, tapi belum dipakai.
   - Spesifikasi ML Service ada di `docs/BACKEND_PETA_RUTE.md` repo ML Service. Keputusan R-10 (komunitas tanpa minat dan lokasi menghasilkan daftar kosong dengan `notice`) dan R-11 (lokasi memakai kode wilayah Kemendagri kab/kota) diambil pemilik pada 17 Okt 2026 dan dicatat di sana.
-- **Pertanyaan terbuka:**
-
-  | ID | Pertanyaan | Opsi | Usulan |
-  |---|---|---|---|
-  | DEC-08 | Apakah rekomendasi memakai ML Service? | (a) ML Service jadi sumber utama, baseline TB-040 jadi cadangan; (b) baseline saja | (a) |
-  | ML-01 | Dari mana data buku untuk model? | (a) Model dilatih ulang dari katalog TemuBaca dan mengembalikan UUID; (b) `book_id` Goodbooks dipetakan ke UUID lewat ISBN | (a); buku yang sama di Goodbooks dan katalog TemuBaca kemungkinan sedikit |
-  | ML-02 | Bagaimana data sampai ke ML Service? | (a) Snapshot katalog dan komunitas publik diekspor berkala; (b) website mengirim kandidat per request; (c) ML Service membaca DB langsung | (a); spesifikasi ML Service menyatakan service tidak mengakses DB |
-  | ML-03 | Bahasa analyzer TF-IDF | (a) Inggris saja seperti sekarang; (b) Inggris + Indonesia | (b); `romansa` dan `horor` saat ini tidak dikenali |
-  | ML-04 | Sumber minat komunitas | (a) Kolom tag/minat baru di `communities`; (b) diturunkan dari deskripsi | (a) |
-  | ML-05 | Sumber lokasi pengguna | (a) Kolom kode wilayah baru di profil, diisi pengguna; (b) tanpa lokasi, skor minat saja | (a), sesuai R-11 |
-  | ML-06 | Kapan rekomendasi dihitung | (a) Live per request dengan batas waktu dan cadangan; (b) terjadwal dan disimpan di `recommendations` | (a) |
-  | ML-07 | Hosting ML Service | (a) Vercel Python Function; (b) Render/Railway/Fly paket gratis; (c) Hugging Face Spaces | Perlu dicek terhadap DEC-01 (paket gratis) dan ukuran model ±52 MB |
-  | R-07 | Proteksi endpoint ML Service | (a) Token hanya untuk `/api/routing/*`; (b) token untuk semua `/api/*`; (c) token wajib hanya di production | (b); endpoint hanya dipanggil server ke server |
-  | ML-08 | Dataset Goodbooks-10k yang di-commit | (a) Hapus jika ML-01 = (a); (b) pertahankan setelah lisensi diperiksa | Mengikuti ML-01 |
-
+- **Pemilik:** pemilik repo.
+- **Tanggal:** 19 Okt 2026.
+- **Perlu diverifikasi:** paket, batas, dan biaya FastAPI Cloud terhadap DEC-01 (tetap di paket gratis). Ini belum dicek.
 - **Di luar cakupan integrasi rekomendasi:** peta dan rute (DEC-07, R-01, penyedia tile) serta ketersediaan perpustakaan (DEC-13).
-- **Dampak:** task TB-052–TB-063 (website) dan ML-T01–ML-T10 (repo ML Service) di `TASKS.md`. DEC-08, ML-01, dan ML-02 memblokir sebagian besar task tersebut.
+- **Dampak:**
+  - Task TB-052–TB-063 (website) dan ML-T01–ML-T10 (repo ML Service) di `TASKS.md`.
+  - TB-061 (menyimpan `modelVersion`) tidak dikerjakan karena ML-06 memilih hitung live.
+  - Endpoint rekomendasi yang sekarang terbuka akan wajib memakai token (R-07).
 
 ## DEC-11 — Penghapusan akun, ekspor, dan retensi (diputuskan 18 Okt 2026)
 
