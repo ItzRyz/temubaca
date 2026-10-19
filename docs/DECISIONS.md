@@ -132,8 +132,11 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Pemilik:** pemilik repo.
 - **Tanggal:** 18 Okt 2026.
 - **Dampak:**
-  - Perlu tugas sinkron berkala yang memakai `sync-book.ts`, dengan jeda antarpermintaan sesuai batas provider dan log `book_sync_logs`.
-  - Vercel Hobby membatasi jumlah dan frekuensi cron, jadi sinkron bulanan perlu digabung ke cron yang ada atau dijadwalkan sendiri.
+  - Dibuat 19 Okt 2026:
+    - Tautan sumber di detail buku menuju rekaman provider pemilik rekaman (`openlibrary.org/works/<id>` atau `books.google.com/books?id=<id>`). Provider yang hanya melengkapi data ditautkan ke situsnya.
+    - Sinkron ulang berkala ikut cron harian `GET /api/internal/retention` (Vercel Hobby hanya mengizinkan cron harian). Setiap hari maks. 12 rekaman Open Library/Google Books yang lebih tua dari ambang "usang" di Pengaturan (bawaan 30 hari) disinkron, yang tertua dulu. Dengan 330 buku, setiap rekaman tersegarkan kira-kira sebulan sekali.
+    - Rekaman yang gagal disinkron tidak dicoba lagi selama 7 hari. Rekaman manual tidak disinkron otomatis.
+    - Log memakai pemicu `SCHEDULED` (migrasi `0015_scheduled_book_sync`) tanpa aktor.
   - Kuota Google Books production masih terbuka.
 
 ## DEC-09 — Target pengguna dan wilayah (diputuskan 18 Okt 2026)

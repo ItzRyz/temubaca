@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, notExists, sql } from "drizzle-orm";
 
 import { providerOrder } from "@/features/settings/catalog-settings";
 import { db } from "@/lib/db";
@@ -52,7 +52,7 @@ export type SyncBookResult =
  * an ISBN they are first matched by exact title and first author.
  * Every attempt is logged, success or not.
  */
-export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL" | "IMPORT" = "MANUAL"): Promise<SyncBookResult> {
+export async function syncBook(bookId: string, actorId: string | null, trigger: "MANUAL" | "IMPORT" | "SCHEDULED" = "MANUAL"): Promise<SyncBookResult> {
     const book = await db.query.books.findFirst({ where: eq(books.id, bookId) });
     if (!book) return { status: "not_found" };
 
@@ -158,4 +158,45 @@ export async function syncBook(bookId: string, actorId: string, trigger: "MANUAL
         await tx.insert(bookSyncLogs).values({ bookId, provider: logProvider, status: "SUCCESS", trigger, changedFields, message, actorId, createdAt: now });
     });
     return { status: "SUCCESS", changedFields, message };
+}
+
+export type ScheduledSyncSummary = { checked: number; updated: number; unchanged: number; failed: number };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** A record whose refresh failed is left alone for this long, so one bad record is not retried daily. */
+const FAILED_RETRY_DAYS = 7;
+
+/**
+ * Periodic refresh (DEC-06), run by the daily cron after retention: provider records not synced for
+ * longer than the admin's `staleAfterDays`, oldest first, a few per run so providers are not flooded
+ * and the run fits the function time limit. Manual records are only completed by an admin.
+ */
+export async function resyncStaleBooks(now = new Date(), options: { limit?: number; budgetMs?: number } = {}): Promise<ScheduledSyncSummary> {
+    const { limit = 12, budgetMs = 30_000 } = options;
+    const { settings } = await getCatalogSettings();
+    const staleBefore = new Date(now.getTime() - settings.staleAfterDays * DAY_MS);
+    const failedSince = new Date(now.getTime() - FAILED_RETRY_DAYS * DAY_MS);
+    const due = await db
+        .select({ id: books.id })
+        .from(books)
+        .where(and(
+            inArray(books.provider, externalProviders),
+            lt(sql`coalesce(${books.syncedAt}, ${books.createdAt})`, staleBefore),
+            notExists(db.select({ id: bookSyncLogs.id }).from(bookSyncLogs).where(and(
+                eq(bookSyncLogs.bookId, books.id), eq(bookSyncLogs.status, "FAILED"), gte(bookSyncLogs.createdAt, failedSince),
+            ))),
+        ))
+        .orderBy(asc(sql`coalesce(${books.syncedAt}, ${books.createdAt})`))
+        .limit(limit);
+
+    const summary: ScheduledSyncSummary = { checked: 0, updated: 0, unchanged: 0, failed: 0 };
+    const started = Date.now();
+    for (const { id } of due) {
+        if (Date.now() - started > budgetMs) break;
+        const result = await syncBook(id, null, "SCHEDULED");
+        summary.checked += 1;
+        if (result.status === "SUCCESS") summary[result.changedFields.length > 0 ? "updated" : "unchanged"] += 1;
+        else summary.failed += 1;
+    }
+    return summary;
 }

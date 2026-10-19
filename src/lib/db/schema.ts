@@ -58,7 +58,8 @@ export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REV
 export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'OTHER'] as const;
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
-export const bookSyncTriggerValues = ['IMPORT', 'MANUAL'] as const;
+// SCHEDULED: the daily cron refreshes records older than the admin's "usang" threshold (DEC-06).
+export const bookSyncTriggerValues = ['IMPORT', 'MANUAL', 'SCHEDULED'] as const;
 export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN'] as const;
 
 export const userProfiles = pgTable('user_profiles', {

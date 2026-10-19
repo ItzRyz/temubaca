@@ -1,0 +1,2 @@
+ALTER TABLE "book_sync_logs" DROP CONSTRAINT "trigger_enum_check";--> statement-breakpoint
+ALTER TABLE "book_sync_logs" ADD CONSTRAINT "trigger_enum_check" CHECK ("book_sync_logs"."trigger" in ('IMPORT', 'MANUAL', 'SCHEDULED'));

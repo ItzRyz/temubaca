@@ -38,6 +38,14 @@ const conditionLabels: Record<(typeof bookConditionValues)[number], string> = {
 const sourceNames = { OPEN_LIBRARY: "Open Library", GOOGLE_BOOKS: "Google Books" } as const;
 const sourceLinks = { OPEN_LIBRARY: "https://openlibrary.org", GOOGLE_BOOKS: "https://books.google.com" } as const;
 
+/** DEC-06: the record's own provider links to that record; a provider that only filled gaps links to its site. */
+function sourceHref(source: keyof typeof sourceLinks, book: { provider: string; providerId: string }) {
+    if (source !== book.provider) return sourceLinks[source];
+    return source === "OPEN_LIBRARY"
+        ? `https://openlibrary.org/works/${encodeURIComponent(book.providerId)}`
+        : `https://books.google.com/books?id=${encodeURIComponent(book.providerId)}`;
+}
+
 const findPublicBook = cache(async (bookId: string) => {
     const parsedId = uuidSchema.safeParse(bookId);
     if (!parsedId.success) return null;
@@ -153,7 +161,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                         {sources.map((source, index) => (
                                             <span key={source}>
                                                 {index > 0 && ", "}
-                                                <a href={sourceLinks[source]} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{sourceNames[source]}</a>
+                                                <a href={sourceHref(source, book)} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{sourceNames[source]}</a>
                                             </span>
                                         ))}
                                         {book.syncedAt && <> · diperbarui {timeAgo(book.syncedAt, now)}</>}. Data dapat tidak lengkap.
