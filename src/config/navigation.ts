@@ -29,4 +29,13 @@ export const footerNavigation = [
             { href: "/my-listings", label: "Bagikan bukumu" },
         ],
     },
+    {
+        title: "Bantuan",
+        links: [
+            { href: "/help", label: "Pusat bantuan" },
+            { href: "/safety", label: "Panduan keamanan" },
+            { href: "/terms", label: "Syarat layanan" },
+            { href: "/privacy", label: "Kebijakan privasi" },
+        ],
+    },
 ] as const;

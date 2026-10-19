@@ -13,6 +13,7 @@ import { signIn, signUp } from "@/features/auth/actions";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
+    MINIMUM_AGE,
     SignInInput,
     signInSchema,
     SignUpInput,
@@ -189,7 +190,7 @@ function SignUpForm() {
     const [isPending, setIsPending] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [agreed, setAgreed] = useState(false);
-    const { register, handleSubmit, setError, control, formState: { errors } } = useForm<SignUpInput>({
+    const { register, handleSubmit, setError, setValue, control, formState: { errors } } = useForm<SignUpInput>({
         resolver: zodResolver(signUpSchema),
         defaultValues: { name: "", email: "", password: "" },
     });
@@ -201,7 +202,7 @@ function SignUpForm() {
         try {
             const result = await signUp(data);
             if (!result.success) {
-                for (const field of ["name", "email", "password"] as const) {
+                for (const field of ["name", "email", "password", "ageConfirmed"] as const) {
                     const message = result.fieldErrors?.[field]?.[0];
                     if (message) setError(field, { type: "server", message });
                 }
@@ -233,10 +234,23 @@ function SignUpForm() {
                 {...register("password")}
             />
             <PasswordChecklist password={password} />
+            <div>
+                <div className="flex items-start gap-2.5">
+                    <Checkbox id="sign-up-age" className="mt-0.5" aria-describedby={errors.ageConfirmed ? "sign-up-age-error" : undefined}
+                        onCheckedChange={(checked) => setValue("ageConfirmed", (checked === true) as true, { shouldValidate: true })} />
+                    <label htmlFor="sign-up-age" className="cursor-pointer text-xs leading-[18px] text-muted-foreground">
+                        Saya berusia {MINIMUM_AGE} tahun atau lebih. Bila belum 18 tahun, saya memakai TemuBaca dengan sepengetahuan orang tua atau wali.
+                    </label>
+                </div>
+                <FieldError id="sign-up-age-error" message={errors.ageConfirmed?.message} className="mt-1" />
+            </div>
             <div className="flex items-start gap-2.5">
                 <Checkbox id="sign-up-agreement" className="mt-0.5" checked={agreed} onCheckedChange={(checked) => setAgreed(checked === true)} />
                 <label htmlFor="sign-up-agreement" className="cursor-pointer text-xs leading-[18px] text-muted-foreground">
-                    Saya berjanji merawat buku pinjaman, mengembalikannya tepat waktu, dan saling menghargai sesama warga TemuBaca.
+                    Saya berjanji merawat buku pinjaman, mengembalikannya tepat waktu, dan saling menghargai sesama warga TemuBaca. Saya menyetujui{" "}
+                    <Link href="/terms" target="_blank" className="font-semibold text-primary hover:underline">Syarat Layanan</Link>,{" "}
+                    <Link href="/privacy" target="_blank" className="font-semibold text-primary hover:underline">Kebijakan Privasi</Link>, dan{" "}
+                    <Link href="/safety" target="_blank" className="font-semibold text-primary hover:underline">Panduan Keamanan</Link>.
                 </label>
             </div>
             <FormAlert>{serverError}</FormAlert>

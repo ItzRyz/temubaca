@@ -25,10 +25,14 @@ export const signInSchema = z.object({
     password: passwordSchema,
 }).strict();
 
+/** DEC-09: TemuBaca is for readers aged 13 and over. */
+export const MINIMUM_AGE = 13;
+
 export const signUpSchema = z.object({
     email: emailSchema,
     name: nameSchema,
     password: newPasswordSchema,
+    ageConfirmed: z.literal(true, { error: `Konfirmasi bahwa usiamu ${MINIMUM_AGE} tahun atau lebih.` }),
 }).strict();
 
 export type SignInInput = z.infer<typeof signInSchema>;

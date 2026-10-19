@@ -76,7 +76,8 @@ export async function signUp(
             email: parsed.data.email.trim(),
             password: parsed.data.password,
             options: {
-                data: { display_name: parsed.data.name.trim() },
+                // When the reader confirmed the minimum age (DEC-09); a consent record, never used for access.
+                data: { display_name: parsed.data.name.trim(), age_confirmed_at: new Date().toISOString() },
                 emailRedirectTo,
             },
         });

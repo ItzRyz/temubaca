@@ -6,7 +6,7 @@ import { footerNavigation } from "@/config/navigation";
 export function SiteFooter() {
     return (
         <footer className="mt-12 border-t border-border bg-background">
-            <div className="mx-auto grid max-w-[1256px] gap-10 px-4 pt-12 pb-10 sm:px-6 md:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+            <div className="mx-auto grid max-w-[1256px] gap-10 px-4 pt-12 pb-10 sm:px-6 sm:grid-cols-2 md:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
                 <div className="max-w-md">
                     <Link href="/" className="font-heading text-xl text-[#21523d] lowercase">temubaca</Link>
                     <p className="mt-4 text-sm leading-6 text-foreground/80">

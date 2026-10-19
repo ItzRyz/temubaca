@@ -30,6 +30,7 @@ describe("authentication input validation", () => {
             email: "reader@example.com",
             name: "Pembaca Baru",
             password: "correct-horse-battery",
+            ageConfirmed: true,
             role: "ADMIN",
         });
 
@@ -58,7 +59,7 @@ describe("authentication input validation", () => {
     });
 
     test("requires letters, digits, and a symbol for new passwords but not for sign-in", () => {
-        const signUp = (password: string) => signUpSchema.safeParse({ email: "reader@example.com", name: "Pembaca Baru", password });
+        const signUp = (password: string) => signUpSchema.safeParse({ email: "reader@example.com", name: "Pembaca Baru", password, ageConfirmed: true });
 
         expect(signUp("bacabuku#26").success).toBe(true);
         expect(signUp("bacabuku2026").success).toBe(false);
@@ -68,5 +69,15 @@ describe("authentication input validation", () => {
         expect(resetPasswordSchema.safeParse({ password: "pustaka warga 7" }).success).toBe(false);
         expect(resetPasswordSchema.safeParse({ password: "pustaka-warga 7" }).success).toBe(true);
         expect(signInSchema.safeParse({ email: "reader@example.com", password: "bacabukuterus" }).success).toBe(true);
+    });
+});
+
+describe("minimum age (DEC-09)", () => {
+    const base = { email: "reader@example.com", name: "Pembaca Baru", password: "bacabuku#26" };
+
+    test("sign-up needs the 13+ confirmation", () => {
+        expect(signUpSchema.safeParse({ ...base, ageConfirmed: true }).success).toBe(true);
+        expect(signUpSchema.safeParse(base).success).toBe(false);
+        expect(signUpSchema.safeParse({ ...base, ageConfirmed: false }).success).toBe(false);
     });
 });

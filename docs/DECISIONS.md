@@ -148,6 +148,9 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Dampak:**
   - Pengguna di bawah umur perlu kebijakan tambahan: batas usia minimal saat daftar, kebijakan privasi dan syarat layanan untuk anak, serta panduan keamanan bertemu langsung saat pinjam-meminjam.
   - Pemilihan lokasi dan peta (DEC-07) harus mencakup seluruh Indonesia.
+  - Dibuat 19 Okt 2026:
+    - Form daftar mewajibkan centang "Saya berusia 13 tahun atau lebih" (divalidasi juga di server). Waktunya disimpan di metadata pengguna sebagai `age_confirmed_at`, hanya sebagai catatan persetujuan, bukan untuk otorisasi. Usia tidak diverifikasi.
+    - Halaman `/terms`, `/privacy`, `/safety`, dan `/help` ditautkan dari form daftar dan footer. Isinya disusun dari perilaku aplikasi dan keputusan DEC-02/03/04/11, dan **belum ditinjau ahli hukum**. Pemilik repo perlu meninjaunya sebelum peluncuran publik.
 
 ## DEC-10 — Target rilis (diputuskan 18 Okt 2026)
 
@@ -166,6 +169,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Target balasan 3 hari kerja.
   - Alamat surel memakai domain sendiri (mis. `halo@<domain>`) dan dipasang setelah domain tersedia. Selama production memakai `temubaca.vercel.app`, alamatnya belum ditetapkan.
 - **Opsi yang dipertimbangkan:** WhatsApp ditambah surel, atau laporan di aplikasi saja.
+- **Dibuat 19 Okt 2026:** halaman `/help` menjelaskan laporan di aplikasi dan target balasan 3 hari kerja, dan menyatakan alamat surel menyusul setelah domain tersedia.
 - **Pemilik:** pemilik repo.
 - **Tanggal:** 18 Okt 2026.
 
