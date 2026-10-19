@@ -49,6 +49,12 @@ const serverSchema = z.object({
         .min(32, "INTERNAL_API_SECRET must be at least 32 characters")
         .optional(),
 
+    // The ML Service reads the public catalog snapshot with `Authorization: Bearer $ML_SNAPSHOT_SECRET`.
+    ML_SNAPSHOT_SECRET: z
+        .string()
+        .min(32, "ML_SNAPSHOT_SECRET must be at least 32 characters")
+        .optional(),
+
     // Vercel Cron sends `Authorization: Bearer $CRON_SECRET` with its GET requests.
     CRON_SECRET: z
         .string()
@@ -113,6 +119,9 @@ const serverEnv = serverSchema.safeParse({
 
     INTERNAL_API_SECRET:
         process.env.INTERNAL_API_SECRET,
+
+    ML_SNAPSHOT_SECRET:
+        process.env.ML_SNAPSHOT_SECRET,
 
     CRON_SECRET:
         process.env.CRON_SECRET,

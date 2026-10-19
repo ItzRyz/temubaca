@@ -29,6 +29,7 @@ Minimalkan data profil, lokasi, dan histori. Jangan menampilkan alamat rumah pem
 - **Ekspor:** `GET /api/me/export` mengunduh salinan JSON data milik akun.
 - **Retensi otomatis:** detail laporan yang sudah diputus dihapus setelah 12 bulan. Jejak audit admin, riwayat pinjaman yang selesai, dan bukti komunitas yang sudah ditinjau dihapus setelah 24 bulan.
 - **Menjalankan tugas retensi:** admin dapat menekan "Jalankan sekarang" di Pengaturan → Retensi & Data, atau penjadwal memanggil `POST /api/internal/retention` dengan `Authorization: Bearer $INTERNAL_API_SECRET`. Di Vercel, Vercel Cron memanggil `GET /api/internal/retention` setiap hari dengan `Authorization: Bearer $CRON_SECRET` (DEC-01, `vercel.json`). Kedua secret minimal 32 karakter dan hanya disimpan di environment Vercel.
+- **Snapshot untuk ML Service:** ML Service membaca `GET /api/internal/ml/snapshot` dengan `Authorization: Bearer $ML_SNAPSHOT_SECRET` (min. 32 karakter). Secret ini terpisah dari `INTERNAL_API_SECRET` dan `CRON_SECRET`, sehingga token ML Service tidak bisa menjalankan retensi. Endpoint hanya mengirim data katalog dan komunitas terverifikasi yang memang publik. Untuk rotasi: buat nilai baru, ganti di environment Vercel dan di ML Service, lalu redeploy keduanya.
 - **Backup:** mengikuti kebijakan bawaan paket Supabase yang dipakai. Data yang sudah dihapus dapat tetap ada di backup sampai backup itu kedaluwarsa. Catat jangka waktunya saat paket production dipilih.
 
 ## Input dan integrasi

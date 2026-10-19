@@ -1,18 +1,11 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { env } from "@/env";
 import { apiSuccess, NotFoundError, UnauthorizedError, withApiHandler } from "@/lib/api";
+import { matchesBearer as matches } from "@/lib/api/bearer";
 import { runRetention } from "@/features/account-deletion/retention";
 import { resyncStaleBooks } from "@/features/catalog/sync-book";
 
 // The job can touch many rows; give it more than the platform's default function timeout.
 export const maxDuration = 60;
-
-function matches(header: string | null, secret: string) {
-    const given = Buffer.from(header ?? "");
-    const expected = Buffer.from(`Bearer ${secret}`);
-    return given.length === expected.length && timingSafeEqual(given, expected);
-}
 
 /**
  * Daily DEC-11 retention for a scheduler with `Authorization: Bearer $INTERNAL_API_SECRET`.
