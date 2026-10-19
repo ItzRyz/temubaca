@@ -79,6 +79,44 @@ Tanggal/sprint belum ditentukan. Milestone bukan perkiraan kalender.
 | TB-045 | P0 | Jalankan uji penerimaan skenario pengguna, perbaiki temuan rilis, siapkan data demo yang aman dan panduan demo. | TB-042, TB-044 |
 | TB-046 | P0 | Lakukan go/no-go dengan checklist rilis di bawah; catat keputusan, penanggung jawab dan waktu rilis. | TB-045 |
 
+## Integrasi ML Service (dicatat 19 Okt 2026)
+
+Keputusan pemblokir ada di `DECISIONS.md` → DEC-08 dan ML-01–ML-08. Task ML-T dikerjakan di repo ML Service (`emorgency/TemuBaca---ML-Service`) mengikuti `docs/BACKEND_PETA_RUTE.md` di repo itu.
+
+### Repo ML Service
+
+| ID | Prio | Pekerjaan dan penerimaan | Depends on |
+|---|---|---|---|
+| ML-T01 | P1 | Sub-fase 0a: fondasi tanpa perubahan perilaku (requirements UTF-8, `requirements-dev.txt`, Python 3.14, `app/config.py`, `app/model_store.py`, `models/meta.json`, pytest gagal saat versi scikit-learn berbeda). **Selesai 19 Okt 2026, commit lokal `da79a93`–`27838ab`, belum di-push.** | — |
+| ML-T02 | P1 | Sub-fase 0b: rekomendasi buku tanpa item berskor 0, alasan per token, normalisasi minat, batas input, field `source` dan `unmatched_interests`. | ML-T01 |
+| ML-T03 | P1 | Sub-fase 0c: komunitas dengan kode wilayah Kemendagri dari tabel resmi (bukan dari ingatan), `notice` sesuai R-10. | ML-T02 |
+| ML-T04 | P1 | `scripts/train_tfidf.py` membangun model dari snapshot katalog TemuBaca dan menulis versi di `models/meta.json`. | ML-01, ML-02, ML-03 |
+| ML-T05 | P1 | Data komunitas dibaca dari snapshot website, menggantikan `C001`–`C005`. | ML-02, ML-04, ML-T03 |
+| ML-T06 | P1 | Respons memakai UUID TemuBaca untuk `book_id` dan `community_id`. | ML-T04, ML-T05 |
+| ML-T07 | P1 | Token internal dengan `hmac.compare_digest`, batas ukuran body, tanpa CORS. | R-07 |
+| ML-T08 | P1 | Logging tanpa data pengguna; `/health` menampilkan versi model. | ML-T04 |
+| ML-T09 | P1 | Konfigurasi hosting, deploy, dan smoke test di URL production. | ML-07, ML-T07 |
+| ML-T10 | P1 | Tes kontrak: contoh request/respons dibekukan sebagai fixture yang juga dipakai website. | ML-T06 |
+
+### Repo website
+
+| ID | Prio | Pekerjaan dan penerimaan | Depends on |
+|---|---|---|---|
+| TB-052 | P1 | Catat keputusan DEC-08 dan ML-01–ML-08 beserta R-10/R-11, lalu perbarui TB-040/TB-041. | Keputusan pemilik |
+| TB-053 | P1 | Migrasi: tag minat komunitas dan kode wilayah komunitas serta profil. Kode wilayah diambil dari tabel resmi yang sama dengan ML Service. | ML-04, ML-05 |
+| TB-054 | P1 | UI pilihan wilayah di profil dan tag minat di form komunitas. | TB-053 |
+| TB-055 | P1 | Endpoint ekspor snapshot katalog dan komunitas publik untuk ML Service, dilindungi token, tanpa data pribadi. | ML-02 |
+| TB-056 | P1 | Klien `src/lib/ml/client.ts`: env `ML_SERVICE_URL` dan `ML_SERVICE_TOKEN`, batas waktu ±3 detik, validasi respons dengan zod, cadangan ke baseline TB-040 saat gagal. | DEC-08, ML-T10 |
+| TB-057 | P1 | Hanya minat dan kode wilayah yang dikirim ke ML Service; tanpa user id, email, atau koordinat. | TB-056 |
+| TB-058 | P1 | `/api/recommendations` dan `/recommendations` memakai ML Service dan menampilkan alasan. | TB-056 |
+| TB-059 | P1 | State UI "Minat belum dikenali", `NEEDS_INTERESTS_OR_LOCATION`, `NO_MATCH`, dan label sumber minat/popularitas. | TB-058 |
+| TB-060 | P1 | Rekomendasi komunitas (TB-041) di halaman komunitas dan dashboard. | TB-053, ML-T05 |
+| TB-061 | P2 | Simpan `modelVersion` di `recommendations` untuk audit. | ML-06 = (b) |
+| TB-062 | P1 | Env Vercel production dan `API_SPEC.md` diperbarui (kontrak ML memakai `POST`). | TB-056, ML-T09 |
+| TB-063 | P1 | Tes unit klien (mock), tes integrasi jalur cadangan, dan E2E halaman rekomendasi. | TB-058 |
+
+**Risiko:** target 30 Okt 2026 (DEC-10). Pelatihan ulang model, tabel kode wilayah, dan hosting adalah bagian terlama. Opsi aman untuk demo: buku dari ML Service dengan baseline sebagai cadangan, dan rekomendasi komunitas berbasis minat saja bila kode wilayah belum siap.
+
 ## Gate tambahan sebelum production
 
 | ID | Prio | Pekerjaan dan penerimaan | Depends on |
