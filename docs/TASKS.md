@@ -88,8 +88,8 @@ Keputusan ada di `DECISIONS.md` → DEC-08 dan ML-01–ML-08 (diputuskan 19 Okt 
 | ID | Prio | Pekerjaan dan penerimaan | Depends on |
 |---|---|---|---|
 | ML-T01 | P1 | Sub-fase 0a: fondasi tanpa perubahan perilaku (requirements UTF-8, `requirements-dev.txt`, Python 3.14, `app/config.py`, `app/model_store.py`, `models/meta.json`, pytest gagal saat versi scikit-learn berbeda). **Selesai 19 Okt 2026, commit lokal `da79a93`–`27838ab`, belum di-push.** | — |
-| ML-T02 | P1 | Sub-fase 0b: rekomendasi buku tanpa item berskor 0, alasan per token, normalisasi minat, batas input, field `source` dan `unmatched_interests`. | ML-T01 |
-| ML-T03 | P1 | Sub-fase 0c: komunitas dengan kode wilayah Kemendagri dari tabel resmi (bukan dari ingatan), `notice` sesuai R-10. | ML-T02 |
+| ML-T02 | P1 | Sub-fase 0b: rekomendasi buku tanpa item berskor 0, alasan per token, normalisasi minat, batas input, field `source` dan `unmatched_interests`. **Selesai 19 Okt 2026, commit lokal `28fefdb`, `79ec620`.** | ML-T01 |
+| ML-T03 | P1 | Sub-fase 0c: komunitas dengan kode wilayah Kemendagri dari tabel resmi (bukan dari ingatan), `notice` sesuai R-10. **Selesai 19 Okt 2026, commit lokal `9d504ff`, `bc54178`.** Tabel 514 kab/kota dari `cahyadsn/wilayah` (MIT); jumlah per provinsi dan sampel Aceh/Sumut cocok dengan lampiran resmi Kepmendagri 300.2.2-2430/2025. Kontrak komunitas kini memakai `user_region_code` (breaking). | ML-T02 |
 | ML-T04 | P1 | `scripts/train_tfidf.py` membangun model dari snapshot katalog TemuBaca dengan analyzer Inggris + Indonesia, lalu menulis versi di `models/meta.json`. Dataset Goodbooks-10k dihapus setelah model baru berjalan (ML-08). | TB-055 |
 | ML-T05 | P1 | Data komunitas dibaca dari snapshot website, menggantikan `C001`–`C005`. | TB-053, TB-055, ML-T03 |
 | ML-T06 | P1 | Respons memakai UUID TemuBaca untuk `book_id` dan `community_id`. | ML-T04, ML-T05 |
