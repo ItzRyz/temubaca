@@ -1,4 +1,6 @@
-import { ArrowRight, Library, ShoppingBag } from "lucide-react";
+import { ArrowRight, Library } from "lucide-react";
+
+import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import Link from "next/link";
 
 import { formatMerchandisePrice } from "@/features/merchandise/format";
@@ -10,6 +12,7 @@ export type HomeMerchandise = {
     priceAmount: string | null;
     currency: string | null;
     priceNote: string | null;
+    photoPaths: string[];
     communityName: string;
 };
 
@@ -33,9 +36,7 @@ export function HomeMerchandiseBand({ items }: { items: HomeMerchandise[] }) {
                     <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-3">
                         {items.map((item) => (
                             <li key={item.id} className="flex flex-col rounded-2xl border border-border bg-card p-3 shadow-[0_4px_16px_rgba(31,41,36,0.06)]">
-                                <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center rounded-lg bg-muted text-primary/50">
-                                    <ShoppingBag className="size-10" />
-                                </div>
+                                <MerchandiseThumb photoPaths={item.photoPaths} className="aspect-[4/3]" />
                                 <h3 className="mt-3 line-clamp-1 font-sans text-sm font-semibold"><Link href={`/merchandise/${item.id}`} className="hover:underline">{item.title}</Link></h3>
                                 {item.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
                                 <p className="mt-1 text-[11px] text-muted-foreground">oleh {item.communityName}</p>

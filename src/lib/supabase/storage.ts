@@ -2,7 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { EVIDENCE_MAX_BYTES, EVIDENCE_TYPES } from "@/features/community-management/rules";
+import { EVIDENCE_MAX_BYTES, EVIDENCE_TYPES, MERCH_PHOTO_MAX_BYTES, MERCH_PHOTO_TYPES } from "@/features/community-management/rules";
+import { MERCH_PHOTO_BUCKET } from "@/features/merchandise/format";
 
 import { getSupabaseAdmin } from "./admin";
 
@@ -57,4 +58,46 @@ export async function signedEvidenceUrl(path: string, fileName: string | null) {
     if (!admin) return null;
     const { data, error } = await admin.storage.from(EVIDENCE_BUCKET).createSignedUrl(path, 60, fileName ? { download: fileName } : undefined);
     return error ? null : data.signedUrl;
+}
+
+let photoBucketReady: Promise<void> | null = null;
+
+/** Public bucket for merchandise photos (DEC-12); uploads still go only through the server. */
+function ensureMerchandisePhotoBucket() {
+    photoBucketReady ??= (async () => {
+        const admin = getSupabaseAdmin();
+        if (!admin) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set.");
+        const { data } = await admin.storage.getBucket(MERCH_PHOTO_BUCKET);
+        if (data) return;
+        const { error } = await admin.storage.createBucket(MERCH_PHOTO_BUCKET, {
+            public: true,
+            fileSizeLimit: MERCH_PHOTO_MAX_BYTES,
+            allowedMimeTypes: [...MERCH_PHOTO_TYPES],
+        });
+        if (error && !/already exists/i.test(error.message)) throw error;
+    })().catch((error) => {
+        photoBucketReady = null;
+        throw error;
+    });
+    return photoBucketReady;
+}
+
+const photoExtensionFor: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+
+/** Stores an already-validated photo as `<communityId>/<uuid>.<ext>`; returns its storage path. */
+export async function uploadMerchandisePhoto(communityId: string, file: File) {
+    await ensureMerchandisePhotoBucket();
+    const admin = getSupabaseAdmin()!;
+    const path = `${communityId}/${randomUUID()}.${photoExtensionFor[file.type]}`;
+    const body = await file.arrayBuffer();
+    let { error } = await admin.storage.from(MERCH_PHOTO_BUCKET).upload(path, body, { contentType: file.type, upsert: false });
+    // A dropped connection to Storage surfaces as StorageUnknownError; one retry covers it.
+    if (error?.name === "StorageUnknownError") ({ error } = await admin.storage.from(MERCH_PHOTO_BUCKET).upload(path, body, { contentType: file.type, upsert: false }));
+    if (error) throw error;
+    return path;
+}
+
+export async function removeMerchandisePhotos(paths: string[]) {
+    const admin = getSupabaseAdmin();
+    if (admin && paths.length > 0) await admin.storage.from(MERCH_PHOTO_BUCKET).remove(paths);
 }

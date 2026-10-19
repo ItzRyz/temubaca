@@ -19,3 +19,10 @@ export function formatMerchandisePrice(item: MerchandisePrice) {
     if ((!item.currency || item.currency === "IDR") && Number.isFinite(amount)) return rupiah.format(amount);
     return `${item.priceAmount}${item.currency ? ` ${item.currency}` : ""}`;
 }
+
+export const MERCH_PHOTO_BUCKET = "merchandise-photos";
+
+/** Public URL of a stored merchandise photo; the bucket is public, so no signing is needed. */
+export function merchandisePhotoUrl(path: string) {
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${MERCH_PHOTO_BUCKET}/${path}`;
+}

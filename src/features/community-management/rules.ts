@@ -88,4 +88,22 @@ export function wibDateTime(date: string, time: string) {
     return new Date(`${date}T${time}:00+07:00`);
 }
 
-export const merchandiseCategories = ["Tote Bag", "Aksesori Koleksi", "Rilisan Cetak", "Pakaian", "Lainnya"] as const;
+/** DEC-12: up to three product photos per item, public once saved. */
+export const MERCH_PHOTO_LIMIT = 3;
+export const MERCH_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+export const MERCH_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const MERCH_VARIANT_LIMIT = 10;
+
+export function merchPhotoError(file: { size: number; type: string }) {
+    if (!(MERCH_PHOTO_TYPES as readonly string[]).includes(file.type)) return "Foto harus JPG, PNG, atau WebP.";
+    if (file.size > MERCH_PHOTO_MAX_BYTES) return "Ukuran foto maksimal 2 MB.";
+    if (file.size === 0) return "Berkas kosong.";
+    return null;
+}
+
+/** "S, M, L" or one per line → ["S", "M", "L"], trimmed, without blanks or repeats. */
+export function parseVariants(value: string) {
+    return [...new Set(value.split(/[,\n]/).map((part) => part.trim()).filter(Boolean))];
+}
+
+export const merchandiseCategories =["Tote Bag", "Aksesori Koleksi", "Rilisan Cetak", "Pakaian", "Lainnya"] as const;

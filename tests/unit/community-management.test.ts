@@ -6,8 +6,10 @@ import {
     eventMissingFields,
     evidenceFileError,
     maskWhatsapp,
+    merchPhotoError,
     normalizeInstagram,
     normalizeWhatsapp,
+    parseVariants,
     submissionBlocker,
     wibDateTime,
 } from "../../src/features/community-management/rules";
@@ -84,5 +86,29 @@ describe("events and merchandise", () => {
         expect(communityMerchandiseSchema.safeParse({ ...base, priceAmount: "75000" }).success).toBe(true);
         expect(communityMerchandiseSchema.safeParse({ ...base, priceMode: "FLEXIBLE" }).success).toBe(true);
         expect(communityMerchandiseSchema.safeParse({ ...base, priceAmount: 1, contactMode: "CUSTOM" }).success).toBe(false);
+    });
+});
+
+describe("merchandise details (DEC-12)", () => {
+    const base = { title: "Tote Bag", priceMode: "FLEXIBLE", availability: "AVAILABLE", contactMode: "COMMUNITY", visible: true };
+    const photo = (n: number) => `00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-${String(n).padStart(12, "0")}.jpg`;
+
+    test("variants are split on commas or lines, trimmed, without repeats", () => {
+        expect(parseVariants(" S, M ,\nL,, M ")).toEqual(["S", "M", "L"]);
+        expect(parseVariants("")).toEqual([]);
+    });
+
+    test("photos are JPG, PNG, or WebP up to 2 MB", () => {
+        expect(merchPhotoError({ type: "image/webp", size: 1024 })).toBeNull();
+        expect(merchPhotoError({ type: "image/gif", size: 1024 })).toContain("JPG");
+        expect(merchPhotoError({ type: "image/png", size: 2 * 1024 * 1024 + 1 })).toContain("2 MB");
+    });
+
+    test("at most three photo paths and ten variants are accepted", () => {
+        expect(communityMerchandiseSchema.parse(base)).toMatchObject({ variants: [], photoPaths: [] });
+        expect(communityMerchandiseSchema.safeParse({ ...base, photoPaths: [photo(1), photo(2), photo(3)] }).success).toBe(true);
+        expect(communityMerchandiseSchema.safeParse({ ...base, photoPaths: [photo(1), photo(2), photo(3), photo(4)] }).success).toBe(false);
+        expect(communityMerchandiseSchema.safeParse({ ...base, photoPaths: ["../etc/passwd"] }).success).toBe(false);
+        expect(communityMerchandiseSchema.safeParse({ ...base, variants: Array.from({ length: 11 }, (_, i) => `V${i}`) }).success).toBe(false);
     });
 });

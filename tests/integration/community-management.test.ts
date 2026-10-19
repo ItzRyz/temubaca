@@ -13,6 +13,15 @@ const pg = new PGlite();
 const testDb = drizzle({ client: pg, schema });
 mock.module("server-only", () => ({}));
 mock.module(resolve(import.meta.dir, "../../src/lib/db/client.ts"), () => ({ db: testDb }));
+const removedPhotos: string[][] = [];
+mock.module(resolve(import.meta.dir, "../../src/lib/supabase/storage.ts"), () => ({
+    removeMerchandisePhotos: async (paths: string[]) => { if (paths.length) removedPhotos.push(paths); },
+    isEvidenceStorageAvailable: () => false,
+    uploadEvidenceFile: async () => { throw new Error("no storage in tests"); },
+    uploadMerchandisePhoto: async () => { throw new Error("no storage in tests"); },
+    removeEvidenceFile: async () => {},
+    signedEvidenceUrl: async () => null,
+}));
 
 setDefaultTimeout(60_000);
 
@@ -130,10 +139,23 @@ describe("applications", () => {
         });
 
         test("merchandise keeps prices in IDR and hides items without deleting them", async () => {
-            const item = await content.createCommunityMerchandise(communityId, { title: "Tote Bag Kanvas", priceMode: "FIXED", priceAmount: 75000, availability: "AVAILABLE", contactMode: "COMMUNITY", visible: true });
-            await content.updateCommunityMerchandise(communityId, item.id, { title: "Tote Bag Kanvas", priceMode: "FLEXIBLE", priceNote: "Donasi sukarela", availability: "UNAVAILABLE", stockNote: "Menunggu cetak ulang", contactMode: "CUSTOM", contactOverride: "DM Instagram @klub", visible: false });
+            const own = (n: number) => `${communityId}/${id(n)}.jpg`;
+            const foreign = `${id(999)}/${id(1)}.jpg`;
+            const item = await content.createCommunityMerchandise(communityId, {
+                title: "Tote Bag Kanvas", priceMode: "FIXED", priceAmount: 75000, availability: "AVAILABLE", contactMode: "COMMUNITY", visible: true,
+                variants: ["Hitam", "Krem"], fulfillmentNote: "Ambil di acara bulanan", photoPaths: [own(1), own(2), foreign],
+            });
+            // A path uploaded for another community is never attached.
+            expect((await content.findManagedMerchandise(communityId, item.id))?.photoPaths).toEqual([own(1), own(2)]);
+            await content.updateCommunityMerchandise(communityId, item.id, {
+                title: "Tote Bag Kanvas", priceMode: "FLEXIBLE", priceNote: "Donasi sukarela", availability: "UNAVAILABLE", stockNote: "Menunggu cetak ulang",
+                contactMode: "CUSTOM", contactOverride: "DM Instagram @klub", visible: false, variants: [], photoPaths: [own(2)],
+            });
             const stored = await content.findManagedMerchandise(communityId, item.id);
-            expect(stored).toMatchObject({ priceAmount: null, priceNote: "Donasi sukarela", status: "DRAFT", contactOverride: "DM Instagram @klub" });
+            expect(stored).toMatchObject({ priceAmount: null, priceNote: "Donasi sukarela", status: "DRAFT", contactOverride: "DM Instagram @klub", variants: [], fulfillmentNote: null, photoPaths: [own(2)] });
+            expect(removedPhotos).toEqual([[own(1)]]);
+            await content.deleteCommunityMerchandise(communityId, item.id);
+            expect(removedPhotos).toEqual([[own(1)], [own(2)]]);
             expect(await content.findManagedMerchandise(id(999), item.id)).toBeUndefined();
         });
 

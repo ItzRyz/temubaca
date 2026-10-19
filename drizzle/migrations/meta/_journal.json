@@ -99,6 +99,13 @@
       "when": 1792332751143,
       "tag": "0013_loan_extension",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792367524431,
+      "tag": "0014_merchandise_details",
+      "breakpoints": true
     }
   ]
 }

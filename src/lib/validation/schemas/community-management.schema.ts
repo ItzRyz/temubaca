@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { merchandiseCategories, normalizeInstagram, normalizeWhatsapp } from "@/features/community-management/rules";
+import { MERCH_PHOTO_LIMIT, MERCH_VARIANT_LIMIT, merchandiseCategories, normalizeInstagram, normalizeWhatsapp } from "@/features/community-management/rules";
 
 import { uuidSchema } from "../common";
 
@@ -108,6 +108,16 @@ export const communityMerchandiseSchema = z
         stockNote: optionalText(80, "Keterangan"),
         contactMode: z.enum(["COMMUNITY", "CUSTOM"]),
         contactOverride: optionalText(120, "Kontak khusus"),
+        variants: z
+            .array(z.string().trim().min(1).max(40, "Setiap varian maksimal 40 karakter."))
+            .max(MERCH_VARIANT_LIMIT, `Varian maksimal ${MERCH_VARIANT_LIMIT}.`)
+            .default([]),
+        fulfillmentNote: optionalText(200, "Cara pengiriman atau pengambilan"),
+        // Paths returned by the photo upload; the server also checks they belong to this community.
+        photoPaths: z
+            .array(z.string().regex(/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/, "Foto tidak valid."))
+            .max(MERCH_PHOTO_LIMIT, `Foto maksimal ${MERCH_PHOTO_LIMIT}.`)
+            .default([]),
         visible: z.boolean(),
     })
     .strict()

@@ -33,6 +33,9 @@ export default async function EditMerchandisePage({ params }: PageProps<"/commun
                 stockNote: item.stockNote ?? "",
                 contactMode: item.contactOverride ? "CUSTOM" : "COMMUNITY",
                 contactOverride: item.contactOverride ?? "",
+                variants: item.variants.join(", "),
+                fulfillmentNote: item.fulfillmentNote ?? "",
+                photoPaths: item.photoPaths,
                 visible: item.status === "PUBLISHED",
             }}
         />

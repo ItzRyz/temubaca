@@ -241,8 +241,16 @@ export const merchandiseListings = pgTable('merchandise_listings', {
     category: text(), stockNote: text(),
     // Null means "use the community contact"; otherwise an item-specific way to buy.
     contactOverride: text(),
+    // DEC-12: variants as plain text (no stock per variant), how the buyer gets the item, and up to
+    // three photos in the public `merchandise-photos` bucket (paths `<communityId>/<uuid>.<ext>`).
+    variants: text().array().notNull().default(sql`'{}'::text[]`), fulfillmentNote: text(),
+    photoPaths: text().array().notNull().default(sql`'{}'::text[]`),
     status: enumText(merchandiseStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('merchandise_listings_community_status_idx').on(t.communityId, t.status), index('merchandise_listings_availability_idx').on(t.availability), enumCheck(t.availability, listingAvailabilityValues), enumCheck(t.status, merchandiseStatusValues)]).enableRLS();
+}, t => [
+    index('merchandise_listings_community_status_idx').on(t.communityId, t.status), index('merchandise_listings_availability_idx').on(t.availability), enumCheck(t.availability, listingAvailabilityValues), enumCheck(t.status, merchandiseStatusValues),
+    check('merchandise_listings_photo_paths_check', sql`cardinality(${t.photoPaths}) <= 3`),
+    check('merchandise_listings_variants_check', sql`cardinality(${t.variants}) <= 10`),
+]).enableRLS();
 
 export const orders = pgTable('orders', {
     id: id(), status: enumText(orderStatusValues).notNull().default('PENDING'), currency: varchar({ length: 3 }),

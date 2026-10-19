@@ -10,7 +10,7 @@ const publicMerchandiseFilter = and(
     eq(communities.status, "VERIFIED"),
 );
 
-/** Public catalog projection; omits image references, order data and internal timestamps. */
+/** Public catalog projection; omits order data and internal timestamps. */
 export async function listPublicMerchandise(options?: { limit?: number; offset?: number; communityId?: string }) {
     return db
         .select({
@@ -21,6 +21,7 @@ export async function listPublicMerchandise(options?: { limit?: number; offset?:
             currency: merchandiseListings.currency,
             priceNote: merchandiseListings.priceNote,
             availability: merchandiseListings.availability,
+            photoPaths: merchandiseListings.photoPaths,
             communityId: communities.id,
             communityName: communities.name,
         })
@@ -58,6 +59,9 @@ export async function findPublicMerchandise(listingId: string) {
             category: merchandiseListings.category,
             stockNote: merchandiseListings.stockNote,
             contactOverride: merchandiseListings.contactOverride,
+            variants: merchandiseListings.variants,
+            fulfillmentNote: merchandiseListings.fulfillmentNote,
+            photoPaths: merchandiseListings.photoPaths,
             communityId: communities.id,
             communityName: communities.name,
             communityLocation: communities.publicLocation,

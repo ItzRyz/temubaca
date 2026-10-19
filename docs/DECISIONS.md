@@ -119,7 +119,8 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Tanggal:** 18 Okt 2026.
 - **Dampak:**
   - Checkout dan pembayaran tetap di luar cakupan.
-  - Perlu migrasi untuk kolom varian dan catatan pengiriman/pengambilan, bucket foto merchandise, dan unggah foto di form Kelola Merchandise.
+  - Dibuat lewat migrasi `0014_merchandise_details` (`variants`, `fulfillmentNote`, `photoPaths` maks. 3), bucket publik `merchandise-photos` (dibuat otomatis saat unggah pertama, JPG/PNG/WebP maks. 2 MB), endpoint `POST /api/communities/[communityId]/merchandise/photos`, dan form Kelola Merchandise.
+  - Foto yang diunggah tetapi tidak jadi disimpan tetap tertinggal di bucket; belum ada pembersihan otomatis.
 
 ## DEC-06 — Atribusi dan sinkron katalog (diputuskan 18 Okt 2026)
 

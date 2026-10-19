@@ -6,6 +6,7 @@ import { formatMerchandisePrice } from "@/features/merchandise/format";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { countPublicMerchandise, listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { publicEventQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
+import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 
 export const metadata: Metadata = {
     title: "Katalog merchandise",
@@ -61,6 +62,7 @@ export default async function MerchandisePage({ searchParams }: MerchandisePageP
                     {listings.map((listing) => (
                         <li key={listing.id}>
                             <article className="h-full rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
+                                <MerchandiseThumb photoPaths={listing.photoPaths} className="mb-4 aspect-[4/3]" />
                                 <h2 className="font-heading text-xl font-semibold"><Link href={`/merchandise/${listing.id}`} className="hover:underline">{listing.title}</Link></h2>
                                 <p className="mt-1 text-sm text-muted-foreground">{listing.communityName}</p>
                                 {listing.description && <p className="mt-4 whitespace-pre-line text-sm leading-6 text-muted-foreground">{listing.description}</p>}

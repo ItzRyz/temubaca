@@ -10,6 +10,7 @@ import { getCommunityAccess } from "@/lib/db/queries/community-management";
 import { findPublicCommunityProfile } from "@/lib/db/queries/communities";
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
+import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
 import { uuidSchema } from "@/lib/validation/common";
 import { colorFor, initialsOf } from "@/features/communities/components/community-card";
@@ -304,7 +305,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                             <ul className="mt-5 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
                                 {merchandise.map((item) => (
                                     <li key={item.id} className="flex flex-col rounded-2xl border border-border bg-card p-4">
-                                        <div aria-hidden="true" className="flex aspect-square items-center justify-center rounded-lg bg-[#f1f0ea] text-primary/40"><ShoppingBag className="size-10" /></div>
+                                        <MerchandiseThumb photoPaths={item.photoPaths} className="aspect-square" />
                                         <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
                                         {item.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>}
                                         <div className="mt-auto flex items-center justify-between gap-2 pt-3">

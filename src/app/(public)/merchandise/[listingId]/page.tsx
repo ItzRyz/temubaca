@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BadgeCheck, ChevronRight, HandHeart, Info, MapPin, MessageSquareText, ShieldCheck, ShoppingBag, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, ChevronRight, HandHeart, Info, MapPin, MessageSquareText, ShieldCheck, Truck, Wallet } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,6 +9,8 @@ import { findPublicMerchandise, listPublicMerchandise } from "@/lib/db/queries/m
 import { uuidSchema } from "@/lib/validation/common";
 import { colorFor, initialsOf } from "@/features/communities/components/community-card";
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
+import { MerchandiseGallery } from "@/features/merchandise/components/merchandise-gallery";
+import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { communityContactLinks } from "@/features/community-management/contacts";
@@ -80,10 +82,14 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
 
             <div className="mt-2 grid gap-6 lg:grid-cols-[1fr_440px]">
                 <div className="flex min-w-0 flex-col gap-6">
-                    <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-[#f1f0ea] text-primary/40">
-                        <ShoppingBag className="size-20" />
-                    </div>
-                    <p className="-mt-3 text-xs text-muted-foreground">Foto produk belum tersedia di TemuBaca.</p>
+                    {listing.photoPaths.length > 0 ? (
+                        <MerchandiseGallery title={listing.title} photoPaths={listing.photoPaths} />
+                    ) : (
+                        <>
+                            <MerchandiseThumb photoPaths={[]} className="aspect-[4/3] rounded-2xl" iconClassName="size-20" />
+                            <p className="-mt-3 text-xs text-muted-foreground">Komunitas belum menambahkan foto untuk item ini.</p>
+                        </>
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-6">
@@ -112,6 +118,15 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                             {listing.priceAmount !== null && listing.priceNote && <p className="mt-1 text-xs text-muted-foreground">{listing.priceNote}</p>}
                         </div>
                         {listing.description && <p className="mt-4 text-sm leading-6 whitespace-pre-line text-foreground/85">{listing.description}</p>}
+                        {listing.variants.length > 0 && (
+                            <div className="mt-4">
+                                <p className="text-xs font-semibold text-muted-foreground">Varian</p>
+                                <ul className="mt-1.5 flex list-none flex-wrap gap-1.5 p-0">
+                                    {listing.variants.map((variant) => <li key={variant} className="rounded-full border border-border px-2.5 py-0.5 text-xs">{variant}</li>)}
+                                </ul>
+                                <p className="mt-1 text-[11px] text-muted-foreground">Tanyakan ketersediaan varian ke komunitas.</p>
+                            </div>
+                        )}
                         <div className="mt-4 flex items-center justify-between">
                             <ShareButton title={listing.title} className="h-9 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" />
                         </div>
@@ -131,6 +146,12 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                                 </li>
                             ))}
                         </ol>
+                        {listing.fulfillmentNote && (
+                            <p className="mt-4 flex gap-2 rounded-lg border border-border px-3 py-2.5 text-sm">
+                                <Truck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+                                <span><span className="block text-xs font-semibold text-primary">Pengiriman atau pengambilan</span>{listing.fulfillmentNote}</span>
+                            </p>
+                        )}
                         {listing.availability === "AVAILABLE" ? (
                             listing.contactOverride ? (
                                 <p className="mt-4 rounded-lg border border-border px-3 py-2.5 text-sm"><span className="block text-xs font-semibold text-primary">Kontak pembelian</span>{listing.contactOverride}</p>
@@ -196,9 +217,7 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                     <ul className="mt-5 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">
                         {others.map((item) => (
                             <li key={item.id} className="flex flex-col rounded-2xl border border-border bg-card p-4">
-                                <div aria-hidden="true" className="flex aspect-[4/3] items-center justify-center rounded-lg bg-[#f1f0ea] text-primary/40">
-                                    <ShoppingBag className="size-10" />
-                                </div>
+                                <MerchandiseThumb photoPaths={item.photoPaths} className="aspect-[4/3]" />
                                 <span className="mt-3 w-fit rounded-full bg-[#f1f0ea] px-2 py-0.5 text-[11px] text-muted-foreground">{merchandiseAvailabilityLabels[item.availability]}</span>
                                 <h3 className="mt-2 font-heading text-base font-semibold"><Link href={`/merchandise/${item.id}`} className="hover:underline">{item.title}</Link></h3>
                                 <p className="mt-1 text-sm font-bold text-primary">{formatMerchandisePrice(item)}</p>

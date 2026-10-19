@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ImageOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
 import { communityMerchandiseSchema } from "@/lib/validation/schemas/community-management.schema";
 
 import { fieldErrorsOf, sendCommunityRequest, type FieldErrors } from "../client";
-import { merchandiseCategories } from "../rules";
+import { MERCH_VARIANT_LIMIT, merchandiseCategories, parseVariants } from "../rules";
 import { CountedLabel, ErrorSummary, FormSection } from "./form-parts";
+import { MerchandisePhotos } from "./merchandise-photos";
 
 export type MerchandiseValues = {
     title: string;
@@ -24,12 +25,16 @@ export type MerchandiseValues = {
     stockNote: string;
     contactMode: "COMMUNITY" | "CUSTOM";
     contactOverride: string;
+    /** Comma- or line-separated; sent as a list. */
+    variants: string;
+    fulfillmentNote: string;
+    photoPaths: string[];
     visible: boolean;
 };
 
 export const emptyMerchandise: MerchandiseValues = {
     title: "", category: "", description: "", priceMode: "FIXED", priceAmount: "", priceNote: "",
-    availability: "AVAILABLE", stockNote: "", contactMode: "COMMUNITY", contactOverride: "", visible: true,
+    availability: "AVAILABLE", stockNote: "", contactMode: "COMMUNITY", contactOverride: "", variants: "", fulfillmentNote: "", photoPaths: [], visible: true,
 };
 
 function Divider({ title }: { title: string }) {
@@ -52,14 +57,15 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
         if (values.priceMode === "FIXED" && values.priceAmount && !/^\d+$/.test(values.priceAmount.trim())) {
             return setErrors({ priceAmount: "Tulis angka saja, tanpa titik atau huruf. Contoh: 75000." });
         }
-        const parsed = communityMerchandiseSchema.safeParse(values);
+        const payload = { ...values, variants: parseVariants(values.variants) };
+        const parsed = communityMerchandiseSchema.safeParse(payload);
         if (!parsed.success) return setErrors(fieldErrorsOf(parsed.error));
         setErrors({});
         setMessage("");
         startTransition(async () => {
             const result = itemId
-                ? await sendCommunityRequest(`/api/communities/${communityId}/merchandise/${itemId}`, "PUT", values)
-                : await sendCommunityRequest(`/api/communities/${communityId}/merchandise`, "POST", values);
+                ? await sendCommunityRequest(`/api/communities/${communityId}/merchandise/${itemId}`, "PUT", payload)
+                : await sendCommunityRequest(`/api/communities/${communityId}/merchandise`, "POST", payload);
             if (!result.ok) {
                 setErrors(result.fieldErrors);
                 setMessage(result.message);
@@ -77,14 +83,8 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
             </Link>
             <ErrorSummary errors={errors} message={message} />
             <FormSection title={itemId ? "Ubah Merchandise" : "Tambah Merchandise"} description={'Isian tanpa label "opsional" wajib diisi. Item tampil di halaman komunitas setelah disimpan.'}>
-                <div className="grid gap-4 sm:grid-cols-[150px_1fr]">
-                    <div className="flex flex-col gap-1.5">
-                        <span className="text-sm font-medium">Foto <span className="font-normal text-muted-foreground">(opsional)</span></span>
-                        {/* Photo uploads need a public image bucket and moderation rules that are not set up yet. */}
-                        <div className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-[#faf8f2] p-3 text-center text-xs text-muted-foreground">
-                            <ImageOff aria-hidden="true" className="size-5" /> Unggah foto belum tersedia
-                        </div>
-                    </div>
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,320px)_1fr]">
+                    <MerchandisePhotos communityId={communityId} paths={values.photoPaths} onChange={(paths) => set("photoPaths", paths)} error={errors.photoPaths} />
                     <div className="flex flex-col gap-4">
                         <Field label={<CountedLabel label="Nama item" length={values.title.length} max={80} required />} error={errors.title}>
                             {(control) => <TextInput {...control} value={values.title} maxLength={80} onChange={(event) => set("title", event.target.value)} placeholder="Mis. Tote Bag Kanvas Pramoedya" />}
@@ -101,6 +101,9 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
                 </div>
                 <Field label={<CountedLabel label="Deskripsi" optional length={values.description.length} max={300} />} error={errors.description}>
                     {(control) => <TextArea {...control} value={values.description} maxLength={300} onChange={(event) => set("description", event.target.value)} placeholder="Ukuran, bahan, atau cerita singkat tentang item ini." />}
+                </Field>
+                <Field label={<CountedLabel label="Varian" optional />} error={errors.variants} hint={`Pisahkan dengan koma, maks. ${MERCH_VARIANT_LIMIT}. Stok tidak dihitung per varian.`}>
+                    {(control) => <TextInput {...control} value={values.variants} maxLength={450} onChange={(event) => set("variants", event.target.value)} placeholder="Mis. S, M, L, XL atau Hitam, Krem" />}
                 </Field>
 
                 <Divider title="Harga" />
@@ -141,6 +144,9 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
                 </Field>
 
                 <Divider title="Cara membeli" />
+                <Field label={<CountedLabel label="Pengiriman atau pengambilan" optional length={values.fulfillmentNote.length} max={200} />} error={errors.fulfillmentNote} hint="Tampil di halaman item. Jangan cantumkan alamat rumah.">
+                    {(control) => <TextArea {...control} value={values.fulfillmentNote} maxLength={200} onChange={(event) => set("fulfillmentNote", event.target.value)} placeholder="Mis. Ambil saat acara bulanan, COD di Stasiun Cikini, atau kirim lewat ekspedisi (ongkir ditanggung pembeli)." />}
+                </Field>
                 <div className="flex flex-col gap-2">
                     <ChoiceOption type="radio" name="contactMode" checked={values.contactMode === "COMMUNITY"} onChange={() => set("contactMode", "COMMUNITY")}
                         className="items-start rounded-xl border border-border p-4 has-checked:border-primary has-checked:bg-[#eef4ef]">

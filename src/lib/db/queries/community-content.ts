@@ -4,6 +4,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 import { wibDateTime } from "@/features/community-management/rules";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
+import { removeMerchandisePhotos } from "@/lib/supabase/storage";
 import type { CommunityEventInput, CommunityMerchandiseInput } from "@/lib/validation/schemas/community-management.schema";
 
 import { db } from "../client";
@@ -92,7 +93,7 @@ export async function deleteCommunityEvent(communityId: string, eventId: string)
     return { id: eventId };
 }
 
-function merchandiseValues(input: CommunityMerchandiseInput) {
+function merchandiseValues(communityId: string, input: CommunityMerchandiseInput) {
     const fixed = input.priceMode === "FIXED";
     return {
         title: input.title,
@@ -104,6 +105,10 @@ function merchandiseValues(input: CommunityMerchandiseInput) {
         availability: input.availability,
         stockNote: input.stockNote ?? null,
         contactOverride: input.contactMode === "CUSTOM" ? input.contactOverride ?? null : null,
+        variants: input.variants,
+        fulfillmentNote: input.fulfillmentNote ?? null,
+        // Only photos uploaded for this community; anything else is dropped.
+        photoPaths: [...new Set(input.photoPaths)].filter((path) => path.startsWith(`${communityId}/`)),
         // "Tampilkan di halaman komunitas" off keeps the item as a hidden draft (DEC-05: no prior review).
         status: input.visible ? ("PUBLISHED" as const) : ("DRAFT" as const),
     };
@@ -123,17 +128,21 @@ export function findManagedMerchandise(communityId: string, itemId: string) {
 }
 
 export async function createCommunityMerchandise(communityId: string, input: CommunityMerchandiseInput) {
-    const [item] = await db.insert(merchandiseListings).values({ communityId, ...merchandiseValues(input) }).returning({ id: merchandiseListings.id });
+    const [item] = await db.insert(merchandiseListings).values({ communityId, ...merchandiseValues(communityId, input) }).returning({ id: merchandiseListings.id });
     return item;
 }
 
 export async function updateCommunityMerchandise(communityId: string, itemId: string, input: CommunityMerchandiseInput) {
+    const before = await findManagedMerchandise(communityId, itemId);
+    if (!before) throw new NotFoundError("Merchandise tidak ditemukan.");
+    const values = merchandiseValues(communityId, input);
     const [item] = await db
         .update(merchandiseListings)
-        .set({ ...merchandiseValues(input), updatedAt: new Date() })
+        .set({ ...values, updatedAt: new Date() })
         .where(and(eq(merchandiseListings.id, itemId), eq(merchandiseListings.communityId, communityId)))
         .returning({ id: merchandiseListings.id });
     if (!item) throw new NotFoundError("Merchandise tidak ditemukan.");
+    await removeMerchandisePhotos(before.photoPaths.filter((path) => !values.photoPaths.includes(path)));
     return item;
 }
 
@@ -147,5 +156,6 @@ export async function deleteCommunityMerchandise(communityId: string, itemId: st
         return { id: itemId, archived: true };
     }
     await db.delete(merchandiseListings).where(eq(merchandiseListings.id, itemId));
+    await removeMerchandisePhotos(item.photoPaths);
     return { id: itemId, archived: false };
 }
