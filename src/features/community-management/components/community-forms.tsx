@@ -7,13 +7,18 @@ import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Field, FormAlert, TextArea, TextInput } from "@/components/ui/form";
 import { communityApplicationSchema, communityProfileSchema, verificationSubmissionSchema } from "@/lib/validation/schemas/community-management.schema";
 
+import { RegionSelect } from "@/features/regions/components/region-select";
+
 import { fieldErrorsOf, sendCommunityRequest, type FieldErrors } from "../client";
 import { CountedLabel, ErrorSummary, EvidenceFilePicker, FormSection } from "./form-parts";
+import { InterestTags } from "./interest-tags";
 
 export type ProfileValues = {
     name: string;
     description: string;
+    regionCode: string;
     publicLocation: string;
+    interests: string[];
     contactEmail: string;
     instagramHandle: string;
     whatsappNumber: string;
@@ -31,7 +36,9 @@ function IconInput({ icon, ...props }: { icon: ReactNode } & React.ComponentProp
     );
 }
 
-function ProfileFields({ values, set, errors }: { values: ProfileValues; set: (key: keyof ProfileValues, value: string) => void; errors: FieldErrors }) {
+type SetProfile = <K extends keyof ProfileValues>(key: K, value: ProfileValues[K]) => void;
+
+function ProfileFields({ values, set, errors }: { values: ProfileValues; set: SetProfile; errors: FieldErrors }) {
     return (
         <>
             <Field label={<CountedLabel label="Nama Komunitas" length={values.name.length} max={50} required />} error={errors.name}>
@@ -40,6 +47,9 @@ function ProfileFields({ values, set, errors }: { values: ProfileValues; set: (k
             <Field label={<CountedLabel label="Deskripsi" length={values.description.length} max={1000} required />} error={errors.description}>
                 {(control) => <TextArea {...control} rows={4} value={values.description} maxLength={1000} onChange={(event) => set("description", event.target.value)} placeholder="Siapa kalian, seberapa sering berkumpul, dan siapa yang boleh ikut." />}
             </Field>
+            <InterestTags id="community-interests" value={values.interests} onChange={(next) => set("interests", next)} error={errors.interests} />
+            <RegionSelect id="community-region" label="Kabupaten/Kota" required value={values.regionCode} onChange={(code) => set("regionCode", code)} error={errors.regionCode}
+                hint="Wilayah utama tempat komunitas berkumpul. Dipakai untuk merekomendasikan komunitas ke pembaca di sekitarnya." />
             <Field label="Wilayah dan Titik Pertemuan Publik" required error={errors.publicLocation} hint="Gunakan nama ruang publik, bukan alamat rumah. Pilih tempat yang mudah dijangkau transportasi umum.">
                 {(control) => <IconInput {...control} icon={<MapPin className="size-4" />} value={values.publicLocation} maxLength={120} onChange={(event) => set("publicLocation", event.target.value)} placeholder="mis. Jakarta Pusat — Gazebo Taman Suropati" />}
             </Field>
@@ -78,21 +88,23 @@ function EvidenceFields({ evidenceUrl, note, file, setEvidenceUrl, setNote, setF
 
 function useProfile(initial: ProfileValues) {
     const [values, setValues] = useState(initial);
+    const set: SetProfile = (key, value) => setValues((current) => ({ ...current, [key]: value }));
     return {
         values,
-        set: (key: keyof ProfileValues, value: string) => setValues((current) => ({ ...current, [key]: value })),
+        set,
         replace: setValues,
     };
 }
 
-function toFormData(fields: Record<string, string>, file: File | null) {
+function toFormData(fields: Record<string, string | string[]>, file: File | null) {
     const form = new FormData();
-    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    // Lists travel as JSON; the schema parses them back (communityInterestsSchema).
+    for (const [key, value] of Object.entries(fields)) form.set(key, Array.isArray(value) ? JSON.stringify(value) : value);
     if (file) form.set("file", file);
     return form;
 }
 
-const emptyProfile: ProfileValues = { name: "", description: "", publicLocation: "", contactEmail: "", instagramHandle: "", whatsappNumber: "" };
+const emptyProfile: ProfileValues = { name: "", description: "", regionCode: "", publicLocation: "", interests: [], contactEmail: "", instagramHandle: "", whatsappNumber: "" };
 
 /** "Ajukan Komunitas": profile + evidence; reviewed by an admin before the profile goes public (DEC-04). */
 export function ApplyCommunityForm() {

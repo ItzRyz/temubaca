@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         >
             <PolicySection title="Data yang kami simpan">
                 <ul>
-                    <li><strong>Akun:</strong> nama tampilan, alamat surel, kata sandi (disimpan tersandi oleh layanan autentikasi), dan waktu kamu mengonfirmasi batas usia saat mendaftar.</li>
+                    <li><strong>Akun:</strong> nama tampilan, alamat surel, kata sandi (disimpan tersandi oleh layanan autentikasi), waktu kamu mengonfirmasi batas usia saat mendaftar, dan wilayah kabupaten/kota bila kamu mengisinya (opsional, tidak ditampilkan ke pengguna lain).</li>
                     <li><strong>Aktivitas baca:</strong> bookmark, minat bacaan, dan rekomendasi yang dihitung dari minat itu.</li>
                     <li><strong>Buku yang kamu bagikan:</strong> kondisi buku, aturan pinjam, dan titik temu publik yang kamu pilih. Alamat rumah tidak diminta dan jangan dicantumkan.</li>
                     <li><strong>Pinjam-meminjam:</strong> permintaan, pesan singkat, waktu serah terima dan pengembalian, perpanjangan, serta laporan masalah.</li>
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
             </PolicySection>
 
             <PolicySection title="Layanan yang kami pakai">
-                <p>Data disimpan di Supabase (database, autentikasi, dan penyimpanan berkas) dan aplikasi dijalankan di Vercel. Keduanya berada di region Singapura. Pembatasan percobaan memakai Upstash. Data buku diambil dari Open Library dan Google Books. Pencarian katalog dikirim ke layanan tersebut tanpa data akunmu.</p>
+                <p>Data disimpan di Supabase (database, autentikasi, dan penyimpanan berkas) dan aplikasi dijalankan di Vercel. Keduanya berada di region Singapura. Pembatasan percobaan memakai Upstash. Data buku diambil dari Open Library dan Google Books. Pencarian katalog dikirim ke layanan tersebut tanpa data akunmu. Rekomendasi buku dihitung oleh layanan rekomendasi TemuBaca di FastAPI Cloud (region Amerika Serikat): yang dikirim hanya minat bacaan yang kamu simpan, tanpa nama, surel, atau identitas akun.</p>
             </PolicySection>
 
             <PolicySection title="Berapa lama data disimpan">

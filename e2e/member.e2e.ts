@@ -122,3 +122,56 @@ test("borrow request from one member is approved, handed over, and extended once
     await expect(page.getByText(/sisa 28 hari/)).toBeVisible();
     await owner.context().close();
 });
+
+test("profile region is optional and saved as a kab/kota (R-11)", async ({ page }) => {
+    await page.goto("/settings");
+    const kabkota = page.getByRole("combobox", { name: "Kabupaten/kota" });
+    await expect(kabkota).toBeDisabled();
+
+    await page.getByRole("combobox", { name: "Provinsi" }).selectOption({ label: "Banten" });
+    await kabkota.selectOption({ label: "Kota Tangerang Selatan" });
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await expect(page.getByText("Profil berhasil diperbarui.")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole("combobox", { name: "Provinsi" })).toHaveValue("36");
+    await expect(kabkota).toHaveValue("36.74");
+
+    // An empty choice clears the region again.
+    await kabkota.selectOption({ label: "Tidak diisi" });
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await expect(page.getByText("Profil berhasil diperbarui.")).toBeVisible();
+    await page.reload();
+    await expect(kabkota).toHaveValue("");
+});
+
+test("a community application carries reading interests and a kab/kota (ML-04, R-11)", async ({ page }) => {
+    await page.goto("/communities/new");
+    await page.getByLabel(/Nama Komunitas/).fill("Klub Uji E2E Wilayah");
+    await page.getByLabel(/Deskripsi/).fill("Komunitas uji otomatis untuk memeriksa minat dan wilayah.");
+
+    // Submitting without interests or region shows both errors.
+    await page.getByRole("button", { name: "Kirim untuk Ditinjau" }).click();
+    await expect(page.getByText("Pilih minimal 1 minat bacaan.").first()).toBeVisible();
+    await expect(page.getByText("Pilih kabupaten/kota.").first()).toBeVisible();
+
+    for (const genre of ["Puisi", "Sejarah", "Romansa", "Filsafat", "Biografi"]) await page.getByRole("button", { name: genre, exact: true }).click();
+    // A sixth genre is not selectable once five are chosen.
+    await expect(page.getByRole("button", { name: "Keluarga", exact: true })).toBeDisabled();
+    await page.getByRole("button", { name: "Biografi", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Biografi", exact: true })).toHaveAttribute("aria-pressed", "false");
+
+    await page.getByRole("combobox", { name: "Provinsi" }).selectOption({ label: "Daerah Khusus Ibukota Jakarta" });
+    await page.getByRole("combobox", { name: "Kabupaten/kota" }).selectOption({ label: "Kota Administrasi Jakarta Pusat" });
+    await page.getByLabel(/Wilayah dan Titik Pertemuan Publik/).fill("Jakarta Pusat — Taman Suropati");
+    await page.getByLabel(/Surel Kontak Publik/).fill("e2e@example.test");
+    await page.getByLabel(/Tautan Bukti Aktivitas/).fill("https://example.test/klub-uji");
+    await page.getByRole("button", { name: "Kirim untuk Ditinjau" }).click();
+
+    await expect(page).toHaveURL(/\/communities\/[0-9a-f-]+\/manage\?baru=1/);
+    for (const genre of ["Puisi", "Sejarah", "Romansa", "Filsafat"]) {
+        await expect(page.getByRole("button", { name: genre, exact: true })).toHaveAttribute("aria-pressed", "true");
+    }
+    await expect(page.getByRole("combobox", { name: "Kabupaten/kota" })).toHaveValue("31.71");
+    await expectNoOverflow(page);
+});

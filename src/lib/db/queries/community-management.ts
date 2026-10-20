@@ -71,6 +71,8 @@ export async function createCommunityApplication(ownerId: string, input: Communi
                 name: input.name,
                 description: input.description,
                 publicLocation: input.publicLocation,
+                regionCode: input.regionCode,
+                interests: input.interests,
                 contactEmail: input.contactEmail,
                 instagramHandle: input.instagramHandle,
                 whatsappNumber: input.whatsappNumber,

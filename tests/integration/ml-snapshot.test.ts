@@ -39,7 +39,7 @@ beforeAll(async () => {
         { id: id(103), provider: "MANUAL", providerId: "m-3", title: "Tanpa Genre", authors: ["Penulis"], categories: ["Earth (planet)"] },
     ]);
     await testDb.insert(schema.communities).values([
-        { id: id(201), ownerId: OWNER, name: "Klub Terverifikasi", status: "VERIFIED", contactEmail: "klub@example.test", publicLocation: "Cikini" },
+        { id: id(201), ownerId: OWNER, name: "Klub Terverifikasi", status: "VERIFIED", contactEmail: "klub@example.test", publicLocation: "Cikini", interests: ["Puisi"], regionCode: "31.71" },
         { id: id(202), ownerId: OWNER, name: "Klub Menunggu", status: "PENDING" },
         { id: id(203), ownerId: OWNER, name: "Klub Ditolak", status: "REJECTED" },
         { id: id(204), ownerId: OWNER, name: "Klub Ditangguhkan", status: "SUSPENDED" },
@@ -79,7 +79,8 @@ describe("ML Service snapshot (TB-055)", () => {
         expect(result.books.map((book) => [book.bookmarkCount, book.listingCount])).toEqual([[2, 1], [1, 0], [0, 1]]);
 
         expect(result.communities.map((community) => community.name)).toEqual(["Klub Terverifikasi"]);
-        expect(Object.keys(result.communities[0]).sort()).toEqual(["description", "id", "name", "updatedAt"]);
+        expect(result.communities[0]).toMatchObject({ interests: ["Puisi"], regionCode: "31.71" });
+        expect(Object.keys(result.communities[0]).sort()).toEqual(["description", "id", "interests", "name", "regionCode", "updatedAt"]);
         expect(result.genres.length).toBeGreaterThan(0);
         expect(Object.keys(result.genres[0]).sort()).toEqual(["label", "slug"]);
     });

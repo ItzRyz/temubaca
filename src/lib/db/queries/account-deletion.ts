@@ -258,7 +258,7 @@ export async function exportUserData(userId: string) {
     const counterpart = alias(userProfiles, "counterpart");
     const listingOwner = alias(userProfiles, "listing_owner");
     const [profile, interests, saved, listings, loans, memberships, sentReports] = await Promise.all([
-        db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, createdAt: true, deletionScheduledFor: true } }),
+        db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, regionCode: true, createdAt: true, deletionScheduledFor: true } }),
         db.select({ subject: userInterests.subject }).from(userInterests).where(eq(userInterests.userId, userId)),
         db.select({ title: books.title, savedAt: bookmarks.createdAt }).from(bookmarks).innerJoin(books, eq(books.id, bookmarks.bookId)).where(eq(bookmarks.userId, userId)),
         db.select({ title: books.title, condition: bookListings.condition, availability: bookListings.availability, publicLocation: bookListings.publicLocation, borrowingRules: bookListings.borrowingRules, createdAt: bookListings.createdAt })

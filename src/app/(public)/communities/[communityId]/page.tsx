@@ -14,6 +14,7 @@ import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
 import { uuidSchema } from "@/lib/validation/common";
 import { colorFor, initialsOf } from "@/features/communities/components/community-card";
+import { regionByCode } from "@/features/regions/regions";
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
@@ -111,10 +112,15 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                     </div>
                     <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 font-semibold text-primary"><BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi</span>
-                        {community.publicLocation && <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-3.5" /> {community.publicLocation}</span>}
+                        {regionByCode(community.regionCode) && <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-3.5" /> {regionByCode(community.regionCode)!.name}</span>}
                         <span className="flex items-center gap-1"><CalendarDays aria-hidden="true" className="size-3.5" /> Bergabung di TemuBaca sejak {monthYear.format(community.createdAt)}</span>
                     </p>
                     <p className="mt-4 max-w-3xl text-sm leading-6 text-foreground/85">{community.description || "Komunitas ini belum menambahkan deskripsi."}</p>
+                    {community.interests.length > 0 && (
+                        <ul aria-label="Minat bacaan" className="mt-3 flex list-none flex-wrap gap-2 p-0">
+                            {community.interests.map((interest) => <li key={interest} className="rounded-full bg-muted px-3 py-1 text-xs font-medium">{interest}</li>)}
+                        </ul>
+                    )}
                     <dl className="mt-5 grid gap-4 rounded-xl border border-border bg-[#faf7f0] p-4 sm:grid-cols-3">
                         <div>
                             <dt className="flex items-center gap-1 text-xs font-semibold text-primary"><MapPin aria-hidden="true" className="size-3.5" /> Titik berkumpul</dt>

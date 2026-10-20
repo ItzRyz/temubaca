@@ -11,6 +11,7 @@ export type ProfileActionState = {
     success: boolean;
     message?: string;
     fieldError?: string;
+    regionError?: string;
 };
 
 export async function updateProfile(
@@ -20,9 +21,12 @@ export async function updateProfile(
     const user = await requireUser();
     const parsed = profileUpdateSchema.safeParse({
         displayName: formData.get("displayName"),
+        regionCode: formData.get("regionCode") ?? undefined,
     });
 
     if (!parsed.success || !parsed.data.displayName) {
+        const regionIssue = parsed.success ? undefined : parsed.error.issues.find((issue) => issue.path[0] === "regionCode");
+        if (regionIssue) return { success: false, regionError: regionIssue.message };
         return {
             success: false,
             fieldError: parsed.success
@@ -42,6 +46,7 @@ export async function updateProfile(
 
         const updated = await updateUserProfile(user.id, {
             displayName: parsed.data.displayName,
+            regionCode: parsed.data.regionCode,
         });
         if (!updated) {
             return { success: false, message: "Profil tidak ditemukan. Muat ulang halaman lalu coba lagi." };
@@ -56,5 +61,5 @@ export async function updateProfile(
     revalidatePath("/profile");
     revalidatePath("/settings");
     revalidatePath("/", "layout");
-    return { success: true, message: "Nama tampilan berhasil diperbarui." };
+    return { success: true, message: "Profil berhasil diperbarui." };
 }

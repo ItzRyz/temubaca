@@ -78,6 +78,8 @@ export async function buildMlSnapshot(
                 id: communities.id,
                 name: communities.name,
                 description: communities.description,
+                interests: communities.interests,
+                regionCode: communities.regionCode,
                 updatedAt: communities.updatedAt,
             })
             .from(communities)

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isKnownKabkota } from "@/features/regions/regions";
+
 import {
     descriptionSchema,
     displayNameSchema,
@@ -95,6 +97,13 @@ export const profileUpdateSchema =
 
             preferences:
                 preferencesSchema.optional(),
+
+            // Optional kab/kota code (R-11); an empty choice clears it.
+            regionCode:
+                z.preprocess(
+                    (value) => (value === "" ? null : value),
+                    z.string().refine(isKnownKabkota, "Pilih kabupaten/kota dari daftar.").nullable(),
+                ).optional(),
         })
         .strict();
 

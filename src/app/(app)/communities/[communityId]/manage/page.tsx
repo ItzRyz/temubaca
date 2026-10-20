@@ -43,7 +43,9 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
                     initial={{
                         name: community.name,
                         description: community.description ?? "",
+                        regionCode: community.regionCode ?? "",
                         publicLocation: community.publicLocation ?? "",
+                        interests: community.interests ?? [],
                         contactEmail: community.contactEmail ?? "",
                         instagramHandle: community.instagramHandle ?? "",
                         whatsappNumber: community.whatsappNumber ? `0${community.whatsappNumber.replace(/^\+62/, "")}` : "",

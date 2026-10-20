@@ -31,6 +31,8 @@ export async function findPublicCommunityProfile(communityId: string) {
             name: communities.name,
             description: communities.description,
             publicLocation: communities.publicLocation,
+            regionCode: communities.regionCode,
+            interests: communities.interests,
             contactEmail: communities.contactEmail,
             instagramHandle: communities.instagramHandle,
             whatsappNumber: communities.whatsappNumber,

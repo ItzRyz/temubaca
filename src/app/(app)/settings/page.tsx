@@ -14,9 +14,9 @@ export default async function SettingsPage() {
             <header className="mt-6">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Pengaturan akun</p>
                 <h1 className="mt-3 font-heading text-4xl font-semibold tracking-tight">Pengaturan profil</h1>
-                <p className="mt-3 text-sm text-muted-foreground">Perbarui nama yang ditampilkan kepada pembaca lain.</p>
+                <p className="mt-3 text-sm text-muted-foreground">Perbarui nama yang ditampilkan kepada pembaca lain dan wilayahmu untuk rekomendasi komunitas.</p>
             </header>
-            <ProfileSettingsForm displayName={user.displayName} />
+            <ProfileSettingsForm displayName={user.displayName} regionCode={user.regionCode} />
         </main>
     );
 }

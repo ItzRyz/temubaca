@@ -13,7 +13,9 @@ import {
     submissionBlocker,
     wibDateTime,
 } from "../../src/features/community-management/rules";
-import { communityApplicationSchema, communityEventSchema, communityMerchandiseSchema } from "../../src/lib/validation/schemas/community-management.schema";
+import { isKnownKabkota, kabkotaOptions, provinceOptions, regionByCode } from "../../src/features/regions/regions";
+import { profileUpdateSchema } from "../../src/lib/validation/common";
+import { communityApplicationSchema, communityEventSchema, communityMerchandiseSchema, communityProfileSchema } from "../../src/lib/validation/schemas/community-management.schema";
 
 describe("who may do what (DEC-04)", () => {
     test("owners edit and manage the team; managers only handle content once verified", () => {
@@ -52,11 +54,50 @@ describe("contact and evidence rules", () => {
     });
 
     test("applications need a valid evidence link", () => {
-        const base = { name: "Klub Buku Menteng", description: "Lingkar pembaca santai yang berkumpul dua pekan sekali.", publicLocation: "Jakarta Pusat", contactEmail: "halo@contoh.org" };
+        const base = {
+            name: "Klub Buku Menteng", description: "Lingkar pembaca santai yang berkumpul dua pekan sekali.", publicLocation: "Jakarta Pusat", contactEmail: "halo@contoh.org",
+            // Kota Administrasi Jakarta Pusat in src/features/regions/data.ts.
+            regionCode: "31.71", interests: ["Puisi"],
+        };
         expect(communityApplicationSchema.safeParse({ ...base, evidenceUrl: "javascript:alert(1)" }).success).toBe(false);
         const parsed = communityApplicationSchema.parse({ ...base, evidenceUrl: "https://instagram.com/klub", instagramHandle: "@klub", whatsappNumber: "" });
         expect(parsed.instagramHandle).toBe("klub");
         expect(parsed.whatsappNumber).toBeNull();
+    });
+
+    test("communities pick 1-5 site genres and a kab/kota from the reference table (ML-04, R-11)", () => {
+        const base = {
+            name: "Klub Buku Menteng", description: "Lingkar pembaca santai yang berkumpul dua pekan sekali.", publicLocation: "Jakarta Pusat",
+            contactEmail: "halo@contoh.org", regionCode: "31.71", interests: ["Puisi"],
+        };
+        const issue = (input: Record<string, unknown>) => communityProfileSchema.safeParse({ ...base, ...input }).error?.issues[0]?.message;
+
+        // Multipart forms send the list as JSON; duplicates collapse.
+        expect(communityProfileSchema.parse({ ...base, interests: JSON.stringify(["Puisi", "Sejarah", "Puisi"]) }).interests).toEqual(["Puisi", "Sejarah"]);
+        expect(issue({ interests: [] })).toBe("Pilih minimal 1 minat bacaan.");
+        expect(issue({ interests: ["Horor"] })).toBe("Pilih minat dari daftar genre.");
+        expect(issue({ interests: ["Puisi", "Sejarah", "Romansa", "Filsafat", "Biografi", "Keluarga"] })).toBe("Pilih maksimal 5 minat bacaan.");
+        expect(issue({ regionCode: "" })).toBe("Pilih kabupaten/kota.");
+        expect(issue({ regionCode: "31.99" })).toBe("Pilih kabupaten/kota dari daftar.");
+        expect(issue({ regionCode: "31" })).toBe("Pilih kabupaten/kota dari daftar.");
+    });
+});
+
+describe("Kemendagri regions (R-11)", () => {
+    test("the reference table has 38 provinces and 514 kab/kota, and lookups follow the code", () => {
+        expect(provinceOptions()).toHaveLength(38);
+        expect(provinceOptions().reduce((total, province) => total + kabkotaOptions(province.code).length, 0)).toBe(514);
+        expect(regionByCode("36.74")).toEqual({ code: "36.74", name: "Kota Tangerang Selatan", provinceCode: "36", provinceName: "Banten" });
+        expect(regionByCode("36.99")).toBeUndefined();
+        expect(isKnownKabkota("32.73")).toBe(true);
+        expect(isKnownKabkota("32-73")).toBe(false);
+    });
+
+    test("profile region is optional and an empty choice clears it", () => {
+        expect(profileUpdateSchema.parse({ regionCode: "" }).regionCode).toBeNull();
+        expect(profileUpdateSchema.parse({ regionCode: "36.74" }).regionCode).toBe("36.74");
+        expect(profileUpdateSchema.parse({}).regionCode).toBeUndefined();
+        expect(profileUpdateSchema.safeParse({ regionCode: "36.99" }).success).toBe(false);
     });
 });
 

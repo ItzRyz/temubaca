@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import { genres } from "@/features/books/genres";
 import { MERCH_PHOTO_LIMIT, MERCH_VARIANT_LIMIT, merchandiseCategories, normalizeInstagram, normalizeWhatsapp } from "@/features/community-management/rules";
+import { isKnownKabkota } from "@/features/regions/regions";
 
 import { uuidSchema } from "../common";
 
@@ -25,11 +27,40 @@ const linkSchema = (label: string) =>
             }
         }, `${label} harus berupa tautan http(s) yang valid.`);
 
+export const COMMUNITY_INTEREST_LIMIT = 5;
+const genreLabels = new Set(genres.map((genre) => genre.label));
+
+/** Multipart forms send the tag list as a JSON string; JSON bodies send the array itself. */
+const jsonArray = (value: unknown) => {
+    if (typeof value !== "string") return value;
+    try {
+        return JSON.parse(value);
+    } catch {
+        return value;
+    }
+};
+
+/** Site genre labels the community reads (ML-04), so they match the interests readers pick. */
+export const communityInterestsSchema = z.preprocess(
+    jsonArray,
+    z.array(z.string().refine((label) => genreLabels.has(label), "Pilih minat dari daftar genre."), { error: "Pilih minimal 1 minat bacaan." })
+        .min(1, "Pilih minimal 1 minat bacaan.")
+        .max(COMMUNITY_INTEREST_LIMIT, `Pilih maksimal ${COMMUNITY_INTEREST_LIMIT} minat bacaan.`)
+        .transform((labels) => [...new Set(labels)]),
+);
+
+/** Kemendagri kab/kota code (R-11) from the region picker. */
+export const regionCodeSchema = z.string({ error: "Pilih kabupaten/kota." }).trim()
+    .min(1, "Pilih kabupaten/kota.")
+    .refine(isKnownKabkota, "Pilih kabupaten/kota dari daftar.");
+
 /** Figma "Kelola Komunitas - Profil Komunitas" (25:5622). */
 export const communityProfileSchema = z.object({
     name: text(3, 50, "Nama komunitas"),
     description: text(20, 1000, "Deskripsi"),
+    regionCode: regionCodeSchema,
     publicLocation: text(3, 120, "Wilayah dan titik pertemuan"),
+    interests: communityInterestsSchema,
     contactEmail: z.string({ error: "Surel kontak wajib diisi." }).trim().max(254).email("Surel kontak tidak valid."),
     instagramHandle: z.string().optional().transform((value, ctx) => {
         const handle = normalizeInstagram(value);

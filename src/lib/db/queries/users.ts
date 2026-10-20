@@ -135,6 +135,7 @@ export async function updateUserProfile(
     input: {
         displayName?: string;
         preferences?: Record<string, unknown>;
+        regionCode?: string | null;
     },
 ) {
     const [user] = await db
@@ -149,6 +150,12 @@ export async function updateUserProfile(
             ...(input.preferences !== undefined
                 ? {
                     preferences: input.preferences,
+                }
+                : {}),
+
+            ...(input.regionCode !== undefined
+                ? {
+                    regionCode: input.regionCode,
                 }
                 : {}),
 

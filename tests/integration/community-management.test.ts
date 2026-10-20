@@ -35,7 +35,10 @@ let verifications: typeof import("../../src/lib/db/queries/verifications");
 const application = (name: string) => ({
     name,
     description: "Lingkar pembaca santai yang berkumpul dua pekan sekali.",
+    // Kota Administrasi Jakarta Pusat in src/features/regions/data.ts.
+    regionCode: "31.71",
     publicLocation: "Jakarta Pusat — Taman Suropati",
+    interests: ["Sastra Indonesia", "Puisi"],
     contactEmail: "halo@contoh.org",
     instagramHandle: "klub",
     whatsappNumber: null,

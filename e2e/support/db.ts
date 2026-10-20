@@ -34,6 +34,11 @@ export async function cleanE2eData() {
             await client.query(`delete from bookmarks where "userId" = any($1::uuid[])`, [users]);
             await client.query(`delete from user_interests where "userId" = any($1::uuid[])`, [users]);
             await client.query(`delete from recommendations where "userId" = any($1::uuid[])`, [users]);
+            // Community applications (memberships, submissions, events and merchandise cascade) and the profile region.
+            const communities = (await client.query(`select id from communities where "ownerId" = any($1::uuid[])`, [users])).rows.map((row) => row.id as string);
+            await client.query(`delete from verifications where "targetType" = 'COMMUNITY' and "targetId" = any($1::uuid[])`, [communities]);
+            await client.query(`delete from communities where id = any($1::uuid[])`, [communities]);
+            await client.query(`update user_profiles set "regionCode" = null where id = any($1::uuid[])`, [users]);
         }
         await client.query("commit");
     } catch (error) {

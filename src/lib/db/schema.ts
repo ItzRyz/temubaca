@@ -72,8 +72,10 @@ export const userProfiles = pgTable('user_profiles', {
     suspendedById: uuid().references((): AnyPgColumn => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     // DEC-11: a deletion request deactivates the account for 14 days, then the retention job anonymises it.
     deletionRequestedAt: nowDate(), deletionScheduledFor: nowDate(), deletedAt: nowDate(), authDeletedAt: nowDate(),
+    // Optional Kemendagri kab/kota code (R-11) for community recommendations; never shown to others.
+    regionCode: text(),
     createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
-}).enableRLS();
+}, t => [check('user_profiles_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`)]).enableRLS();
 
 /** Admin actions on accounts that are not verifications: suspension, role changes, revealing a full email. */
 export const adminAuditLogs = pgTable('admin_audit_logs', {
@@ -193,10 +195,16 @@ export const borrowings = pgTable('borrowings', {
 export const communities = pgTable('communities', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }), name: text().notNull(),
     description: text(), publicLocation: text(), status: enumText(communityStatusValues).notNull().default('PENDING'),
+    // Site genre labels the community reads (ML-04) and its Kemendagri kab/kota code (R-11), both for recommendations.
+    interests: text().array().notNull().default(sql`'{}'::text[]`), regionCode: text(),
     // Public contacts chosen by the owner (DEC-04); shown on the profile and used for merchandise.
     contactEmail: text(), instagramHandle: text(), whatsappNumber: text(),
     createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('communities_owner_id_idx').on(t.ownerId), index('communities_status_idx').on(t.status), index('communities_name_idx').on(t.name), enumCheck(t.status, communityStatusValues)]).enableRLS();
+}, t => [
+    index('communities_owner_id_idx').on(t.ownerId), index('communities_status_idx').on(t.status), index('communities_name_idx').on(t.name), enumCheck(t.status, communityStatusValues),
+    check('communities_interests_check', sql`cardinality(${t.interests}) <= 5`),
+    check('communities_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`),
+]).enableRLS();
 
 /** Evidence sent with a community application or a later re-verification request (DEC-04). */
 export const communitySubmissions = pgTable('community_submissions', {
