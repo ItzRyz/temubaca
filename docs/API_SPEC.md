@@ -62,7 +62,7 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `POST` | `/api/book-listings/[listingId]/appeals` | Pemilik listing | `multipart/form-data`: `reason` (daftar tetap), `details` 10–500 karakter, `file?` (JPG/PNG ≤5 MB, disimpan privat). Hanya untuk listing yang disembunyikan admin; `409` bila masih ada banding yang menunggu; 5 per jam |
 | `GET` | `/api/listing-appeals/[appealId]/file` | Pemilik listing atau admin | Redirect `303` ke URL bertanda tangan 60 detik untuk foto bukti banding |
 | `PATCH` | `/api/admin/listing-appeals/[appealId]` | Admin | `{ decision: APPROVE\|REJECT, note }`. `APPROVE` menampilkan listing lagi dan mencatatnya di `verifications`; alasan tampil ke pemilik. `409` bila sudah diputus |
-| `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku baseline per pengguna; respons hanya memuat field buku publik, alasan, dan status fallback |
+| `GET` | `/api/recommendations` | Wajib login | Rekomendasi buku per pengguna; respons hanya memuat field buku publik, alasan, status `fallback`, `engine` (`ml` bila ML Service dipakai, `baseline` bila belum dikonfigurasi, gagal, atau tidak menemukan kecocokan minat), dan `unmatchedInterests` (minat yang belum dikenali model; kosong untuk baseline) |
 
 Rute kompatibilitas lama `/api/me/bookmarks/[bookId]` dan `/api/me/book-listings...` masih diarahkan ke handler yang sama.
 

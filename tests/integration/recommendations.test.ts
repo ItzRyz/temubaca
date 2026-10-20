@@ -13,6 +13,28 @@ const testDb = drizzle({ client: pg, schema });
 mock.module("server-only", () => ({}));
 mock.module(resolve(import.meta.dir, "../../src/lib/db/client.ts"), () => ({ db: testDb }));
 
+// ML Service stub (TB-056): off by default, so the baseline tests below run unchanged.
+class MlServiceError extends Error {
+    constructor(readonly kind: string) {
+        super(kind);
+    }
+}
+type MlItem = { book_id: string; title: string; score: number | null; reason: string; source: "interest" | "popularity" };
+const ml: { configured: boolean; respond: () => { items: MlItem[]; unmatchedInterests: string[] }; calls: unknown[] } = {
+    configured: false,
+    respond: () => ({ items: [], unmatchedInterests: [] }),
+    calls: [],
+};
+mock.module(resolve(import.meta.dir, "../../src/lib/ml/client.ts"), () => ({
+    ML_MAX_TOP_N: 20,
+    MlServiceError,
+    isMlServiceConfigured: () => ml.configured,
+    recommendBooks: async (input: unknown) => {
+        ml.calls.push(input);
+        return ml.respond();
+    },
+}));
+
 setDefaultTimeout(60_000);
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -85,5 +107,65 @@ describe("book recommendations", () => {
         const facets = await books.listGenreFacets();
         expect(facets[0]).toEqual({ value: "fiksi-sastra", label: "Fiksi Sastra", total: 3 });
         expect(facets.map((facet) => facet.value)).toContain("puisi");
+    });
+});
+
+describe("book recommendations from the ML Service (TB-056)", () => {
+    const UNKNOWN = id(999);
+    const interest = (bookId: string, score: number, reason: string): MlItem => ({ book_id: bookId, title: "x", score, reason, source: "interest" });
+
+    test("keeps the service order, drops saved and unknown books, and maps reasons to saved interests", async () => {
+        ml.configured = true;
+        ml.calls = [];
+        ml.respond = () => ({
+            items: [
+                interest(SAMAN, 0.6, "Sesuai dengan minat: sastra indonesia"),
+                interest(BUMI, 0.5, "Sesuai dengan minat: fiksi sejarah"),
+                interest(UNKNOWN, 0.4, "Sesuai dengan minat: fiksi sejarah"),
+                interest(RUMAH_KACA, 0.3, "Sesuai dengan minat: sastra indonesia, fiksi sejarah"),
+                { book_id: PUISI, title: "x", score: null, reason: "Direkomendasikan berdasarkan popularitas buku", source: "popularity" },
+            ],
+            unmatchedInterests: ["horor"],
+        });
+
+        const result = await recommendations.getBookRecommendations(GENRE_READER);
+
+        expect(ml.calls).toEqual([{ interests: ["Fiksi Sejarah", "Sastra Indonesia"], topN: 20 }]);
+        expect(result.engine).toBe("ml");
+        expect(result.fallback).toBe(false);
+        expect(result.unmatchedInterests).toEqual(["horor"]);
+        // BUMI is bookmarked, UNKNOWN is not in the catalog, PUISI is only a popularity pick.
+        expect(result.items.map((book) => [book.title, book.matched, book.reason])).toEqual([
+            ["Saman", ["Sastra Indonesia"], "Sesuai minat: Sastra Indonesia"],
+            ["Rumah Kaca", ["Fiksi Sejarah", "Sastra Indonesia"], "Sesuai minat: Fiksi Sejarah, Sastra Indonesia"],
+        ]);
+    });
+
+    test("falls back to the baseline when the service fails or finds no interest match", async () => {
+        ml.configured = true;
+        const baseline = [["Rumah Kaca", ["Fiksi Sejarah", "Sastra Indonesia"]], ["Saman", ["Sastra Indonesia"]]];
+
+        ml.respond = () => {
+            throw new MlServiceError("timeout");
+        };
+        const failed = await recommendations.getBookRecommendations(GENRE_READER);
+        expect(failed.engine).toBe("baseline");
+        expect(failed.items.map((book) => [book.title, book.matched])).toEqual(baseline);
+
+        ml.respond = () => ({ items: [{ book_id: PUISI, title: "x", score: null, reason: "popularitas", source: "popularity" }], unmatchedInterests: [] });
+        const empty = await recommendations.getBookRecommendations(GENRE_READER);
+        expect(empty.engine).toBe("baseline");
+        expect(empty.items.map((book) => [book.title, book.matched])).toEqual(baseline);
+    });
+
+    test("does not call the service for a reader without interests", async () => {
+        ml.configured = true;
+        ml.calls = [];
+
+        const result = await recommendations.getBookRecommendations(NEW_READER);
+
+        expect(ml.calls).toEqual([]);
+        expect(result.engine).toBe("baseline");
+        expect(result.fallback).toBe(true);
     });
 });

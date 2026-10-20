@@ -19,5 +19,5 @@ export const GET = withApiHandler(async () => {
         reason,
     }));
 
-    return apiSuccess({ items, fallback: result.fallback });
+    return apiSuccess({ items, fallback: result.fallback, engine: result.engine, unmatchedInterests: result.unmatchedInterests });
 });

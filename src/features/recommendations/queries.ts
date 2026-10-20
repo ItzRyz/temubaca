@@ -1,10 +1,11 @@
 import "server-only";
 
-import { and, eq, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, or, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
 import { books, bookmarks } from "@/lib/db/schema";
 import { listUserInterests } from "@/lib/db/queries/interests";
+import { isMlServiceConfigured, ML_MAX_TOP_N, MlServiceError, recommendBooks, type MlBookRecommendation } from "@/lib/ml/client";
 
 import { genreForInterest, matchInterests } from "./matching";
 
@@ -16,6 +17,65 @@ function interestCondition(subject: string) {
         : sql`exists (select 1 from unnest(${books.categories}) as subject where lower(trim(subject)) = ${subject.trim().toLocaleLowerCase("en")})`;
 }
 
+const RECOMMENDATION_LIMIT = 12;
+const ML_REASON_PREFIX = "Sesuai dengan minat: ";
+
+const bookColumns = {
+    id: books.id,
+    title: books.title,
+    authors: books.authors,
+    categories: books.categories,
+    coverUrl: books.coverUrl,
+};
+
+/** Saved interests the ML reason names; the ML Service casefolds and trims interests before matching. */
+function interestsNamedIn(reason: string, subjects: string[]) {
+    if (!reason.startsWith(ML_REASON_PREFIX)) return [];
+    const named = new Set(reason.slice(ML_REASON_PREFIX.length).split(", "));
+    return subjects.filter((subject) => named.has(subject.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID")));
+}
+
+/**
+ * Interest matches from the ML Service, in its order, as catalog rows. Popularity items are ignored
+ * for now: production has no bookmark or listing counts yet, so that order carries no signal.
+ * Returns null when the service is not configured, fails, or finds no interest match.
+ */
+async function mlRecommendations(subjects: string[], savedIds: string[]) {
+    if (!subjects.length || !isMlServiceConfigured()) return null;
+
+    let result: { items: MlBookRecommendation[]; unmatchedInterests: string[] };
+    try {
+        result = await recommendBooks({ interests: subjects, topN: ML_MAX_TOP_N });
+    } catch (error) {
+        // Only the failure kind is logged, never the interests.
+        console.error("[ML_SERVICE_ERROR]", { kind: error instanceof MlServiceError ? error.kind : "unknown" });
+        return null;
+    }
+
+    const saved = new Set(savedIds);
+    const picks = result.items.filter((item) => item.source === "interest" && !saved.has(item.book_id));
+    if (!picks.length) return null;
+
+    // The model can be older than the catalog: ids no longer in the database are dropped.
+    const rows = await db.select(bookColumns).from(books).where(inArray(books.id, picks.map((item) => item.book_id)));
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const items = picks
+        .flatMap((item) => {
+            const book = byId.get(item.book_id);
+            if (!book) return [];
+            const matched = interestsNamedIn(item.reason, subjects);
+            return [{
+                ...book,
+                matched,
+                score: item.score ?? 0,
+                reason: matched.length ? `Sesuai minat: ${matched.join(", ")}` : item.reason,
+            }];
+        })
+        .slice(0, RECOMMENDATION_LIMIT);
+
+    return items.length ? { items, unmatchedInterests: result.unmatchedInterests } : null;
+}
+
 export async function getBookRecommendations(userId: string) {
     const [interests, savedBooks] = await Promise.all([
         listUserInterests(userId),
@@ -24,21 +84,24 @@ export async function getBookRecommendations(userId: string) {
             .where(eq(bookmarks.userId, userId)),
     ]);
     const savedIds = savedBooks.map(({ bookId }) => bookId);
+    const subjects = interests.map(({ subject }) => subject);
+
+    const ml = await mlRecommendations(subjects, savedIds);
+    if (ml) return { interests, items: ml.items, fallback: false, engine: "ml" as const, unmatchedInterests: ml.unmatchedInterests };
+
+    return { ...(await baselineRecommendations(subjects, savedIds)), interests, engine: "baseline" as const, unmatchedInterests: [] as string[] };
+}
+
+/** TB-040 baseline: genre patterns against provider subjects, newest catalog books when nothing matches. */
+async function baselineRecommendations(subjects: string[], savedIds: string[]) {
     const unsaved = savedIds.length ? notInArray(books.id, savedIds) : undefined;
     const selectCatalog = (where: ReturnType<typeof and>, limit: number) => db
-        .select({
-            id: books.id,
-            title: books.title,
-            authors: books.authors,
-            categories: books.categories,
-            coverUrl: books.coverUrl,
-        })
+        .select(bookColumns)
         .from(books)
         .where(where)
         .orderBy(books.title)
         .limit(limit);
 
-    const subjects = interests.map(({ subject }) => subject);
     const candidates = subjects.length ? await selectCatalog(and(unsaved, or(...subjects.map(interestCondition))), 250) : [];
     const matches = candidates
         .map((book) => {
@@ -47,17 +110,16 @@ export async function getBookRecommendations(userId: string) {
         })
         .filter((book) => book.score > 0)
         .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
-        .slice(0, 12)
+        .slice(0, RECOMMENDATION_LIMIT)
         .map((book) => ({
             ...book,
             reason: `Sesuai minat: ${book.matched.join(", ")}`,
         }));
 
-    if (matches.length > 0) return { interests, items: matches, fallback: false };
+    if (matches.length > 0) return { items: matches, fallback: false };
 
-    const catalog = await selectCatalog(and(unsaved), 12);
+    const catalog = await selectCatalog(and(unsaved), RECOMMENDATION_LIMIT);
     return {
-        interests,
         items: catalog.map((book) => ({
             ...book,
             matched: [] as string[],
