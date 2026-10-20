@@ -16,7 +16,7 @@ mock.module(resolve(import.meta.dir, "../../src/lib/db/client.ts"), () => ({ db:
 setDefaultTimeout(60_000);
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const OWNER = id(1);
+const OWNER = id(1), READER = id(2);
 let snapshot: typeof import("../../src/features/recommendations/snapshot");
 
 beforeAll(async () => {
@@ -26,7 +26,10 @@ beforeAll(async () => {
         for (const statement of sql.split("--> statement-breakpoint").map((part) => part.trim()).filter(Boolean)) await pg.exec(statement);
     }
 
-    await testDb.insert(schema.userProfiles).values({ id: OWNER, displayName: "Pengurus" });
+    await testDb.insert(schema.userProfiles).values([
+        { id: OWNER, displayName: "Pengurus" },
+        { id: READER, displayName: "Pembaca" },
+    ]);
     await testDb.insert(schema.books).values([
         {
             id: id(101), provider: "OPEN_LIBRARY", providerId: "OL1W", title: "Rumah Kaca", authors: ["Pramoedya Ananta Toer"],
@@ -40,6 +43,16 @@ beforeAll(async () => {
         { id: id(202), ownerId: OWNER, name: "Klub Menunggu", status: "PENDING" },
         { id: id(203), ownerId: OWNER, name: "Klub Ditolak", status: "REJECTED" },
         { id: id(204), ownerId: OWNER, name: "Klub Ditangguhkan", status: "SUSPENDED" },
+    ]);
+    await testDb.insert(schema.bookmarks).values([
+        { userId: OWNER, bookId: id(101) },
+        { userId: READER, bookId: id(101) },
+        { userId: READER, bookId: id(102) },
+    ]);
+    await testDb.insert(schema.bookListings).values([
+        { ownerId: OWNER, bookId: id(101), condition: "GOOD" },
+        { ownerId: READER, bookId: id(101), condition: "FAIR", hiddenAt: new Date(), hiddenReason: "Uji moderasi" },
+        { ownerId: READER, bookId: id(103), condition: "NEW" },
     ]);
     snapshot = await import("../../src/features/recommendations/snapshot");
 });
@@ -56,11 +69,14 @@ describe("ML Service snapshot (TB-055)", () => {
         expect(result.nextCursor).toBeNull();
         expect(result.books.map((book) => book.id)).toEqual([id(101), id(102), id(103)]);
         expect(Object.keys(result.books[0]).sort()).toEqual([
-            "authors", "categories", "description", "genres", "id", "isbn", "language", "provider", "publishedAt", "publisher", "title", "updatedAt",
+            "authors", "bookmarkCount", "categories", "description", "genres", "id", "isbn", "language", "listingCount", "provider", "publishedAt", "publisher", "title", "updatedAt",
         ]);
         expect(result.books[0].genres).toEqual(expect.arrayContaining(["Sastra Indonesia", "Fiksi Sejarah"]));
         expect(result.books[1].genres).toContain("Puisi");
         expect(result.books[2].genres).toEqual([]);
+
+        // Aggregate counts only; the moderator-hidden listing is not counted.
+        expect(result.books.map((book) => [book.bookmarkCount, book.listingCount])).toEqual([[2, 1], [1, 0], [0, 1]]);
 
         expect(result.communities.map((community) => community.name)).toEqual(["Klub Terverifikasi"]);
         expect(Object.keys(result.communities[0]).sort()).toEqual(["description", "id", "name", "updatedAt"]);
