@@ -8,6 +8,8 @@ import { countUpcomingPublicEvents, listUpcomingPublicEvents } from "@/lib/db/qu
 import { CatalogPagination } from "@/features/books/components/catalog-pagination";
 import { CommunityCard } from "@/features/communities/components/community-card";
 import { HomeEvents } from "@/features/home/components/home-events";
+import { CommunityRecommendations } from "@/features/recommendations/components/community-recommendations";
+import { getCommunityRecommendations } from "@/features/recommendations/community-queries";
 import { EmptyState, SectionHeader } from "@/features/home/components/section-header";
 import { publicCommunityQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
 
@@ -46,6 +48,8 @@ export default async function CommunitiesPage({ searchParams }: CommunitiesPageP
         showEvents ? countUpcomingPublicEvents(new Date(), q) : Promise.resolve(0),
         getCurrentUser(),
     ]);
+    // Signed-in readers see their picks on the first, unfiltered page only (TB-060).
+    const recommended = user && page === 1 && !q ? await getCommunityRecommendations(user.id) : null;
     const totalPages = Math.ceil(total / PAGE_SIZE);
     const pageHref = (nextPage: number) => {
         const search = new URLSearchParams();
@@ -78,6 +82,14 @@ export default async function CommunitiesPage({ searchParams }: CommunitiesPageP
                     {!parsed.success && <p role="alert" className="mt-3 text-sm text-destructive">Parameter pencarian atau halaman tidak valid.</p>}
                 </div>
             </section>
+
+            {recommended && (
+                <div className="px-4 pt-8 sm:px-9">
+                    <div className="mx-auto max-w-[1208px]">
+                        <CommunityRecommendations id="community-recommendations-title" recommendations={recommended} />
+                    </div>
+                </div>
+            )}
 
             <section aria-labelledby="communities-title" className="px-4 py-8 sm:px-9">
                 <div className="mx-auto flex max-w-[1208px] flex-col gap-6">

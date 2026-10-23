@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, ChevronRight, MapPin } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChevronRight, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { ReportForm } from "@/features/reports/components/report-form";
@@ -24,7 +24,8 @@ export function colorFor(id: string) {
     return avatarColors[hash % avatarColors.length];
 }
 
-export function CommunityCard({ community, isAuthenticated }: { community: CommunityCardData; isAuthenticated: boolean }) {
+/** `reason` is set when the card is a recommendation (TB-060). */
+export function CommunityCard({ community, isAuthenticated, reason }: { community: CommunityCardData; isAuthenticated: boolean; reason?: string }) {
     return (
         <article className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-[0_4px_16px_rgba(31,41,36,0.06)]">
             <div className="flex items-start gap-3">
@@ -42,6 +43,11 @@ export function CommunityCard({ community, isAuthenticated }: { community: Commu
                     )}
                 </div>
             </div>
+            {reason && (
+                <p className="mt-4 flex items-start gap-1.5 rounded-lg bg-[#e7efe8] px-3 py-2 text-xs leading-5 font-medium text-primary">
+                    <Sparkles aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> {reason}
+                </p>
+            )}
             <p className="mt-4 line-clamp-3 text-sm leading-[22px] text-muted-foreground">
                 {community.description || "Belum ada deskripsi komunitas."}
             </p>

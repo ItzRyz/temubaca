@@ -451,3 +451,48 @@ export async function listCommunityManagers(communityId: string, ownerId: string
     const others = rows.filter((row) => row.userId !== ownerId).map((row) => ({ ...row, role: "MANAGER" as const }));
     return owner ? [{ ...owner, role: "OWNER" as const }, ...others] : others;
 }
+
+/**
+ * VERIFIED communities with interest tags and a kab/kota that the user neither owns nor has joined or
+ * asked to join (TB-060). `ids` narrows the list to ML Service picks; without it this is the baseline pool.
+ */
+export async function listRecommendableCommunities(userId: string, ids?: string[]) {
+    if (ids && ids.length === 0) return [];
+
+    return db
+        .select({
+            id: communities.id,
+            name: communities.name,
+            description: communities.description,
+            publicLocation: communities.publicLocation,
+            regionCode: communities.regionCode,
+            interests: communities.interests,
+            activeMemberCount: sql<number>`(
+                select count(*)::int from ${communityMemberships}
+                where "community_memberships"."communityId" = "communities"."id"
+                and "community_memberships"."status" = 'ACTIVE'
+            )`,
+            upcomingEventCount: sql<number>`(
+                select count(*)::int from ${events}
+                where "events"."communityId" = "communities"."id"
+                and "events"."publicationStatus" = 'PUBLISHED'
+                and "events"."startsAt" >= now()
+            )`,
+        })
+        .from(communities)
+        .where(and(
+            eq(communities.status, "VERIFIED"),
+            isNotNull(communities.regionCode),
+            sql`cardinality(${communities.interests}) > 0`,
+            sql`${communities.ownerId} <> ${userId}`,
+            sql`not exists (
+                select 1 from ${communityMemberships}
+                where "community_memberships"."communityId" = "communities"."id"
+                and "community_memberships"."userId" = ${userId}
+                and "community_memberships"."status" in ('PENDING', 'ACTIVE')
+            )`,
+            ids ? inArray(communities.id, ids) : undefined,
+        ))
+        .orderBy(asc(communities.id))
+        .limit(500);
+}

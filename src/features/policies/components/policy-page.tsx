@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export const POLICY_UPDATED_AT = "20 Oktober 2026";
+export const POLICY_UPDATED_AT = "23 Oktober 2026";
 
 const policyLinks = [
     { href: "/terms", label: "Syarat Layanan" },

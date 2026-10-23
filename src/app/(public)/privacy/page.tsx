@@ -35,7 +35,7 @@ export default function PrivacyPage() {
             </PolicySection>
 
             <PolicySection title="Layanan yang kami pakai">
-                <p>Data disimpan di Supabase (database, autentikasi, dan penyimpanan berkas) dan aplikasi dijalankan di Vercel. Keduanya berada di region Singapura. Pembatasan percobaan memakai Upstash. Data buku diambil dari Open Library dan Google Books. Pencarian katalog dikirim ke layanan tersebut tanpa data akunmu. Rekomendasi buku dihitung oleh layanan rekomendasi TemuBaca di FastAPI Cloud (region Amerika Serikat): yang dikirim hanya minat bacaan yang kamu simpan, tanpa nama, surel, atau identitas akun.</p>
+                <p>Data disimpan di Supabase (database, autentikasi, dan penyimpanan berkas) dan aplikasi dijalankan di Vercel. Keduanya berada di region Singapura. Pembatasan percobaan memakai Upstash. Data buku diambil dari Open Library dan Google Books. Pencarian katalog dikirim ke layanan tersebut tanpa data akunmu. Rekomendasi buku dan komunitas dihitung oleh layanan rekomendasi TemuBaca di FastAPI Cloud (region Amerika Serikat): yang dikirim hanya minat bacaan yang kamu simpan dan, untuk rekomendasi komunitas, kode kabupaten/kota di profilmu bila kamu mengisinya. Nama, surel, identitas akun, dan lokasi presisi tidak dikirim.</p>
             </PolicySection>
 
             <PolicySection title="Berapa lama data disimpan">

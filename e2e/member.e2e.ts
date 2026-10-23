@@ -175,3 +175,28 @@ test("a community application carries reading interests and a kab/kota (ML-04, R
     await expect(page.getByRole("combobox", { name: "Kabupaten/kota" })).toHaveValue("31.71");
     await expectNoOverflow(page);
 });
+
+test("dashboard and communities suggest communities once interests or a region are set (TB-060)", async ({ page }) => {
+    const section = page.getByRole("region", { name: "Komunitas untukmu" });
+    await page.goto("/dashboard");
+    await expect(section.getByText(/agar kami bisa menyarankan komunitas/)).toBeVisible();
+
+    await page.goto("/settings");
+    await page.getByRole("combobox", { name: "Provinsi" }).selectOption({ label: "Banten" });
+    await page.getByRole("combobox", { name: "Kabupaten/kota" }).selectOption({ label: "Kota Tangerang Selatan" });
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await expect(page.getByText("Profil berhasil diperbarui.")).toBeVisible();
+
+    // Which communities match depends on the database, so either outcome is accepted, but not the prompt.
+    for (const path of ["/dashboard", "/communities"]) {
+        await page.goto(path);
+        await expect(section.getByRole("listitem").first().or(section.getByText(/Belum ada komunitas yang cocok/))).toBeVisible();
+        await expect(section.getByText(/agar kami bisa menyarankan komunitas/)).toHaveCount(0);
+        await expectNoOverflow(page);
+    }
+
+    await page.goto("/settings");
+    await page.getByRole("combobox", { name: "Kabupaten/kota" }).selectOption({ label: "Tidak diisi" });
+    await page.getByRole("button", { name: "Simpan perubahan" }).click();
+    await expect(page.getByText("Profil berhasil diperbarui.")).toBeVisible();
+});

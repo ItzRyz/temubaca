@@ -7,17 +7,20 @@ import { countUserBookListings } from "@/lib/db/queries/books";
 import { countUserInterests } from "@/lib/db/queries/interests";
 import { listLoansForUser } from "@/lib/db/queries/borrowing";
 import { loanGroup } from "@/features/borrowing/lifecycle";
+import { CommunityRecommendations } from "@/features/recommendations/components/community-recommendations";
+import { getCommunityRecommendations } from "@/features/recommendations/community-queries";
 
 export default async function DashboardPage() {
     const user = await getCurrentUser();
     if (!user) return redirectToLogin();
 
     const now = new Date();
-    const [bookmarks, listings, interests, loans] = await Promise.all([
+    const [bookmarks, listings, interests, loans, communityRecommendations] = await Promise.all([
         countUserBookmarks(user.id),
         countUserBookListings(user.id),
         countUserInterests(user.id),
         listLoansForUser(user.id, now),
+        getCommunityRecommendations(user.id),
     ]);
     const ongoing = (state: string) => state === "ACTIVE" || state === "OVERDUE" || state === "DISPUTED";
     const needsAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action");
@@ -83,6 +86,10 @@ export default async function DashboardPage() {
                     <p className="mt-4 text-sm text-muted-foreground">{loans.length > 0 ? "Tidak ada pinjaman yang menunggu tindakanmu." : "Belum ada pinjaman. Ajukan pinjam dari halaman buku, atau tawarkan bukumu di Buku Saya."}</p>
                 )}
             </section>
+
+            <div className="mt-10">
+                <CommunityRecommendations id="community-recommendations-title" recommendations={communityRecommendations} />
+            </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/books" className="min-h-11 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Jelajahi buku</Link>
