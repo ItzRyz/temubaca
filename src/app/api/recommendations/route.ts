@@ -10,14 +10,15 @@ export const GET = withApiHandler(async () => {
     });
 
     const result = await getBookRecommendations(user.id);
-    const items = result.items.map(({ id, title, authors, categories, coverUrl, reason }) => ({
+    const items = result.items.map(({ id, title, authors, categories, coverUrl, reason, source }) => ({
         id,
         title,
         authors,
         categories,
         coverUrl,
         reason,
+        source,
     }));
 
-    return apiSuccess({ items, fallback: result.fallback, engine: result.engine, unmatchedInterests: result.unmatchedInterests });
+    return apiSuccess({ items, fallback: result.fallback, state: result.state, engine: result.engine, unmatchedInterests: result.unmatchedInterests });
 });

@@ -23,3 +23,14 @@ export function matchInterests(categories: string[], interests: string[]) {
         return subjects.includes(exact);
     });
 }
+
+/** Casefold the way the ML Service normalizes interests before it echoes them back. */
+export function foldInterest(value: string) {
+    return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID");
+}
+
+/** Saved interests behind the ML Service's normalized `unmatched_interests`, in saved order (TB-059). */
+export function savedInterestsNamed(normalized: string[], subjects: string[]) {
+    const names = new Set(normalized.map(foldInterest));
+    return subjects.filter((subject) => names.has(foldInterest(subject)));
+}

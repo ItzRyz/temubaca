@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { communityReason, locationScore, rankCommunities, sharedInterests } from "../../src/features/recommendations/community-matching";
+import { savedInterestsNamed } from "../../src/features/recommendations/matching";
 import { MlServiceError, recommendBooks } from "../../src/lib/ml/books";
 import { recommendCommunities } from "../../src/lib/ml/communities";
 
@@ -123,5 +124,13 @@ describe("community matching rules (TB-060)", () => {
             { id: "d", interests: ["Puisi", "Sejarah"], regionCode: "36.74" },
         ]);
         expect(ranked.map((item) => [item.community.id, Number(item.score.toFixed(4))])).toEqual([["d", 1], ["a", 0.495], ["b", 0.15]]);
+    });
+});
+
+describe("unmatched interests (TB-059)", () => {
+    test("map the service's casefolded echo back to the saved interests", () => {
+        expect(savedInterestsNamed(["horor", "anak & remaja"], ["Anak & Remaja", "Horor", "Puisi"])).toEqual(["Anak & Remaja", "Horor"]);
+        expect(savedInterestsNamed(["fiksi  sejarah "], ["Fiksi Sejarah"])).toEqual(["Fiksi Sejarah"]);
+        expect(savedInterestsNamed(["tidak disimpan"], ["Puisi"])).toEqual([]);
     });
 });

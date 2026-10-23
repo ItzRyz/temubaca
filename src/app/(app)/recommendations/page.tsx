@@ -1,6 +1,7 @@
 
 import { InterestManager } from "@/features/recommendations/components/interest-manager";
 import { RecommendationList } from "@/features/recommendations/components/recommendation-list";
+import { RecommendationNotice } from "@/features/recommendations/components/recommendation-notice";
 import { getBookRecommendations } from "@/features/recommendations/queries";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
@@ -20,6 +21,7 @@ export default async function RecommendationsPage() {
                 : "Rekomendasi dasar dihitung dari kecocokan genre buku dengan minat yang kamu simpan."}</p>
             <InterestManager interests={result.interests} suggestions={facets.map((facet) => ({ slug: facet.value, label: facet.label }))} />
             <h2 className="mt-10 font-heading text-2xl font-semibold">{result.fallback ? "Pilihan terbaru" : "Pilihan untukmu"}</h2>
+            <RecommendationNotice state={result.state} unmatchedInterests={result.unmatchedInterests} className="mt-4" />
             <RecommendationList items={result.items} />
         </main>
     );

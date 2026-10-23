@@ -7,7 +7,7 @@ import { books, bookmarks } from "@/lib/db/schema";
 import { listUserInterests } from "@/lib/db/queries/interests";
 import { isMlServiceConfigured, ML_MAX_TOP_N, MlServiceError, recommendBooks, type MlBookRecommendation } from "@/lib/ml/client";
 
-import { genreForInterest, matchInterests } from "./matching";
+import { foldInterest, genreForInterest, matchInterests, savedInterestsNamed } from "./matching";
 
 /** SQL twin of matchInterests: a genre interest uses its pattern, a raw subject (older interests) matches exactly. */
 function interestCondition(subject: string) {
@@ -32,8 +32,14 @@ const bookColumns = {
 function interestsNamedIn(reason: string, subjects: string[]) {
     if (!reason.startsWith(ML_REASON_PREFIX)) return [];
     const named = new Set(reason.slice(ML_REASON_PREFIX.length).split(", "));
-    return subjects.filter((subject) => named.has(subject.trim().replace(/\s+/g, " ").toLocaleLowerCase("id-ID")));
+    return subjects.filter((subject) => named.has(foldInterest(subject)));
 }
+
+/**
+ * What the page tells the reader (TB-059): no interests saved yet, interests saved but only catalog
+ * picks to show, or matches.
+ */
+export type BookRecommendationState = "needs_interests" | "no_match" | "ok";
 
 /**
  * Interest matches from the ML Service, in its order, as catalog rows. Popularity items are ignored
@@ -67,13 +73,15 @@ async function mlRecommendations(subjects: string[], savedIds: string[]) {
             return [{
                 ...book,
                 matched,
+                source: "interest" as const,
                 score: item.score ?? 0,
                 reason: matched.length ? `Sesuai minat: ${matched.join(", ")}` : item.reason,
             }];
         })
         .slice(0, RECOMMENDATION_LIMIT);
 
-    return items.length ? { items, unmatchedInterests: result.unmatchedInterests } : null;
+    // The service echoes unknown interests casefolded; show them as the reader saved them.
+    return items.length ? { items, unmatchedInterests: savedInterestsNamed(result.unmatchedInterests, subjects) } : null;
 }
 
 export async function getBookRecommendations(userId: string) {
@@ -87,9 +95,13 @@ export async function getBookRecommendations(userId: string) {
     const subjects = interests.map(({ subject }) => subject);
 
     const ml = await mlRecommendations(subjects, savedIds);
-    if (ml) return { interests, items: ml.items, fallback: false, engine: "ml" as const, unmatchedInterests: ml.unmatchedInterests };
+    if (ml) {
+        return { interests, items: ml.items, fallback: false, state: "ok" as BookRecommendationState, engine: "ml" as const, unmatchedInterests: ml.unmatchedInterests };
+    }
 
-    return { ...(await baselineRecommendations(subjects, savedIds)), interests, engine: "baseline" as const, unmatchedInterests: [] as string[] };
+    const baseline = await baselineRecommendations(subjects, savedIds);
+    const state: BookRecommendationState = !subjects.length ? "needs_interests" : baseline.fallback ? "no_match" : "ok";
+    return { ...baseline, interests, state, engine: "baseline" as const, unmatchedInterests: [] as string[] };
 }
 
 /** TB-040 baseline: genre patterns against provider subjects, newest catalog books when nothing matches. */
@@ -106,7 +118,7 @@ async function baselineRecommendations(subjects: string[], savedIds: string[]) {
     const matches = candidates
         .map((book) => {
             const matched = matchInterests(book.categories, subjects);
-            return { ...book, matched, score: matched.length };
+            return { ...book, matched, source: "interest" as const, score: matched.length };
         })
         .filter((book) => book.score > 0)
         .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
@@ -123,6 +135,7 @@ async function baselineRecommendations(subjects: string[], savedIds: string[]) {
         items: catalog.map((book) => ({
             ...book,
             matched: [] as string[],
+            source: "catalog" as const,
             score: 0,
             reason: "Pilihan dari katalog TemuBaca; belum ada kecocokan minat yang cukup.",
         })),

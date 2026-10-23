@@ -115,10 +115,22 @@ describe("book recommendations", () => {
     test("genre interests match through the genre pattern, best match first, with the genre label as reason", async () => {
         const result = await recommendations.getBookRecommendations(GENRE_READER);
         expect(result.fallback).toBe(false);
-        expect(result.items.map((book) => [book.title, book.matched])).toEqual([
-            ["Rumah Kaca", ["Fiksi Sejarah", "Sastra Indonesia"]],
-            ["Saman", ["Sastra Indonesia"]],
+        expect(result.state).toBe("ok");
+        expect(result.items.map((book) => [book.title, book.matched, book.source])).toEqual([
+            ["Rumah Kaca", ["Fiksi Sejarah", "Sastra Indonesia"], "interest"],
+            ["Saman", ["Sastra Indonesia"], "interest"],
         ]);
+    });
+
+    test("interests with no matching book leave only catalog picks", async () => {
+        await testDb.insert(schema.userInterests).values({ userId: NEW_READER, subject: "Horor" });
+        try {
+            const result = await recommendations.getBookRecommendations(NEW_READER);
+            expect(result.state).toBe("no_match");
+            expect(result.items.every((book) => book.source === "catalog")).toBe(true);
+        } finally {
+            await testDb.delete(schema.userInterests).where(eq(schema.userInterests.userId, NEW_READER));
+        }
     });
 
     test("an interest saved as a raw provider subject still matches exactly", async () => {
@@ -130,8 +142,9 @@ describe("book recommendations", () => {
     test("without interests the catalog is the fallback", async () => {
         const result = await recommendations.getBookRecommendations(NEW_READER);
         expect(result.fallback).toBe(true);
+        expect(result.state).toBe("needs_interests");
         expect(result.items.map((book) => book.title)).toEqual(["Aku Ingin", "Bumi Manusia", "Rumah Kaca", "Saman"]);
-        expect(result.items.every((book) => book.matched.length === 0)).toBe(true);
+        expect(result.items.every((book) => book.matched.length === 0 && book.source === "catalog")).toBe(true);
     });
 
     test("genre suggestions are the catalog's genres, most common first", async () => {
@@ -156,7 +169,8 @@ describe("book recommendations from the ML Service (TB-056)", () => {
                 interest(RUMAH_KACA, 0.3, "Sesuai dengan minat: sastra indonesia, fiksi sejarah"),
                 { book_id: PUISI, title: "x", score: null, reason: "Direkomendasikan berdasarkan popularitas buku", source: "popularity" },
             ],
-            unmatchedInterests: ["horor"],
+            // Echoed casefolded; "horor" is not a saved interest of this reader and is dropped.
+            unmatchedInterests: ["fiksi sejarah", "horor"],
         });
 
         const result = await recommendations.getBookRecommendations(GENRE_READER);
@@ -164,7 +178,9 @@ describe("book recommendations from the ML Service (TB-056)", () => {
         expect(ml.calls).toEqual([{ interests: ["Fiksi Sejarah", "Sastra Indonesia"], topN: 20 }]);
         expect(result.engine).toBe("ml");
         expect(result.fallback).toBe(false);
-        expect(result.unmatchedInterests).toEqual(["horor"]);
+        expect(result.state).toBe("ok");
+        expect(result.unmatchedInterests).toEqual(["Fiksi Sejarah"]);
+        expect(result.items.every((book) => book.source === "interest")).toBe(true);
         // BUMI is bookmarked, UNKNOWN is not in the catalog, PUISI is only a popularity pick.
         expect(result.items.map((book) => [book.title, book.matched, book.reason])).toEqual([
             ["Saman", ["Sastra Indonesia"], "Sesuai minat: Sastra Indonesia"],

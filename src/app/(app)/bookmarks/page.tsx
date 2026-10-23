@@ -8,6 +8,7 @@ import { listSavedBooks } from "@/lib/db/queries/bookmarks";
 import { listGenreFacets } from "@/lib/db/queries/books";
 import { listUserInterests } from "@/lib/db/queries/interests";
 import { getBookRecommendations } from "@/features/recommendations/queries";
+import { RecommendationNotice, RecommendationSource } from "@/features/recommendations/components/recommendation-notice";
 import { BookmarkButton } from "@/features/bookmarks/components/bookmark-button";
 import { ClearDataDialog } from "@/features/bookmarks/components/clear-data-dialog";
 import { DeleteAccountDialog } from "@/features/account-deletion/components/delete-account-dialog";
@@ -213,7 +214,7 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                         <ul className="mt-4 flex list-none flex-col divide-y divide-border border-t border-border p-0 text-sm">
                             <li className="flex gap-3 py-3"><Sparkles aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Minat dicocokkan dengan genre buku</span><span className="text-xs text-muted-foreground">Buku yang cocok dengan lebih banyak minat Anda diurutkan lebih dulu.</span></span></li>
                             <li className="flex gap-3 py-3"><Bookmark aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /><span><span className="block font-medium">Buku yang sudah disimpan tidak direkomendasikan ulang</span><span className="text-xs text-muted-foreground">Pengaturan memakai bookmark sebagai sinyal rekomendasi belum tersedia.</span></span></li>
-                            <li className="flex gap-3 py-3"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span><span className="block font-medium">Lokasi tidak dipakai</span><span className="text-xs text-muted-foreground">Rekomendasi berbasis lokasi umum menunggu kebijakan lokasi (DEC-07).</span></span></li>
+                            <li className="flex gap-3 py-3"><Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><span><span className="block font-medium">Lokasi tidak dipakai untuk buku</span><span className="text-xs text-muted-foreground">Wilayah kabupaten/kota di profil hanya dipakai untuk rekomendasi komunitas.</span></span></li>
                         </ul>
                     </section>
 
@@ -221,12 +222,13 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
                             <div>
                                 <h2 id="recs-title" className="font-heading text-xl font-semibold">Rekomendasi untuk Anda</h2>
-                                <p className="text-sm text-muted-foreground">{recommendations?.fallback ? "Belum ada buku yang cocok dengan minat Anda; berikut pilihan dari katalog." : "Beginilah minat Anda dipakai."}</p>
+                                <p className="text-sm text-muted-foreground">Beginilah minat Anda dipakai.</p>
                             </div>
                             <Link href="/recommendations" className="inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-primary hover:underline">
                                 Lihat semua rekomendasi <ArrowRight aria-hidden="true" className="size-3.5" />
                             </Link>
                         </div>
+                        {recommendations && <RecommendationNotice state={recommendations.state} unmatchedInterests={recommendations.unmatchedInterests} className="mt-4" />}
                         {recommendations && recommendations.items.length > 0 ? (
                             <ul className="mt-4 grid list-none gap-4 p-0 md:grid-cols-3">
                                 {recommendations.items.slice(0, 3).map((book) => (
@@ -241,9 +243,10 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                                             <div className="min-w-0">
                                                 <h3 className="line-clamp-2 font-heading text-base font-semibold">{book.title}</h3>
                                                 <p className="truncate text-sm text-muted-foreground">{book.authors.join(", ") || "Penulis belum tercatat"}</p>
-                                                {!recommendations.fallback && book.matched[0] && (
-                                                    <p className="mt-1 inline-flex rounded bg-[#ebe9e1] px-2 py-0.5 text-[11px] font-semibold">Karena minat: {book.matched[0]}</p>
-                                                )}
+                                                <p className="mt-1 flex flex-wrap gap-1">
+                                                    <RecommendationSource source={book.source} />
+                                                    {book.matched[0] && <span className="inline-flex rounded bg-[#ebe9e1] px-2 py-0.5 text-[11px] font-semibold">Karena minat: {book.matched[0]}</span>}
+                                                </p>
                                             </div>
                                         </div>
                                         <Link href={`/books/${book.id}`} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">

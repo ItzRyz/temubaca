@@ -200,3 +200,11 @@ test("dashboard and communities suggest communities once interests or a region a
     await page.getByRole("button", { name: "Simpan perubahan" }).click();
     await expect(page.getByText("Profil berhasil diperbarui.")).toBeVisible();
 });
+
+test("book recommendations explain their state and label each source (TB-059)", async ({ page }) => {
+    await page.goto("/recommendations");
+    await expect(page.getByRole("status").filter({ hasText: "Pilih minat bacaan agar rekomendasi lebih pas." })).toBeVisible();
+    await expect(page.getByText("Pilihan katalog").first()).toBeVisible();
+    await expect(page.getByText("Sesuai minat", { exact: true })).toHaveCount(0);
+    await expectNoOverflow(page);
+});
