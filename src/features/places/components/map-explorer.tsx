@@ -1,0 +1,181 @@
+"use client";
+
+import { ExternalLink, LocateFixed, MapPin, Search } from "lucide-react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+
+import { kabkotaOptions, provinceOptions, regionByCode } from "@/features/regions/regions";
+import { cn } from "@/lib/utils";
+
+import { distanceMeters, formatDistance, googleMapsUrl, isInsideIndonesia, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
+
+// Leaflet touches `window`, so the map renders in the browser only (Next lazy-loading guide).
+const LiteracyMap = dynamic(() => import("./literacy-map"), {
+    ssr: false,
+    loading: () => <p className="flex size-full items-center justify-center text-sm text-muted-foreground">Memuat peta…</p>,
+});
+
+export type ExplorerPlace = {
+    id: string;
+    type: PlaceType;
+    name: string;
+    addressPublic: string | null;
+    latitude: number;
+    longitude: number;
+    regionCode: string | null;
+    checkedAt: string | null;
+    communityId: string | null;
+    communityName: string | null;
+};
+
+const FILTER_TYPES = ["LIBRARY", "COMMUNITY", "MEETING_POINT"] as const satisfies readonly PlaceType[];
+const checkedFormat = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" });
+
+type Locating = { status: "idle" | "locating" } | { status: "error"; message: string };
+
+/** Peta Literasi (DEC-07, TB-026): filters and a list that work without the map, plus a Leaflet view. */
+export function MapExplorer({ places }: { places: ExplorerPlace[] }) {
+    const [types, setTypes] = useState<PlaceType[]>([...FILTER_TYPES]);
+    const [province, setProvince] = useState("");
+    const [kabkota, setKabkota] = useState("");
+    const [query, setQuery] = useState("");
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [focus, setFocus] = useState<{ latitude: number; longitude: number; zoom: number } | null>(null);
+    // Kept in component state only: never sent to the server or stored (DEC-07).
+    const [reader, setReader] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [locating, setLocating] = useState<Locating>({ status: "idle" });
+
+    const visible = useMemo(() => {
+        const needle = query.trim().toLocaleLowerCase("id-ID");
+        const region = kabkota || province;
+        const matches = places.filter((place) =>
+            types.includes(place.type)
+            && (!region || place.regionCode?.startsWith(region))
+            && (!needle || [place.name, place.communityName, place.addressPublic].some((text) => text?.toLocaleLowerCase("id-ID").includes(needle))),
+        );
+        const withDistance = matches.map((place) => ({ ...place, distance: reader ? distanceMeters(reader, place) : null }));
+        return reader ? withDistance.sort((a, b) => a.distance! - b.distance!) : withDistance;
+    }, [places, types, province, kabkota, query, reader]);
+
+    const toggleType = (type: PlaceType) => setTypes((current) => current.includes(type) ? current.filter((item) => item !== type) : [...current, type]);
+
+    function locate() {
+        if (!("geolocation" in navigator)) {
+            setLocating({ status: "error", message: "Peramban ini tidak mendukung lokasi. Pilih provinsi atau kabupaten/kota." });
+            return;
+        }
+        setLocating({ status: "locating" });
+        navigator.geolocation.getCurrentPosition(
+            ({ coords }) => {
+                if (!isInsideIndonesia(coords.latitude, coords.longitude)) {
+                    setLocating({ status: "error", message: "Lokasimu di luar Indonesia. Pilih provinsi atau kabupaten/kota." });
+                    return;
+                }
+                const position = { latitude: coords.latitude, longitude: coords.longitude };
+                setReader(position);
+                setFocus({ ...position, zoom: 12 });
+                setLocating({ status: "idle" });
+            },
+            (error) => setLocating({
+                status: "error",
+                message: error.code === error.PERMISSION_DENIED
+                    ? "Izin lokasi ditolak. Kamu tetap bisa memilih provinsi atau kabupaten/kota."
+                    : "Lokasi belum dapat ditentukan. Coba lagi atau pilih wilayah.",
+            }),
+            { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
+        );
+    }
+
+    function show(place: ExplorerPlace) {
+        setSelectedId(place.id);
+        setFocus({ latitude: place.latitude, longitude: place.longitude, zoom: 15 });
+    }
+
+    function selectFromMap(id: string) {
+        setSelectedId(id);
+        document.getElementById(`place-${id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    return (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
+            <div className="flex min-w-0 flex-col gap-4">
+                <form role="search" onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
+                    <label className="flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                        <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="sr-only">Cari nama tempat atau komunitas</span>
+                        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="Cari tempat atau komunitas…" className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none" />
+                    </label>
+                    <fieldset>
+                        <legend className="text-xs font-semibold text-muted-foreground">Jenis tempat</legend>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {FILTER_TYPES.map((type) => (
+                                <button key={type} type="button" aria-pressed={types.includes(type)} onClick={() => toggleType(type)}
+                                    className={cn("flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold", types.includes(type) ? "border-primary bg-[#e7efe8] text-primary" : "border-border text-muted-foreground hover:bg-muted")}>
+                                    <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: placeTypeColors[type] }} />
+                                    {placeTypeLabels[type]}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                        <select aria-label="Provinsi" value={province} onChange={(event) => { setProvince(event.target.value); setKabkota(""); }} className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm">
+                            <option value="">Semua provinsi</option>
+                            {provinceOptions().map((option) => <option key={option.code} value={option.code}>{option.name}</option>)}
+                        </select>
+                        <select aria-label="Kabupaten/kota" value={kabkota} disabled={!province} onChange={(event) => setKabkota(event.target.value)} className="min-h-11 rounded-lg border border-input bg-background px-3 text-sm disabled:opacity-60">
+                            <option value="">Semua kabupaten/kota</option>
+                            {province && kabkotaOptions(province).map((option) => <option key={option.code} value={option.code}>{option.name}</option>)}
+                        </select>
+                    </div>
+                    <button type="button" onClick={locate} disabled={locating.status === "locating"} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
+                        <LocateFixed aria-hidden="true" className="size-4" /> {locating.status === "locating" ? "Mencari lokasimu…" : reader ? "Perbarui lokasiku" : "Gunakan lokasiku"}
+                    </button>
+                    <p className="text-xs text-muted-foreground">Lokasimu hanya dipakai di perangkat ini untuk mengurutkan jarak; tidak dikirim atau disimpan TemuBaca.</p>
+                    {locating.status === "error" && <p role="alert" className="text-sm text-destructive">{locating.message}</p>}
+                </form>
+
+                <p aria-live="polite" className="text-sm text-muted-foreground">{visible.length} tempat{reader ? ", diurutkan dari yang terdekat" : ""}</p>
+                {visible.length ? (
+                    <ul aria-label="Daftar tempat" className="flex max-h-[640px] list-none flex-col gap-3 overflow-y-auto p-0 pr-1">
+                        {visible.map((place) => (
+                            <li key={place.id} id={`place-${place.id}`}>
+                                <article className={cn("rounded-2xl border bg-card p-4", place.id === selectedId ? "border-primary shadow-sm" : "border-border")}>
+                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                        <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: placeTypeColors[place.type] }} />
+                                        {placeTypeLabels[place.type]}
+                                        {place.distance !== null && <span className="ml-auto font-normal">± {formatDistance(place.distance)}</span>}
+                                    </p>
+                                    <h3 className="mt-1 font-heading text-base font-semibold">
+                                        {place.communityId ? <Link href={`/communities/${place.communityId}`} className="hover:underline">{place.communityName ?? place.name}</Link> : place.name}
+                                    </h3>
+                                    {place.addressPublic && <p className="mt-1 flex gap-1 text-sm text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />{place.addressPublic}</p>}
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}
+                                        {place.checkedAt && ` · Diperbarui ${checkedFormat.format(new Date(place.checkedAt))}`}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <button type="button" onClick={() => show(place)} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
+                                            Lihat di peta<span className="sr-only">: {place.communityName ?? place.name}</span>
+                                        </button>
+                                        <a href={googleMapsUrl(place.latitude, place.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                            Buka di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
+                                        </a>
+                                    </div>
+                                </article>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-sm text-muted-foreground">
+                        {places.length ? "Tidak ada tempat yang cocok dengan filter ini." : "Belum ada tempat di peta. Perpustakaan dan titik temu publik ditambahkan oleh tim TemuBaca, dan komunitas terverifikasi bisa memasang titik temunya."}
+                    </p>
+                )}
+            </div>
+
+            <div className="h-[420px] overflow-hidden rounded-2xl border border-border bg-muted lg:sticky lg:top-24 lg:h-[680px]" aria-label="Peta tempat literasi" role="region">
+                <LiteracyMap places={visible} selectedId={selectedId} focus={focus} reader={reader} onSelect={selectFromMap} />
+            </div>
+        </div>
+    );
+}

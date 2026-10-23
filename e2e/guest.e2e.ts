@@ -6,6 +6,11 @@ async function expectNoOverflow(page: Page) {
     expect(overflow).toBeLessThanOrEqual(1);
 }
 
+// The OSM tile policy forbids automated clients, so tests never fetch map tiles (DEC-07).
+test.beforeEach(async ({ page }) => {
+    await page.route(/^https:\/\/tile\.openstreetmap\.org\//, (route) => route.abort());
+});
+
 test.describe("guest smoke", () => {
     test("home and catalog load without overflow", async ({ page }) => {
         await page.goto("/");
@@ -63,5 +68,22 @@ test.describe("guest smoke", () => {
         const response = await page.goto("/halaman-yang-tidak-ada");
         expect(response?.status()).toBe(404);
         await expect(page.getByText("Halaman yang kamu cari tidak ada")).toBeVisible();
+    });
+
+    test("the literacy map lists public places and filters them without a location (TB-026)", async ({ page }) => {
+        await page.goto("/map");
+        await expect(page.getByRole("heading", { level: 1, name: "Peta Literasi" })).toBeVisible();
+        await expect(page.getByRole("link", { name: "Peta Literasi" }).first()).toHaveAttribute("href", "/map");
+
+        const library = page.getByRole("button", { name: "Perpustakaan", exact: true });
+        await expect(library).toHaveAttribute("aria-pressed", "true");
+        await library.click();
+        await expect(library).toHaveAttribute("aria-pressed", "false");
+
+        // Either places or the empty state is shown; the list never depends on the map loading.
+        await expect(page.getByRole("list", { name: "Daftar tempat" }).or(page.getByText(/Belum ada tempat di peta|Tidak ada tempat yang cocok/))).toBeVisible();
+        await expect(page.getByRole("button", { name: "Gunakan lokasiku" })).toBeVisible();
+        await expect(page.getByText("tidak dikirim atau disimpan TemuBaca")).toBeVisible();
+        await expectNoOverflow(page);
     });
 });

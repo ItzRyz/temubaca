@@ -34,6 +34,10 @@ export default function PrivacyPage() {
                 </ul>
             </PolicySection>
 
+            <PolicySection title="Peta Literasi">
+                <p>Peta memakai tile OpenStreetMap: saat kamu membuka peta, perambanmu mengambil gambar peta langsung dari server OpenStreetMap. Titik di peta adalah tempat umum yang dipasang tim TemuBaca atau pengelola komunitas, dan dapat dilihat siapa saja. Bila kamu memakai &quot;Gunakan lokasiku&quot;, lokasimu hanya dipakai di perambanmu untuk mengurutkan jarak; lokasi itu tidak dikirim ke TemuBaca dan tidak disimpan. Salinan buku milik warga tidak pernah ditampilkan di peta.</p>
+            </PolicySection>
+
             <PolicySection title="Layanan yang kami pakai">
                 <p>Data disimpan di Supabase (database, autentikasi, dan penyimpanan berkas) dan aplikasi dijalankan di Vercel. Keduanya berada di region Singapura. Pembatasan percobaan memakai Upstash. Data buku diambil dari Open Library dan Google Books. Pencarian katalog dikirim ke layanan tersebut tanpa data akunmu. Rekomendasi buku dan komunitas dihitung oleh layanan rekomendasi TemuBaca di FastAPI Cloud (region Amerika Serikat): yang dikirim hanya minat bacaan yang kamu simpan dan, untuk rekomendasi komunitas, kode kabupaten/kota di profilmu bila kamu mengisinya. Nama, surel, identitas akun, dan lokasi presisi tidak dikirim.</p>
             </PolicySection>

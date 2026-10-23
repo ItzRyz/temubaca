@@ -120,6 +120,13 @@
       "when": 1792494792526,
       "tag": "0016_community_interests_and_regions",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792741798798,
+      "tag": "0017_places_map",
+      "breakpoints": true
     }
   ]
 }

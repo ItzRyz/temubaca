@@ -22,6 +22,9 @@ export default function LibrariesPage() {
                     <Link href="/communities" className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                         Lihat komunitas baca
                     </Link>
+                    <Link href="/map" className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                        Buka Peta Literasi
+                    </Link>
                 </div>
             </section>
         </main>

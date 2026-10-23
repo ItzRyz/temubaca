@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 
 import { CommunityProfileForm, VerificationRequestForm } from "@/features/community-management/components/community-forms";
 import { loadManageContext } from "@/features/community-management/server";
+import { CommunityPlaceForm } from "@/features/places/components/community-place-form";
 import { listCommunitySubmissions } from "@/lib/db/queries/community-management";
+import { findCommunityPlace } from "@/lib/db/queries/places";
 import { lastCommunityApproval, listCommunityVerifications } from "@/lib/db/queries/verifications";
 
 export const metadata: Metadata = { title: "Kelola komunitas" };
@@ -20,10 +22,11 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
     if (role !== "owner") redirect(`/communities/${communityId}/manage/events`);
     const justApplied = (await searchParams).baru === "1";
 
-    const [submissions, approval, history] = await Promise.all([
+    const [submissions, approval, history, place] = await Promise.all([
         listCommunitySubmissions(communityId),
         lastCommunityApproval(communityId),
         listCommunityVerifications(communityId, 5),
+        findCommunityPlace(communityId),
     ]);
     const pendingSubmission = submissions.find((item) => item.status === "PENDING");
     const lastDecision = history[0];
@@ -53,6 +56,14 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
                 />
             ) : (
                 <p className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Profil komunitas yang ditangguhkan tidak dapat diubah.</p>
+            )}
+
+            {can.editProfile && (
+                <CommunityPlaceForm
+                    communityId={communityId}
+                    verified={status === "VERIFIED"}
+                    saved={place ? { addressPublic: place.addressPublic, latitude: place.latitude, longitude: place.longitude, hidden: Boolean(place.hiddenAt) } : null}
+                />
             )}
 
             <section aria-labelledby="verification-title" className="rounded-2xl border border-border bg-card p-5 sm:p-6">

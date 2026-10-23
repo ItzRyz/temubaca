@@ -55,12 +55,14 @@ export const eventLocationTypeValues = ['PHYSICAL', 'ONLINE'] as const;
 export const merchandiseStatusValues = ['DRAFT', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED'] as const;
 export const reportStatusValues = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED'] as const;
 export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'] as const;
-export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'OTHER'] as const;
+export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'PLACE', 'OTHER'] as const;
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 // SCHEDULED: the daily cron refreshes records older than the admin's "usang" threshold (DEC-06).
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL', 'SCHEDULED'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN', 'PLACE_CREATED', 'PLACE_UPDATED', 'PLACE_HIDDEN', 'PLACE_RESTORED'] as const;
+/** Peta Literasi (DEC-07). EVENT pins arrive in phase 2; book listings never appear on the map. */
+export const placeTypeValues = ['LIBRARY', 'COMMUNITY', 'EVENT', 'MEETING_POINT'] as const;
 
 export const userProfiles = pgTable('user_profiles', {
     id: uuid().primaryKey(),
@@ -243,6 +245,26 @@ export const events = pgTable('events', {
     publicationStatus: enumText(publicationStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('events_community_publication_status_idx').on(t.communityId, t.publicationStatus), index('events_starts_at_idx').on(t.startsAt), enumCheck(t.publicationStatus, publicationStatusValues), enumCheck(t.locationType, eventLocationTypeValues)]).enableRLS();
 
+/**
+ * Public points on the Peta Literasi (DEC-07). Libraries and meeting points are curated by admins;
+ * a community owner pins one public meeting place. Coordinates must sit inside Indonesia's bounding box.
+ */
+export const places = pgTable('places', {
+    id: id(), type: enumText(placeTypeValues).notNull(), name: text().notNull(), addressPublic: text(),
+    latitude: numeric({ precision: 8, scale: 6, mode: 'number' }).notNull(), longitude: numeric({ precision: 9, scale: 6, mode: 'number' }).notNull(),
+    regionCode: text(),
+    communityId: uuid().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    eventId: uuid().references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    source: text(), checkedAt: nowDate(), hiddenAt: nowDate(), hiddenReason: text(),
+    createdById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(), updatedAt: updatedAt(),
+}, t => [
+    index('places_type_idx').on(t.type), unique('places_community_id_key').on(t.communityId), unique('places_event_id_key').on(t.eventId), enumCheck(t.type, placeTypeValues),
+    check('places_coordinates_check', sql`${t.latitude} between -11.5 and 6.5 and ${t.longitude} between 94.5 and 141.5`),
+    check('places_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`),
+    check('places_owner_check', sql`(${t.type} = 'COMMUNITY') = (${t.communityId} is not null) and (${t.type} = 'EVENT') = (${t.eventId} is not null)`),
+]).enableRLS();
+
 export const merchandiseListings = pgTable('merchandise_listings', {
     id: id(), communityId: uuid().notNull().references(() => communities.id, { onDelete: 'cascade', onUpdate: 'cascade' }), title: text().notNull(),
     description: text(), priceAmount: numeric({ precision: 12, scale: 2 }), currency: varchar({ length: 3 }), priceNote: text(),
@@ -318,5 +340,6 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({ order: 
 export const reportsRelations = relations(reports, ({ one }) => ({ reporter: one(userProfiles, { fields: [reports.reporterId], references: [userProfiles.id], relationName: 'reporter' }), reviewer: one(userProfiles, { fields: [reports.reviewerId], references: [userProfiles.id], relationName: 'reviewer' }) }));
 export const recommendationsRelations = relations(recommendations, ({ one }) => ({ user: one(userProfiles, { fields: [recommendations.userId], references: [userProfiles.id] }) }));
 export const verificationsRelations = relations(verifications, ({ one }) => ({ reviewer: one(userProfiles, { fields: [verifications.reviewerId], references: [userProfiles.id] }) }));
+export const placesRelations = relations(places, ({ one }) => ({ community: one(communities, { fields: [places.communityId], references: [communities.id] }), event: one(events, { fields: [places.eventId], references: [events.id] }) }));
 
 export type Book = InferSelectModel<typeof books>

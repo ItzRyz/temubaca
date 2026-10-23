@@ -2,7 +2,7 @@ export const publicNavigation = [
     { href: "/", label: "Beranda" },
     { href: "/books", label: "Jelajahi" },
     { href: "/communities", label: "Komunitas" },
-    { href: "/libraries", label: "Peta Literasi" },
+    { href: "/map", label: "Peta Literasi" },
 ] as const;
 
 export const footerNavigation = [

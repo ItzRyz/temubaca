@@ -10,7 +10,7 @@ Status awal: semua butir di bawah belum mendapat keputusan eksplisit dalam sumbe
 | DEC-04 | Siapa yang boleh membuat/mengelola komunitas dan bagaimana verifikasinya? | Role, moderasi, kualitas data | Diputuskan pemilik repo, 18 Okt 2026 (lihat di bawah) |
 | DEC-05 | Apakah acara/komunitas/merchandise dimoderasi sebelum publikasi? | Alur admin dan waktu tayang | Diputuskan pemilik repo, 18 Okt 2026: komunitas baru ditinjau; konten komunitas terverifikasi langsung tampil |
 | DEC-06 | Provider katalog buku final dan aturan penggunaan/atribusi apa? | Kelengkapan, cache, legalitas | Sebagian: pemilik repo (17 Okt 2026) memilih Open Library sebagai sumber utama dan Google Books sebagai pelengkap; adapter dipakai untuk sinkron ulang oleh admin. Atribusi dan sinkron ulang otomatis diputuskan 18 Okt 2026 (lihat di bawah); kuota production masih terbuka |
-| DEC-07 | Provider peta, geocoding, dan kebijakan lokasi apa? | Biaya, privasi, akurasi | Terbuka. Pemilik repo belum punya preferensi (18 Okt 2026). Leaflet/OSM dengan lokasi tingkat kecamatan/kota tetap kandidat |
+| DEC-07 | Provider peta, geocoding, dan kebijakan lokasi apa? | Biaya, privasi, akurasi | Diputuskan pemilik repo, 23 Okt 2026: Leaflet + tile OSM, tanpa geocoding, lokasi pembaca hanya di peramban (lihat di bawah) |
 | DEC-08 | Apakah rekomendasi MVP perlu layanan ML terpisah, atau cukup baseline di aplikasi? | Kompleksitas dan deployment | Diputuskan pemilik repo, 19 Okt 2026: ML Service menjadi sumber utama, baseline TB-040 sebagai cadangan; keputusan turunan ML-01–ML-08 dan R-07 (lihat di bawah) |
 | DEC-09 | Target pengguna/usia, wilayah peluncuran, serta kebutuhan bahasa? | UX dan kebijakan | Diputuskan pemilik repo, 18 Okt 2026: semua usia 13+, seluruh Indonesia (lihat di bawah) |
 | DEC-10 | Tanggal, target kompetisi/demo, dan metrik keberhasilan? | Prioritas dan release | Tanggal diputuskan pemilik repo, 18 Okt 2026: 30 Okt 2026 dengan fitur lengkap (lihat di bawah); metrik keberhasilan masih terbuka |
@@ -185,6 +185,24 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - Perlu riset dulu: perpustakaan mana yang punya API atau ekspor terbuka, syarat penggunaannya, dan kebutuhan izin atau perjanjian.
   - Sumber data, status, kesegaran, dan penanganan duplikasi ditetapkan setelah riset itu.
   - TB-023 tetap tertahan sampai sumber data pertama tersedia. Sampai saat itu, bagian perpustakaan tetap ditandai belum tersedia.
+
+## DEC-07 — Peta Literasi (diputuskan 23 Okt 2026)
+
+- **Keputusan:**
+  - **Cakupan tahap pertama:** peta dan daftar tempat dengan filter jenis, provinsi/kab-kota, dan pencarian nama. Arah ke tempat dibuka lewat tautan Google Maps (Maps URLs `api=1`). Rute Dijkstra di ML Service (R-01) ditunda.
+  - **Provider:** Leaflet dengan tile `tile.openstreetmap.org`, beratribusi "© kontributor OpenStreetMap". URL tile dapat diganti lewat `NEXT_PUBLIC_MAP_TILE_URL`. Tanpa geocoding.
+  - **Sumber titik:** tabel `places`. Perpustakaan dan titik temu publik dikurasi admin (`/admin/places`). Pemilik komunitas boleh memasang satu titik temu di tempat umum, yang tampil hanya saat komunitas `VERIFIED` dan tidak disembunyikan admin. Titik acara menyusul di fase 2. Listing buku warga tidak pernah tampil di peta.
+  - **Lokasi pembaca:** izin lokasi opsional. Koordinat hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak, tidak dikirim ke server dan tidak disimpan. Tanpa izin, pembaca memilih provinsi atau kab/kota.
+- **Opsi yang dipertimbangkan:**
+  - Rute Dijkstra langsung di tahap pertama.
+  - MapLibre dengan tile vektor gratis.
+  - Hanya kurasi admin untuk semua titik.
+  - Koordinat pembaca dibulatkan lalu dikirim ke server.
+- **Pemilik:** pemilik repo.
+- **Tanggal:** 23 Okt 2026.
+- **Dampak dan batas:**
+  - Kebijakan tile OSM hanya cocok untuk trafik rendah tanpa jaminan layanan, dan melarang klien otomatis. E2E memblokir permintaan tile. Bila trafik naik, provider tile harus diganti.
+  - Koordinat dibatasi ke kotak wilayah Indonesia (CHECK `places_coordinates_check`), enam desimal.
 
 ## DEC-08 dan ML-01–ML-08 — Integrasi ML Service (diputuskan 19 Okt 2026)
 

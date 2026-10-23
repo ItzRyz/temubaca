@@ -12,6 +12,11 @@ test.skip(!hasE2eAccounts, "Run `bun scripts/e2e-accounts.ts` first to create th
 test.describe.configure({ mode: "serial" });
 test.use({ storageState: storageStatePath("borrower") });
 
+// The OSM tile policy forbids automated clients, so tests never fetch map tiles (DEC-07).
+test.beforeEach(async ({ page }) => {
+    await page.route(/^https:\/\/tile\.openstreetmap\.org\//, (route) => route.abort());
+});
+
 async function pageAs(browser: Browser, role: E2eRole) {
     const context = await browser.newContext({ storageState: storageStatePath(role) });
     return context.newPage();
@@ -174,6 +179,23 @@ test("a community application carries reading interests and a kab/kota (ML-04, R
     }
     await expect(page.getByRole("combobox", { name: "Kabupaten/kota" })).toHaveValue("31.71");
     await expectNoOverflow(page);
+
+    // The owner can pin a public meeting place (DEC-07); it stays off the map until verification.
+    const pin = page.getByRole("region", { name: "Titik temu di peta" });
+    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await expect(pin.getByText("Isi lintang dengan angka, misalnya -6.2088.")).toBeVisible();
+    await pin.getByLabel(/Nama tempat atau alamat publik/).fill("Taman Suropati, Menteng");
+    await pin.getByLabel(/^Lintang/).fill("51.5");
+    await pin.getByLabel(/^Bujur/).fill("-0.12");
+    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await expect(pin.getByText("Titik harus berada di wilayah Indonesia.").first()).toBeVisible();
+    await pin.getByLabel(/^Lintang/).fill("-6.1993");
+    await pin.getByLabel(/^Bujur/).fill("106.8323");
+    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await expect(pin.getByText("Titik tampil di Peta Literasi setelah komunitas terverifikasi.")).toBeVisible();
+
+    await page.goto("/map");
+    await expect(page.getByText("Klub Uji E2E Wilayah")).toHaveCount(0);
 });
 
 test("dashboard and communities suggest communities once interests or a region are set (TB-060)", async ({ page }) => {
