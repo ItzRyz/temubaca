@@ -11,9 +11,15 @@ export const ML_MAX_TOP_N = 20;
 export type MlServiceErrorKind = "not_configured" | "timeout" | "unavailable" | "invalid_response";
 
 export class MlServiceError extends Error {
-    constructor(readonly kind: MlServiceErrorKind, message: string, options?: ErrorOptions) {
+    /** HTTP status and the ML Service's own error code (`{"error": {"code"}}`), when it answered with an error. */
+    readonly status?: number;
+    readonly code?: string;
+
+    constructor(readonly kind: MlServiceErrorKind, message: string, options?: ErrorOptions & { status?: number; code?: string }) {
         super(message, options);
         this.name = "MlServiceError";
+        this.status = options?.status;
+        this.code = options?.code;
     }
 }
 
@@ -46,7 +52,12 @@ export async function postToMlService<T>(path: string, body: unknown, schema: z.
         throw new MlServiceError(timedOut ? "timeout" : "unavailable", "ML Service request failed.", { cause: error });
     }
 
-    if (!response.ok) throw new MlServiceError("unavailable", `ML Service responded with ${response.status}.`);
+    if (!response.ok) {
+        // Routing answers with a stable code (OUT_OF_COVERAGE, NO_PATH, ...) that callers map to a state.
+        const payload = await response.json().catch(() => null) as { error?: { code?: unknown } } | null;
+        const code = typeof payload?.error?.code === "string" ? payload.error.code : undefined;
+        throw new MlServiceError("unavailable", `ML Service responded with ${response.status}.`, { status: response.status, code });
+    }
 
     let json: unknown;
     try {

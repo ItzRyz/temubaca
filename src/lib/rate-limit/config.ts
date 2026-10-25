@@ -16,6 +16,14 @@ export const RATE_LIMITS = {
     },
 
     /**
+     * Route requests to the ML Service (TB-064, Lampiran A: 30 per minute per IP).
+     */
+    ROUTE: {
+        limit: 30,
+        windowSeconds: 60,
+    },
+
+    /**
      * Authentication-related operations.
      */
     AUTH: {

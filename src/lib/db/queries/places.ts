@@ -78,6 +78,14 @@ export async function listPublicPlaces(filter: { types: PlaceType[]; region?: st
 
 export type PublicPlace = Awaited<ReturnType<typeof listPublicPlaces>>[number];
 
+/** One place by id while it is on the map; the route handler resolves its destination here (TB-064). */
+export async function findPublicPlace(placeId: string, now = new Date()) {
+    const [place] = await withOwners(db.select(publicColumns).from(places).$dynamic())
+        .where(and(isOnMap(now), eq(places.id, placeId)))
+        .limit(1);
+    return place ?? null;
+}
+
 /** The pin of one community or event while it is on the map, for "Lihat di Peta Literasi" links. */
 export async function findPublicPin(owner: { communityId: string } | { eventId: string }, now = new Date()) {
     const [place] = await withOwners(db.select(publicColumns).from(places).$dynamic())

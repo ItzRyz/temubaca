@@ -2,8 +2,8 @@
 
 import "leaflet/dist/leaflet.css";
 
-import { useEffect } from "react";
-import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useMemo } from "react";
+import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
 import { INDONESIA_BOUNDS, INDONESIA_CENTER, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
 
@@ -21,14 +21,26 @@ function FocusOn({ target }: { target: { latitude: number; longitude: number; zo
     return null;
 }
 
+function FitRoute({ points }: { points: [number, number][] | null }) {
+    const map = useMap();
+    useEffect(() => {
+        if (points) map.fitBounds(points, { padding: [32, 32] });
+    }, [map, points]);
+    return null;
+}
+
 /** Leaflet view of the places (DEC-07). Loaded in the browser only; the list next to it carries the same information. */
-export default function LiteracyMap({ places, selectedId, focus, reader, onSelect }: {
+export default function LiteracyMap({ places, selectedId, focus, reader, route, onSelect }: {
     places: MapPlace[];
     selectedId: string | null;
     focus: { latitude: number; longitude: number; zoom: number } | null;
     reader: { latitude: number; longitude: number } | null;
+    /** Route geometry in GeoJSON order, [longitude, latitude] (TB-064). */
+    route: [number, number][] | null;
     onSelect: (id: string) => void;
 }) {
+    // Leaflet wants [latitude, longitude].
+    const routePoints = useMemo(() => route?.map(([lng, lat]) => [lat, lng] as [number, number]) ?? null, [route]);
     return (
         <MapContainer
             center={[INDONESIA_CENTER.latitude, INDONESIA_CENTER.longitude]}
@@ -40,6 +52,8 @@ export default function LiteracyMap({ places, selectedId, focus, reader, onSelec
         >
             <TileLayer url={TILE_URL} attribution={ATTRIBUTION} maxZoom={19} />
             <FocusOn target={focus} />
+            <FitRoute points={routePoints} />
+            {routePoints && <Polyline positions={routePoints} pathOptions={{ color: "#1d4ed8", weight: 5, opacity: 0.85 }} />}
             {reader && (
                 <CircleMarker center={[reader.latitude, reader.longitude]} radius={7} pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }}>
                     <Popup>Posisimu (hanya di perangkat ini)</Popup>

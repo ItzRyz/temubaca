@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { CURATED_PLACE_TYPES, INDONESIA_BOUNDS, PLACE_TYPES, roundCoordinate } from "@/features/places/places";
+import { ROUTE_MODES } from "@/features/places/route";
 
 import { regionCodeSchema } from "./community-management.schema";
 
@@ -52,6 +53,18 @@ export const eventPlaceSchema = z.object({ ...pointFields, regionCode: regionCod
 export type EventPlaceInput = z.infer<typeof eventPlaceSchema>;
 
 export const placeIdParamSchema = z.object({ placeId: z.uuid({ error: "Invalid ID format." }) });
+
+/**
+ * `POST /api/places/[placeId]/route` (TB-064): the reader's point travels in the body, never the URL,
+ * so access logs cannot hold it. Only points inside Indonesia's box are accepted.
+ */
+export const routeRequestSchema = z.object({
+    origin: z.object({
+        latitude: z.number().min(INDONESIA_BOUNDS.south, OUTSIDE).max(INDONESIA_BOUNDS.north, OUTSIDE),
+        longitude: z.number().min(INDONESIA_BOUNDS.west, OUTSIDE).max(INDONESIA_BOUNDS.east, OUTSIDE),
+    }).strict(),
+    mode: z.enum(ROUTE_MODES, { error: "Pilih moda rute." }),
+}).strict();
 
 /** `GET /api/places`: comma-separated `types`, a province (`NN`) or kab/kota (`NN.NN`), and a name search. */
 export const placesQuerySchema = z.object({

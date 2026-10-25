@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, LocateFixed, MapPin, Search } from "lucide-react";
+import { ExternalLink, LocateFixed, MapPin, Route, Search } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import { kabkotaOptions, provinceOptions, regionByCode } from "@/features/region
 import { cn } from "@/lib/utils";
 
 import { distanceMeters, formatDistance, googleMapsUrl, isInsideIndonesia, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
+import { ROUTE_MODES, routeModeLabels, type RouteMode, type RouteOutcome } from "../route";
 
 // Leaflet touches `window`, so the map renders in the browser only (Next lazy-loading guide).
 const LiteracyMap = dynamic(() => import("./literacy-map"), {
@@ -46,6 +47,17 @@ const placeTitle = (place: ExplorerPlace) => (place.type === "COMMUNITY" ? place
 
 type Locating = { status: "idle" | "locating" } | { status: "error"; message: string };
 
+type RouteResult =
+    | { outcome: "ROUTE"; externalUrl: string; route: { mode: RouteMode; distanceM: number; durationS: number; coordinates: [number, number][]; viaStreets: string[] } }
+    | { outcome: Exclude<RouteOutcome, "ROUTE">; externalUrl: string; message: string };
+type RouteState = { placeId: string; mode: RouteMode } & ({ status: "loading" } | { status: "done"; result: RouteResult } | { status: "error"; message: string });
+
+/** "± 19 menit", or hours and minutes past an hour. */
+function formatDuration(seconds: number) {
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    return minutes < 60 ? `± ${minutes} menit` : `± ${Math.floor(minutes / 60)} jam ${minutes % 60} menit`;
+}
+
 /** Peta Literasi (DEC-07, TB-026): filters and a list that work without the map, plus a Leaflet view. */
 export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; initialId?: string }) {
     // `/map?tempat=<id>` (from a community or event page) opens on that pin.
@@ -59,6 +71,8 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
     // Kept in component state only: never sent to the server or stored (DEC-07).
     const [reader, setReader] = useState<{ latitude: number; longitude: number } | null>(null);
     const [locating, setLocating] = useState<Locating>({ status: "idle" });
+    const [routeMode, setRouteMode] = useState<RouteMode>("drive");
+    const [routeState, setRouteState] = useState<RouteState | null>(null);
 
     const visible = useMemo(() => {
         const needle = query.trim().toLocaleLowerCase("id-ID");
@@ -100,6 +114,32 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
             { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
         );
     }
+
+    /** Sends the reader's point once, only on this click (DEC-07); nothing about it is kept afterwards. */
+    async function requestRoute(place: ExplorerPlace) {
+        if (!reader) return;
+        const mode = routeMode;
+        setSelectedId(place.id);
+        setRouteState({ placeId: place.id, mode, status: "loading" });
+        try {
+            const response = await fetch(`/api/places/${place.id}/route`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ origin: reader, mode }),
+            });
+            const payload = await response.json().catch(() => null) as { success?: boolean; data?: RouteResult; error?: { message?: string } } | null;
+            if (response.ok && payload?.success && payload.data) {
+                setRouteState({ placeId: place.id, mode, status: "done", result: payload.data });
+                return;
+            }
+            const message = response.status === 429 ? "Terlalu banyak permintaan rute. Coba lagi sebentar lagi." : payload?.error?.message ?? "Rute belum dapat dihitung. Coba lagi.";
+            setRouteState({ placeId: place.id, mode, status: "error", message });
+        } catch {
+            setRouteState({ placeId: place.id, mode, status: "error", message: "Koneksi terputus. Coba lagi." });
+        }
+    }
+
+    const shownRoute = routeState?.status === "done" && routeState.result.outcome === "ROUTE" ? routeState.result.route : null;
 
     function show(place: ExplorerPlace) {
         setSelectedId(place.id);
@@ -145,7 +185,20 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
                     <button type="button" onClick={locate} disabled={locating.status === "locating"} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
                         <LocateFixed aria-hidden="true" className="size-4" /> {locating.status === "locating" ? "Mencari lokasimu…" : reader ? "Perbarui lokasiku" : "Gunakan lokasiku"}
                     </button>
-                    <p className="text-xs text-muted-foreground">Lokasimu hanya dipakai di perangkat ini untuk mengurutkan jarak; tidak dikirim atau disimpan TemuBaca.</p>
+                    <p className="text-xs text-muted-foreground">Lokasimu dipakai di perangkat ini untuk mengurutkan jarak. Saat kamu meminta rute, lokasimu dikirim sekali untuk menghitungnya, lalu tidak disimpan.</p>
+                    {reader && (
+                        <fieldset>
+                            <legend className="text-xs font-semibold text-muted-foreground">Moda rute</legend>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {ROUTE_MODES.map((mode) => (
+                                    <button key={mode} type="button" aria-pressed={routeMode === mode} onClick={() => setRouteMode(mode)}
+                                        className={cn("min-h-9 rounded-full border px-3 text-xs font-semibold", routeMode === mode ? "border-primary bg-[#e7efe8] text-primary" : "border-border text-muted-foreground hover:bg-muted")}>
+                                        {routeModeLabels[mode]}
+                                    </button>
+                                ))}
+                            </div>
+                        </fieldset>
+                    )}
                     {locating.status === "error" && <p role="alert" className="text-sm text-destructive">{locating.message}</p>}
                 </form>
 
@@ -178,10 +231,17 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
                                         <button type="button" onClick={() => show(place)} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
                                             Lihat di peta<span className="sr-only">: {placeTitle(place)}</span>
                                         </button>
+                                        {reader && (
+                                            <button type="button" onClick={() => void requestRoute(place)} disabled={routeState?.placeId === place.id && routeState.status === "loading"}
+                                                className="flex min-h-10 items-center gap-1 rounded-lg border border-primary px-3 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
+                                                <Route aria-hidden="true" className="size-3.5" /> Rute {routeModeLabels[routeMode].toLowerCase()}<span className="sr-only">: {placeTitle(place)}</span>
+                                            </button>
+                                        )}
                                         <a href={googleMapsUrl(place.latitude, place.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                                             Buka di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
                                         </a>
                                     </div>
+                                    {routeState?.placeId === place.id && <RouteSummary state={routeState} />}
                                 </article>
                             </li>
                         ))}
@@ -194,8 +254,29 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
             </div>
 
             <div className="h-[420px] overflow-hidden rounded-2xl border border-border bg-muted lg:sticky lg:top-24 lg:h-[680px]" aria-label="Peta tempat literasi" role="region">
-                <LiteracyMap places={visible} selectedId={selectedId} focus={focus} reader={reader} onSelect={selectFromMap} />
+                <LiteracyMap places={visible} selectedId={selectedId} focus={focus} reader={reader} route={shownRoute?.coordinates ?? null} onSelect={selectFromMap} />
             </div>
+        </div>
+    );
+}
+
+/** The route result inside a place card; announced politely so screen readers hear it. */
+function RouteSummary({ state }: { state: RouteState }) {
+    return (
+        <div role="status" className="mt-3 rounded-xl bg-[#f1f0ea] p-3 text-sm">
+            {state.status === "loading" && <p>Menghitung rute {routeModeLabels[state.mode].toLowerCase()}…</p>}
+            {state.status === "error" && <p className="text-destructive">{state.message}</p>}
+            {state.status === "done" && (state.result.outcome === "ROUTE" ? (
+                <>
+                    <p className="font-semibold">
+                        {routeModeLabels[state.result.route.mode]}: {formatDistance(state.result.route.distanceM)}, {formatDuration(state.result.route.durationS)}
+                    </p>
+                    {state.result.route.viaStreets.length > 0 && <p className="mt-1 text-muted-foreground">Lewat {state.result.route.viaStreets.join(", ")}</p>}
+                    <p className="mt-1 text-xs text-muted-foreground">Perkiraan tanpa lalu lintas, dari data jalan OpenStreetMap. Garis rute tampil di peta.</p>
+                </>
+            ) : (
+                <p>{state.result.message}</p>
+            ))}
         </div>
     );
 }

@@ -208,7 +208,8 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - **R-02, moda:** `drive` dan `walk` (default dokumen, tanpa transportasi umum).
   - **R-07, proteksi:** token internal untuk semua `/api/*` ML Service, termasuk `POST /api/routing/route` (opsi b; sudah berlaku sejak ML-T07).
   - **Sumber data:** ekstrak Geofabrik Java, bukan Overpass publik. Server Overpass utama gagal (502, 504, lalu menolak koneksi) untuk area ini, dan wiki OSM menyarankan ekstrak untuk area besar.
-  - **Belum diputuskan:** cara mengirim graf ke server deploy, batas memori instance (±1,15 GB untuk kedua graf), target latensi, dan apakah titik asal pembaca boleh dikirim ke server untuk rute. Poin terakhir bertentangan dengan aturan lokasi pembaca di atas, jadi TB-064 tertahan sampai diputuskan.
+  - **Titik asal pembaca untuk rute (diputuskan pemilik repo, 25 Okt 2026):** dikirim hanya saat pembaca menekan tombol Rute, dipakai sekali, tidak disimpan, dan tidak dicatat di log website maupun ML Service. Aturan lokasi pembaca di atas tetap berlaku untuk peta dan daftar. Opsi lain yang dipertimbangkan: titik asal dipilih manual di peta, koordinat dibulatkan sebelum dikirim, atau rute ditunda.
+  - **Belum diputuskan:** cara mengirim graf ke server deploy, batas memori instance (±1,15 GB untuk kedua graf), dan target latensi.
 
 ## DEC-08 dan ML-01–ML-08 — Integrasi ML Service (diputuskan 19 Okt 2026)
 

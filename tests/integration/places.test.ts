@@ -151,6 +151,18 @@ describe("Peta Literasi places (DEC-07)", () => {
         ]);
     });
 
+    test("a route destination is found only while the place is on the map (TB-064)", async () => {
+        const [library] = await places.listPublicPlaces({ types: ["LIBRARY"] }, NOW);
+        expect((await places.findPublicPlace(library.id, NOW))?.name).toBe("Perpustakaan Nasional");
+
+        const [draftPin] = (await places.listPlacesForAdmin(NOW)).filter((place) => place.eventId === DRAFT);
+        expect(await places.findPublicPlace(draftPin.id, NOW)).toBeNull();
+
+        await places.setPlaceHidden(library.id, { reason: "Alamat keliru" }, ADMIN);
+        expect(await places.findPublicPlace(library.id, NOW)).toBeNull();
+        await places.setPlaceHidden(library.id, null, ADMIN);
+    });
+
     test("editing an event renames its pin, and switching it online removes the pin", async () => {
         const event = { title: "Baca Puisi Malam", description: "Baca puisi bersama di taman.", date: "2026-10-27", startTime: "19:00", endTime: "21:00", venueName: "Taman", publicLocation: "Menteng", publicationStatus: "PUBLISHED" as const };
         await communityContent.updateCommunityEvent(VERIFIED, UPCOMING, { ...event, locationType: "PHYSICAL" });
