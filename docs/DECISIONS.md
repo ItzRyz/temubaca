@@ -189,7 +189,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 ## DEC-07 — Peta Literasi (diputuskan 23 Okt 2026)
 
 - **Keputusan:**
-  - **Cakupan tahap pertama:** peta dan daftar tempat dengan filter jenis, provinsi/kab-kota, dan pencarian nama. Arah ke tempat dibuka lewat tautan Google Maps (Maps URLs `api=1`). Rute Dijkstra di ML Service (R-01) ditunda.
+  - **Cakupan tahap pertama:** peta dan daftar tempat dengan filter jenis, provinsi/kab-kota, dan pencarian nama. Arah ke tempat dibuka lewat tautan Google Maps (Maps URLs `api=1`). Rute Dijkstra di ML Service sempat ditunda; keputusan rute 25 Okt 2026 ada di bawah.
   - **Provider:** Leaflet dengan tile `tile.openstreetmap.org`, beratribusi "© kontributor OpenStreetMap". URL tile dapat diganti lewat `NEXT_PUBLIC_MAP_TILE_URL`. Tanpa geocoding.
   - **Sumber titik:** tabel `places`. Perpustakaan dan titik temu publik dikurasi admin (`/admin/places`). Pemilik komunitas boleh memasang satu titik temu di tempat umum, yang tampil hanya saat komunitas `VERIFIED` dan tidak disembunyikan admin. Titik acara (fase 2, dibuat 25 Okt 2026): pengurus komunitas terverifikasi boleh memasang satu titik per acara tatap muka di halaman ubah acara; kab/kota dipilih per acara. Titik tampil selama acara terbit dan belum selesai, lalu hilang sendiri. Listing buku warga tidak pernah tampil di peta.
   - **Lokasi pembaca:** izin lokasi opsional. Koordinat hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak, tidak dikirim ke server dan tidak disimpan. Tanpa izin, pembaca memilih provinsi atau kab/kota.
@@ -203,6 +203,12 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Dampak dan batas:**
   - Kebijakan tile OSM hanya cocok untuk trafik rendah tanpa jaminan layanan, dan melarang klien otomatis. E2E memblokir permintaan tile. Bila trafik naik, provider tile harus diganti.
   - Koordinat dibatasi ke kotak wilayah Indonesia (CHECK `places_coordinates_check`), enam desimal.
+- **Rute Dijkstra di ML Service (diputuskan pemilik repo, 25 Okt 2026):**
+  - **R-01, cakupan graf:** DKI Jakarta daratan (tanpa Kepulauan Seribu), Kota Tangerang, Kabupaten Tangerang, dan Kota Tangerang Selatan. Titik di luar cakupan mendapat `OUT_OF_COVERAGE`, dan UI tetap menawarkan Google Maps.
+  - **R-02, moda:** `drive` dan `walk` (default dokumen, tanpa transportasi umum).
+  - **R-07, proteksi:** token internal untuk semua `/api/*` ML Service, termasuk `POST /api/routing/route` (opsi b; sudah berlaku sejak ML-T07).
+  - **Sumber data:** ekstrak Geofabrik Java, bukan Overpass publik. Server Overpass utama gagal (502, 504, lalu menolak koneksi) untuk area ini, dan wiki OSM menyarankan ekstrak untuk area besar.
+  - **Belum diputuskan:** cara mengirim graf ke server deploy, batas memori instance (±1,15 GB untuk kedua graf), target latensi, dan apakah titik asal pembaca boleh dikirim ke server untuk rute. Poin terakhir bertentangan dengan aturan lokasi pembaca di atas, jadi TB-064 tertahan sampai diputuskan.
 
 ## DEC-08 dan ML-01–ML-08 — Integrasi ML Service (diputuskan 19 Okt 2026)
 

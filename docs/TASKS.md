@@ -97,6 +97,7 @@ Keputusan ada di `DECISIONS.md` → DEC-08 dan ML-01–ML-08 (diputuskan 19 Okt 
 | ML-T08 | P1 | Logging tanpa data pengguna; `/health` menampilkan versi model. **`/health` dengan `model_version` dan `book_count` selesai di `cdd54d8`;** logging belum. | ML-T04 |
 | ML-T09 | P1 | Deploy ke FastAPI Cloud (ML-07), lalu smoke test di URL production. Cek dulu paket gratisnya terhadap DEC-01. **Persiapan lokal selesai 20 Okt 2026 (`746ea70`):** `pyproject.toml` + `uv.lock` + `.fastapicloudignore`. Paket Hobby $0 (3 app, 0,1 vCPU/512 MB, scale-to-zero) sesuai DEC-01; layanan dilaporkan masih beta. Cold start lokal: `import app.main` 9–10 detik (scikit-learn ±5 detik, pandas ±3 detik), sehingga request pertama setelah idle kemungkinan jatuh ke baseline (batas klien 3 detik); belum diukur di cloud. Belum: login, deploy, secret `INTERNAL_TOKEN`, smoke test production. | ML-T07 |
 | ML-T10 | P1 | Tes kontrak: contoh request/respons dibekukan sebagai fixture yang juga dipakai website. | ML-T06 |
+| ML-T11 | P1 | Rute Dijkstra Fase 1–4 di ML Service (`docs/BACKEND_PETA_RUTE.md`). **Selesai 25 Okt 2026, commit lokal `dbccd01`, `2e1e484`, `b055c8f`, `35d6fac`, `e91ca33` (belum di-push):** Dijkstra `heapq` diuji terhadap networkx pada 200 graf acak; graf `drive` (238.773 node) dan `walk` (386.573 node) Jakarta–Tangerang dibangun dari ekstrak Geofabrik 24 Okt 2026; `POST /api/routing/route` dengan token internal, error bagian 5.3, batas body 2 KB, cache, dan log tanpa koordinat; benchmark 500 pasangan acak: `drive` p95 481 ms, `walk` p95 768 ms. 99 tes lulus. Belum: distribusi graf ke FastAPI Cloud dan uji memori instance. | DEC-07 |
 
 ### Repo website
 
@@ -114,6 +115,7 @@ Keputusan ada di `DECISIONS.md` → DEC-08 dan ML-01–ML-08 (diputuskan 19 Okt 
 | TB-061 | P2 | Simpan `modelVersion` di `recommendations` untuk audit. **Tidak dikerjakan: ML-06 memilih hitung live.** | — |
 | TB-062 | P1 | Env Vercel production dan `API_SPEC.md` diperbarui (kontrak ML memakai `POST`). | TB-056, ML-T09 |
 | TB-063 | P1 | Tes unit klien (mock), tes integrasi jalur cadangan, dan E2E halaman rekomendasi. | TB-058 |
+| TB-064 | P1 | Rute di Peta Literasi (Lampiran A `BACKEND_PETA_RUTE.md`): `GET /api/route` me-resolve `place_id` publik, memanggil ML Service dengan token dan batas waktu 5 detik, memetakan error ke state UI, dan selalu menyertakan tautan Google Maps; garis rute dan ringkasan di `/map`. **Tertahan:** perlu keputusan apakah titik asal pembaca boleh dikirim ke server (bertentangan dengan aturan lokasi DEC-07). | ML-T11, TB-026 |
 
 **Risiko:** target 30 Okt 2026 (DEC-10). Pelatihan ulang model, tabel kode wilayah, dan hosting adalah bagian terlama. Opsi aman untuk demo: buku dari ML Service dengan baseline sebagai cadangan, dan rekomendasi komunitas berbasis minat saja bila kode wilayah belum siap.
 
