@@ -46,6 +46,11 @@ export const communityPlaceSchema = z.object(pointFields);
 
 export type CommunityPlaceInput = z.infer<typeof communityPlaceSchema>;
 
+/** An in-person event's venue; the kab/kota is chosen per event (DEC-07 phase 2). */
+export const eventPlaceSchema = z.object({ ...pointFields, regionCode: regionCodeSchema });
+
+export type EventPlaceInput = z.infer<typeof eventPlaceSchema>;
+
 export const placeIdParamSchema = z.object({ placeId: z.uuid({ error: "Invalid ID format." }) });
 
 /** `GET /api/places`: comma-separated `types`, a province (`NN`) or kab/kota (`NN.NN`), and a name search. */

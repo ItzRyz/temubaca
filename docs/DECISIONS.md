@@ -191,7 +191,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 - **Keputusan:**
   - **Cakupan tahap pertama:** peta dan daftar tempat dengan filter jenis, provinsi/kab-kota, dan pencarian nama. Arah ke tempat dibuka lewat tautan Google Maps (Maps URLs `api=1`). Rute Dijkstra di ML Service (R-01) ditunda.
   - **Provider:** Leaflet dengan tile `tile.openstreetmap.org`, beratribusi "© kontributor OpenStreetMap". URL tile dapat diganti lewat `NEXT_PUBLIC_MAP_TILE_URL`. Tanpa geocoding.
-  - **Sumber titik:** tabel `places`. Perpustakaan dan titik temu publik dikurasi admin (`/admin/places`). Pemilik komunitas boleh memasang satu titik temu di tempat umum, yang tampil hanya saat komunitas `VERIFIED` dan tidak disembunyikan admin. Titik acara menyusul di fase 2. Listing buku warga tidak pernah tampil di peta.
+  - **Sumber titik:** tabel `places`. Perpustakaan dan titik temu publik dikurasi admin (`/admin/places`). Pemilik komunitas boleh memasang satu titik temu di tempat umum, yang tampil hanya saat komunitas `VERIFIED` dan tidak disembunyikan admin. Titik acara (fase 2, dibuat 25 Okt 2026): pengurus komunitas terverifikasi boleh memasang satu titik per acara tatap muka di halaman ubah acara; kab/kota dipilih per acara. Titik tampil selama acara terbit dan belum selesai, lalu hilang sendiri. Listing buku warga tidak pernah tampil di peta.
   - **Lokasi pembaca:** izin lokasi opsional. Koordinat hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak, tidak dikirim ke server dan tidak disimpan. Tanpa izin, pembaca memilih provinsi atau kab/kota.
 - **Opsi yang dipertimbangkan:**
   - Rute Dijkstra langsung di tahap pertama.

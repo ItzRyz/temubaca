@@ -27,21 +27,35 @@ export type ExplorerPlace = {
     checkedAt: string | null;
     communityId: string | null;
     communityName: string | null;
+    eventId: string | null;
+    eventStartsAt: string | null;
 };
 
-const FILTER_TYPES = ["LIBRARY", "COMMUNITY", "MEETING_POINT"] as const satisfies readonly PlaceType[];
+const FILTER_TYPES = ["LIBRARY", "COMMUNITY", "EVENT", "MEETING_POINT"] as const satisfies readonly PlaceType[];
 const checkedFormat = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" });
+const eventFormat = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
+
+/** The page a pin belongs to: its event, its community, or none for a curated place. */
+function placeHref(place: ExplorerPlace) {
+    if (place.eventId) return `/events/${place.eventId}`;
+    return place.communityId ? `/communities/${place.communityId}` : null;
+}
+
+/** A community pin is titled by its community; every other pin by its own name (an event pin carries the event title). */
+const placeTitle = (place: ExplorerPlace) => (place.type === "COMMUNITY" ? place.communityName ?? place.name : place.name);
 
 type Locating = { status: "idle" | "locating" } | { status: "error"; message: string };
 
 /** Peta Literasi (DEC-07, TB-026): filters and a list that work without the map, plus a Leaflet view. */
-export function MapExplorer({ places }: { places: ExplorerPlace[] }) {
+export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; initialId?: string }) {
+    // `/map?tempat=<id>` (from a community or event page) opens on that pin.
+    const initial = places.find((place) => place.id === initialId) ?? null;
     const [types, setTypes] = useState<PlaceType[]>([...FILTER_TYPES]);
     const [province, setProvince] = useState("");
     const [kabkota, setKabkota] = useState("");
     const [query, setQuery] = useState("");
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [focus, setFocus] = useState<{ latitude: number; longitude: number; zoom: number } | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(initial?.id ?? null);
+    const [focus, setFocus] = useState<{ latitude: number; longitude: number; zoom: number } | null>(initial ? { latitude: initial.latitude, longitude: initial.longitude, zoom: 15 } : null);
     // Kept in component state only: never sent to the server or stored (DEC-07).
     const [reader, setReader] = useState<{ latitude: number; longitude: number } | null>(null);
     const [locating, setLocating] = useState<Locating>({ status: "idle" });
@@ -147,8 +161,14 @@ export function MapExplorer({ places }: { places: ExplorerPlace[] }) {
                                         {place.distance !== null && <span className="ml-auto font-normal">± {formatDistance(place.distance)}</span>}
                                     </p>
                                     <h3 className="mt-1 font-heading text-base font-semibold">
-                                        {place.communityId ? <Link href={`/communities/${place.communityId}`} className="hover:underline">{place.communityName ?? place.name}</Link> : place.name}
+                                        {placeHref(place) ? <Link href={placeHref(place)!} className="hover:underline">{placeTitle(place)}</Link> : placeTitle(place)}
                                     </h3>
+                                    {place.eventId && (
+                                        <p className="mt-1 text-sm">
+                                            {place.eventStartsAt && <span className="capitalize">{eventFormat.format(new Date(place.eventStartsAt))} WIB</span>}
+                                            {place.communityName && <span className="text-muted-foreground"> · oleh {place.communityName}</span>}
+                                        </p>
+                                    )}
                                     {place.addressPublic && <p className="mt-1 flex gap-1 text-sm text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />{place.addressPublic}</p>}
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}
@@ -156,7 +176,7 @@ export function MapExplorer({ places }: { places: ExplorerPlace[] }) {
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                         <button type="button" onClick={() => show(place)} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
-                                            Lihat di peta<span className="sr-only">: {place.communityName ?? place.name}</span>
+                                            Lihat di peta<span className="sr-only">: {placeTitle(place)}</span>
                                         </button>
                                         <a href={googleMapsUrl(place.latitude, place.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                                             Buka di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
@@ -168,7 +188,7 @@ export function MapExplorer({ places }: { places: ExplorerPlace[] }) {
                     </ul>
                 ) : (
                     <p className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-sm text-muted-foreground">
-                        {places.length ? "Tidak ada tempat yang cocok dengan filter ini." : "Belum ada tempat di peta. Perpustakaan dan titik temu publik ditambahkan oleh tim TemuBaca, dan komunitas terverifikasi bisa memasang titik temunya."}
+                        {places.length ? "Tidak ada tempat yang cocok dengan filter ini." : "Belum ada tempat di peta. Perpustakaan dan titik temu publik ditambahkan oleh tim TemuBaca, dan komunitas terverifikasi bisa memasang titik temu serta lokasi acaranya."}
                     </p>
                 )}
             </div>

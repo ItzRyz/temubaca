@@ -62,7 +62,7 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
                 <CommunityPlaceForm
                     communityId={communityId}
                     verified={status === "VERIFIED"}
-                    saved={place ? { addressPublic: place.addressPublic, latitude: place.latitude, longitude: place.longitude, hidden: Boolean(place.hiddenAt) } : null}
+                    saved={place ? { ...place, hidden: Boolean(place.hiddenAt) } : null}
                 />
             )}
 

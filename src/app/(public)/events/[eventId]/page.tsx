@@ -6,6 +6,8 @@ import { cache } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { findPublicEvent } from "@/lib/db/queries/events";
+import { findPublicPin } from "@/lib/db/queries/places";
+import { googleMapsUrl } from "@/features/places/places";
 import { uuidSchema } from "@/lib/validation/common";
 import { colorFor, initialsOf } from "@/features/communities/components/community-card";
 import { ShareButton } from "@/features/books/components/share-button";
@@ -48,7 +50,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     const event = await findEvent((await params).eventId);
     if (!event) notFound();
 
-    const user = await getCurrentUser();
+    const [user, pin] = await Promise.all([getCurrentUser(), findPublicPin({ eventId: event.id })]);
     const eventUrl = safeExternalUrl(event.eventUrl);
     const lastMoment = event.endsAt ?? event.startsAt;
     const isPast = lastMoment !== null && lastMoment < new Date();
@@ -144,9 +146,22 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                                 <p className={event.venueName ? "text-sm leading-6 text-muted-foreground" : "mt-3 text-sm leading-6"}>{event.publicLocation ?? "Lokasi akan diumumkan oleh penyelenggara."}</p>
                             </>
                         )}
-                        <p className="mt-3 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-muted-foreground">
-                            Peta dan petunjuk arah belum tersedia. Hanya lokasi publik umum yang ditampilkan.
-                        </p>
+                        {pin ? (
+                            <div className="mt-4 flex flex-col gap-2">
+                                <a href={googleMapsUrl(pin.latitude, pin.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                    Petunjuk arah di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
+                                </a>
+                                <Link href={`/map?tempat=${pin.id}`} className="flex min-h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">
+                                    Lihat di Peta Literasi
+                                </Link>
+                            </div>
+                        ) : (
+                            event.locationType === "PHYSICAL" && (
+                                <p className="mt-3 rounded-lg bg-[#f1f0ea] p-3 text-xs leading-5 text-muted-foreground">
+                                    Penyelenggara belum menandai lokasi ini di peta. Hanya lokasi publik umum yang ditampilkan.
+                                </p>
+                            )
+                        )}
                     </section>
 
                     <section aria-labelledby="organizer-title" className="rounded-2xl border border-border bg-card p-5">

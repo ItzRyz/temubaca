@@ -1,14 +1,18 @@
 import "server-only";
 
-import { and, asc, eq, ilike, isNull, like, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { alias, type PgSelect } from "drizzle-orm/pg-core";
 
 import type { PlaceType } from "@/features/places/places";
-import type { CommunityPlaceInput, CuratedPlaceInput } from "@/lib/validation/schemas/place.schema";
+import type { CommunityPlaceInput, CuratedPlaceInput, EventPlaceInput } from "@/lib/validation/schemas/place.schema";
 
 import { db } from "../client";
-import { adminAuditLogs, communities, places } from "../schema";
+import { adminAuditLogs, communities, events, places } from "../schema";
 
 const PUBLIC_PLACE_LIMIT = 500;
+
+// An event pin has no communityId (`places_owner_check`); its organiser is reached through the event.
+const organisers = alias(communities, "organisers");
 
 /** Fields any visitor may see. Never the creator, hide reason, or anything about the people behind a place. */
 const publicColumns = {
@@ -21,29 +25,52 @@ const publicColumns = {
     regionCode: places.regionCode,
     checkedAt: places.checkedAt,
     communityId: places.communityId,
-    communityName: communities.name,
+    // The community behind the pin: its own for a community pin, the organiser for an event pin.
+    communityName: sql<string | null>`coalesce(${communities.name}, ${organisers.name})`,
+    eventId: places.eventId,
+    eventStartsAt: events.startsAt,
 };
 
+/** Joins the community behind a pin, directly or through its event (Drizzle dynamic query). */
+function withOwners<T extends PgSelect>(query: T) {
+    return query
+        .leftJoin(communities, eq(places.communityId, communities.id))
+        .leftJoin(events, eq(places.eventId, events.id))
+        .leftJoin(organisers, eq(events.communityId, organisers.id));
+}
+
 /**
- * Places on the Peta Literasi (DEC-07): not hidden, and a community pin only while its community is
- * VERIFIED. Event pins arrive in phase 2 and stay off the map until then. `region` is a province
- * (`NN`) or kab/kota (`NN.NN`) prefix.
+ * When a pin is on the Peta Literasi (DEC-07): not hidden; a community pin while its community is
+ * VERIFIED; an event pin while the event is PUBLISHED, in person, not yet over, and its community VERIFIED.
  */
-export async function listPublicPlaces(filter: { types: PlaceType[]; region?: string; q?: string }) {
-    const types = filter.types.filter((type) => type !== "EVENT");
-    if (!types.length) return [];
+function isOnMap(now: Date) {
+    return and(
+        isNull(places.hiddenAt),
+        or(
+            inArray(places.type, ["LIBRARY", "MEETING_POINT"]),
+            and(eq(places.type, "COMMUNITY"), eq(communities.status, "VERIFIED")),
+            and(
+                eq(places.type, "EVENT"),
+                eq(events.publicationStatus, "PUBLISHED"),
+                eq(events.locationType, "PHYSICAL"),
+                gte(sql`coalesce(${events.endsAt}, ${events.startsAt})`, now),
+                eq(organisers.status, "VERIFIED"),
+            ),
+        ),
+    );
+}
+
+/** Places on the Peta Literasi. `region` is a province (`NN`) or kab/kota (`NN.NN`) prefix. */
+export async function listPublicPlaces(filter: { types: PlaceType[]; region?: string; q?: string }, now = new Date()) {
+    if (!filter.types.length) return [];
     const query = filter.q?.replace(/[\\%_]/g, "\\$&");
 
-    return db
-        .select(publicColumns)
-        .from(places)
-        .leftJoin(communities, eq(places.communityId, communities.id))
+    return withOwners(db.select(publicColumns).from(places).$dynamic())
         .where(and(
-            isNull(places.hiddenAt),
-            sql`${places.type} in (${sql.join(types.map((type) => sql`${type}`), sql`, `)})`,
-            or(sql`${places.type} <> 'COMMUNITY'`, eq(communities.status, "VERIFIED")),
+            isOnMap(now),
+            inArray(places.type, filter.types),
             filter.region ? like(places.regionCode, `${filter.region}%`) : undefined,
-            query ? or(ilike(places.name, `%${query}%`), ilike(communities.name, `%${query}%`), ilike(places.addressPublic, `%${query}%`)) : undefined,
+            query ? or(ilike(places.name, `%${query}%`), ilike(communities.name, `%${query}%`), ilike(organisers.name, `%${query}%`), ilike(places.addressPublic, `%${query}%`)) : undefined,
         ))
         .orderBy(asc(places.name))
         .limit(PUBLIC_PLACE_LIMIT);
@@ -51,12 +78,24 @@ export async function listPublicPlaces(filter: { types: PlaceType[]; region?: st
 
 export type PublicPlace = Awaited<ReturnType<typeof listPublicPlaces>>[number];
 
-/** Every place for the admin list, hidden ones included. */
-export async function listPlacesForAdmin() {
-    return db
-        .select({ ...publicColumns, hiddenAt: places.hiddenAt, hiddenReason: places.hiddenReason, source: places.source, communityStatus: communities.status })
-        .from(places)
-        .leftJoin(communities, eq(places.communityId, communities.id))
+/** The pin of one community or event while it is on the map, for "Lihat di Peta Literasi" links. */
+export async function findPublicPin(owner: { communityId: string } | { eventId: string }, now = new Date()) {
+    const [place] = await withOwners(db.select(publicColumns).from(places).$dynamic())
+        .where(and(isOnMap(now), "communityId" in owner ? eq(places.communityId, owner.communityId) : eq(places.eventId, owner.eventId)))
+        .limit(1);
+    return place ?? null;
+}
+
+/** Every place for the admin list, hidden ones included, with whether it is on the map right now. */
+export async function listPlacesForAdmin(now = new Date()) {
+    const columns = {
+        ...publicColumns,
+        hiddenAt: places.hiddenAt,
+        hiddenReason: places.hiddenReason,
+        source: places.source,
+        onMap: sql<boolean>`coalesce(${isOnMap(now)}, false)`,
+    };
+    return withOwners(db.select(columns).from(places).$dynamic())
         .orderBy(asc(places.type), asc(places.name));
 }
 
@@ -69,13 +108,13 @@ export async function createCuratedPlace(input: CuratedPlaceInput, actorId: stri
     });
 }
 
-/** Updates a curated place; community pins are edited by their owner, not here. Returns null when no such curated place. */
+/** Updates a curated place; community and event pins are edited by their owner, not here. Returns null when no such curated place. */
 export async function updateCuratedPlace(placeId: string, input: CuratedPlaceInput, actorId: string) {
     return db.transaction(async (tx) => {
         const now = new Date();
         const [place] = await tx.update(places)
             .set({ ...input, checkedAt: now, updatedAt: now })
-            .where(and(eq(places.id, placeId), sql`${places.type} in ('LIBRARY', 'MEETING_POINT')`))
+            .where(and(eq(places.id, placeId), inArray(places.type, ["LIBRARY", "MEETING_POINT"])))
             .returning({ id: places.id });
         if (!place) return null;
         await tx.insert(adminAuditLogs).values({ actorId, action: "PLACE_UPDATED", targetType: "PLACE", targetId: place.id, note: input.name, createdAt: now });
@@ -83,7 +122,7 @@ export async function updateCuratedPlace(placeId: string, input: CuratedPlaceInp
     });
 }
 
-/** Hide (with a reason) or restore any place, community pins included. Returns null when the place does not exist. */
+/** Hide (with a reason) or restore any place, community and event pins included. Returns null when the place does not exist. */
 export async function setPlaceHidden(placeId: string, hidden: { reason: string } | null, actorId: string) {
     return db.transaction(async (tx) => {
         const now = new Date();
@@ -99,13 +138,14 @@ export async function setPlaceHidden(placeId: string, hidden: { reason: string }
     });
 }
 
-/** The community's own pin for its manage page, hidden state included so the owner knows. */
+/** A community's or event's own pin for its manage page, hidden state included so the owner knows. */
+const ownPinColumns = {
+    id: places.id, addressPublic: places.addressPublic, latitude: places.latitude, longitude: places.longitude,
+    regionCode: places.regionCode, hiddenAt: places.hiddenAt, updatedAt: places.updatedAt,
+};
+
 export async function findCommunityPlace(communityId: string) {
-    const [place] = await db
-        .select({ id: places.id, addressPublic: places.addressPublic, latitude: places.latitude, longitude: places.longitude, hiddenAt: places.hiddenAt, updatedAt: places.updatedAt })
-        .from(places)
-        .where(eq(places.communityId, communityId))
-        .limit(1);
+    const [place] = await db.select(ownPinColumns).from(places).where(eq(places.communityId, communityId)).limit(1);
     return place ?? null;
 }
 
@@ -128,3 +168,27 @@ export async function deleteCommunityPlace(communityId: string) {
     return removed.length > 0;
 }
 
+export async function findEventPlace(eventId: string) {
+    const [place] = await db.select(ownPinColumns).from(places).where(eq(places.eventId, eventId)).limit(1);
+    return place ?? null;
+}
+
+/**
+ * One venue pin per in-person event (`places_event_id_key`, DEC-07 phase 2). The name follows the
+ * event title; the kab/kota is chosen per event, since a community can meet outside its home region.
+ * An admin-hidden pin stays hidden when it is moved.
+ */
+export async function upsertEventPlace(event: { id: string; title: string }, input: EventPlaceInput, actorId: string) {
+    const now = new Date();
+    const values = { name: event.title, ...input, checkedAt: now, updatedAt: now };
+    const [place] = await db.insert(places)
+        .values({ type: "EVENT", eventId: event.id, createdById: actorId, createdAt: now, ...values })
+        .onConflictDoUpdate({ target: places.eventId, set: values })
+        .returning({ id: places.id });
+    return place;
+}
+
+export async function deleteEventPlace(eventId: string) {
+    const removed = await db.delete(places).where(eq(places.eventId, eventId)).returning({ id: places.id });
+    return removed.length > 0;
+}

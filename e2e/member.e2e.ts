@@ -182,16 +182,16 @@ test("a community application carries reading interests and a kab/kota (ML-04, R
 
     // The owner can pin a public meeting place (DEC-07); it stays off the map until verification.
     const pin = page.getByRole("region", { name: "Titik temu di peta" });
-    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await pin.getByRole("button", { name: "Simpan titik" }).click();
     await expect(pin.getByText("Isi lintang dengan angka, misalnya -6.2088.")).toBeVisible();
     await pin.getByLabel(/Nama tempat atau alamat publik/).fill("Taman Suropati, Menteng");
     await pin.getByLabel(/^Lintang/).fill("51.5");
     await pin.getByLabel(/^Bujur/).fill("-0.12");
-    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await pin.getByRole("button", { name: "Simpan titik" }).click();
     await expect(pin.getByText("Titik harus berada di wilayah Indonesia.").first()).toBeVisible();
     await pin.getByLabel(/^Lintang/).fill("-6.1993");
     await pin.getByLabel(/^Bujur/).fill("106.8323");
-    await pin.getByRole("button", { name: "Simpan titik temu" }).click();
+    await pin.getByRole("button", { name: "Simpan titik" }).click();
     await expect(pin.getByText("Titik tampil di Peta Literasi setelah komunitas terverifikasi.")).toBeVisible();
 
     await page.goto("/map");

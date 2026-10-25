@@ -10,6 +10,7 @@ import { getCommunityAccess } from "@/lib/db/queries/community-management";
 import { findPublicCommunityProfile } from "@/lib/db/queries/communities";
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
+import { findPublicPin } from "@/lib/db/queries/places";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
 import { uuidSchema } from "@/lib/validation/common";
@@ -67,12 +68,13 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
     const requested = (await searchParams).tab;
     const tab: Tab = tabs.some((item) => item.key === requested) ? requested as Tab : "tentang";
 
-    const [upcoming, past, merchandise, approvedAt, user] = await Promise.all([
+    const [upcoming, past, merchandise, approvedAt, user, pin] = await Promise.all([
         listUpcomingPublicEvents({ communityId: community.id, limit: 20 }),
         tab === "acara" ? listPastPublicEvents(community.id) : Promise.resolve([]),
         listPublicMerchandise({ communityId: community.id, limit: 30 }),
         lastCommunityApproval(community.id),
         getCurrentUser(),
+        findPublicPin({ communityId: community.id }),
     ]);
     const counts: Record<Tab, number | undefined> = { tentang: undefined, acara: upcoming.length, merchandise: merchandise.length };
     const hrefFor = (key: Tab) => (key === "tentang" ? `/communities/${community.id}` : `/communities/${community.id}?tab=${key}`);
@@ -214,7 +216,12 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                         <section aria-labelledby="place-title" className="rounded-2xl border border-border bg-card p-5">
                             <h2 id="place-title" className="flex items-center gap-2 font-heading text-lg font-semibold"><MapPin aria-hidden="true" className="size-4" /> Lokasi Pertemuan</h2>
                             <p className="mt-3 text-sm font-semibold">{community.publicLocation ?? "Diumumkan per acara"}</p>
-                            <p className="mt-1 text-xs leading-5 text-muted-foreground">Lokasi umum yang dipakai komunitas. Titik temu tepat diumumkan di setiap acara; peta menyusul.</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">Lokasi umum yang dipakai komunitas. Titik temu tepat diumumkan di setiap acara.</p>
+                            {pin && (
+                                <Link href={`/map?tempat=${pin.id}`} className="mt-4 flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">
+                                    <MapPin aria-hidden="true" className="size-4" /> Lihat di Peta Literasi
+                                </Link>
+                            )}
                         </section>
                         <section aria-labelledby="merch-side-title" className="rounded-2xl bg-[#e7efe8] p-5">
                             <h2 id="merch-side-title" className="font-heading text-lg font-semibold">Merchandise Komunitas</h2>
