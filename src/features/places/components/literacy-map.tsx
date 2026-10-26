@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
 import { INDONESIA_BOUNDS, INDONESIA_CENTER, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
@@ -29,6 +29,14 @@ function FitRoute({ points }: { points: [number, number][] | null }) {
     return null;
 }
 
+/** South-west and north-east corners around the places, or null when there are none. */
+function boundsOf(places: MapPlace[]): [[number, number], [number, number]] | null {
+    if (!places.length) return null;
+    const latitudes = places.map((place) => place.latitude);
+    const longitudes = places.map((place) => place.longitude);
+    return [[Math.min(...latitudes), Math.min(...longitudes)], [Math.max(...latitudes), Math.max(...longitudes)]];
+}
+
 /** Leaflet view of the places (DEC-07). Loaded in the browser only; the list next to it carries the same information. */
 export default function LiteracyMap({ places, selectedId, focus, reader, route, onSelect }: {
     places: MapPlace[];
@@ -39,12 +47,17 @@ export default function LiteracyMap({ places, selectedId, focus, reader, route, 
     route: [number, number][] | null;
     onSelect: (id: string) => void;
 }) {
+    // Open on the places themselves (Jakarta–Tangerang today), not all of Indonesia. Taken once, at mount:
+    // refitting on every filter change would make the map jump.
+    const [initialBounds] = useState(() => boundsOf(places));
     // Leaflet wants [latitude, longitude].
     const routePoints = useMemo(() => route?.map(([lng, lat]) => [lat, lng] as [number, number]) ?? null, [route]);
     return (
         <MapContainer
-            center={[INDONESIA_CENTER.latitude, INDONESIA_CENTER.longitude]}
-            zoom={5}
+            // react-leaflet uses center and zoom over bounds when both are given, so pass one or the other.
+            {...(initialBounds
+                ? { bounds: initialBounds, boundsOptions: { padding: [24, 24], maxZoom: 15 } }
+                : { center: [INDONESIA_CENTER.latitude, INDONESIA_CENTER.longitude], zoom: 5 })}
             minZoom={4}
             maxBounds={[[INDONESIA_BOUNDS.south - 3, INDONESIA_BOUNDS.west - 5], [INDONESIA_BOUNDS.north + 3, INDONESIA_BOUNDS.east + 5]]}
             scrollWheelZoom={false}

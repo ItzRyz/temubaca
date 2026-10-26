@@ -26,7 +26,7 @@ export const placeTypeColors: Record<PlaceType, string> = {
 /** Matches the `places_coordinates_check` constraint: a generous box around Indonesia. */
 export const INDONESIA_BOUNDS = { south: -11.5, north: 6.5, west: 94.5, east: 141.5 } as const;
 
-/** Initial map view when the reader has not shared a location: all of Indonesia. */
+/** Map view when there are no places to fit: all of Indonesia. */
 export const INDONESIA_CENTER = { latitude: -2.5, longitude: 118 } as const;
 
 export function isInsideIndonesia(latitude: number, longitude: number) {
