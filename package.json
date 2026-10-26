@@ -13,6 +13,7 @@
     "db:migrate:dev": "bun scripts/migrate-dev.ts",
     "db:local": "bun scripts/local-db.ts",
     "books:import": "bun scripts/import-books.ts",
+    "places:import": "bun scripts/import-places.ts",
     "ml:snapshot": "bun scripts/export-ml-snapshot.ts",
     "test:e2e": "playwright test"
   },

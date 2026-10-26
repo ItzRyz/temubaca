@@ -1,0 +1,1658 @@
+[
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Nasional Republik Indonesia",
+    "addressPublic": "Jalan Medan Merdeka Selatan No. 11",
+    "regionCode": "31.71",
+    "latitude": -6.181611,
+    "longitude": 106.826923,
+    "source": "OpenStreetMap way/481723488 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Nasional RI",
+    "addressPublic": "Jalan Salemba Raya No. 28A",
+    "regionCode": "31.71",
+    "latitude": -6.199037,
+    "longitude": 106.851303,
+    "source": "OpenStreetMap way/491242472 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Umum Daerah DKI Jakarta",
+    "addressPublic": "Jalan Cikini Raya No 73",
+    "regionCode": "31.71",
+    "latitude": -6.189808,
+    "longitude": 106.838484,
+    "source": "OpenStreetMap node/6219136086 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Pusat Dokumentasi Sastra HB Jassin",
+    "addressPublic": "Jalan Cikini Raya, Taman Ismail Marzuki",
+    "regionCode": "31.71",
+    "latitude": -6.18894,
+    "longitude": 106.839352,
+    "source": "OpenStreetMap node/6219120493 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Umum Daerah DKI Jakarta",
+    "addressPublic": "Jalan Epicentrum Selatan, Gedung Nyi Ageng Serang Lt. 7&8",
+    "regionCode": "31.74",
+    "latitude": -6.222956,
+    "longitude": 106.834321,
+    "source": "OpenStreetMap node/10277962557 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Jakarta Pusat",
+    "addressPublic": "Jalan Tanah Abang I",
+    "regionCode": "31.71",
+    "latitude": -6.171575,
+    "longitude": 106.819586,
+    "source": "OpenStreetMap node/10277993113 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Jakarta Timur",
+    "addressPublic": "Jalan Jatinegara Timur IV",
+    "regionCode": "31.75",
+    "latitude": -6.221544,
+    "longitude": 106.872043,
+    "source": "OpenStreetMap way/488209342 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Umum Daerah",
+    "addressPublic": "Jalan Gandaria Tengah V",
+    "regionCode": "31.74",
+    "latitude": -6.245293,
+    "longitude": 106.79056,
+    "source": "OpenStreetMap way/157359660 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Umum Kecamatan Cilincing",
+    "addressPublic": "Jalan Gereja Tugu No.21",
+    "regionCode": "31.72",
+    "latitude": -6.126064,
+    "longitude": 106.924008,
+    "source": "OpenStreetMap way/527470260 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Umum Yayasan LIA",
+    "addressPublic": "Jalan Pramuka",
+    "regionCode": "31.75",
+    "latitude": -6.192737,
+    "longitude": 106.869021,
+    "source": "OpenStreetMap way/155953982 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Badan Perpustakaan dan Arsip Daerah Kota Tangerang",
+    "addressPublic": "Jalan Perintis Kemerdekaan II No.9, RT.007/RW.003, Babakan, Kecamatan Tangerang, Kota Tangerang, Banten 15118",
+    "regionCode": "36.71",
+    "latitude": -6.193424,
+    "longitude": 106.631279,
+    "source": "OpenStreetMap node/10285002902 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Dinas Perpustakaan dan Arsip Kabupaten Tangerang",
+    "addressPublic": "Komplek Pemda Kabupaten Tangerang Rt 005/002",
+    "regionCode": "36.03",
+    "latitude": -6.272884,
+    "longitude": 106.482506,
+    "source": "OpenStreetMap way/479464327 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Dinas Perpustakaan dan Arsip Daerah Tangerang Selatan",
+    "addressPublic": "Dekat Jalan Tanimbar",
+    "regionCode": "36.74",
+    "latitude": -6.313307,
+    "longitude": 106.698419,
+    "source": "OpenStreetMap way/877546090 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Kecamatan Serpong Utara",
+    "addressPublic": "Dekat Jalan Melati VII",
+    "regionCode": "36.74",
+    "latitude": -6.255295,
+    "longitude": 106.66142,
+    "source": "OpenStreetMap way/1266592964 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "LIBRARY",
+    "name": "Perpustakaan Kelurahan Kadu Agung",
+    "addressPublic": "Jl. KH. Abdul Wahid Kp. Bugel Rt 001/004",
+    "regionCode": "36.03",
+    "latitude": -6.262576,
+    "longitude": 106.485636,
+    "source": "OpenStreetMap way/541255953 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Suropati",
+    "addressPublic": "Jalan Taman Suropati",
+    "regionCode": "31.71",
+    "latitude": -6.198854,
+    "longitude": 106.832657,
+    "source": "OpenStreetMap way/28193017 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Menteng",
+    "addressPublic": "Jalan HOS Cokroaminoto",
+    "regionCode": "31.71",
+    "latitude": -6.196462,
+    "longitude": 106.829325,
+    "source": "OpenStreetMap way/28193134 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Lapangan Banteng",
+    "addressPublic": "Jalan Lapangan Banteng Selatan",
+    "regionCode": "31.71",
+    "latitude": -6.170493,
+    "longitude": 106.83486,
+    "source": "OpenStreetMap way/28705164 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Waduk Pluit",
+    "addressPublic": "Pluit Timur Raya",
+    "regionCode": "31.72",
+    "latitude": -6.115209,
+    "longitude": 106.795244,
+    "source": "OpenStreetMap way/32974082 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Monas",
+    "addressPublic": "Dekat Jalan Medan Merdeka Utara",
+    "regionCode": "31.71",
+    "latitude": -6.175854,
+    "longitude": 106.826812,
+    "source": "OpenStreetMap way/628537709 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Literasi Martha Tiahahu",
+    "addressPublic": "Jalan Sisingamangaraja",
+    "regionCode": "31.74",
+    "latitude": -6.243501,
+    "longitude": 106.798874,
+    "source": "OpenStreetMap node/10277068519 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mutiara Rawa Binong",
+    "addressPublic": "Dekat Jalan Rawa Binong",
+    "regionCode": "31.75",
+    "latitude": -6.298144,
+    "longitude": 106.904564,
+    "source": "OpenStreetMap way/1260529451 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cikini",
+    "addressPublic": "Dekat Jalan Cilacap",
+    "regionCode": "31.71",
+    "latitude": -6.197039,
+    "longitude": 106.839182,
+    "source": "OpenStreetMap node/9572279119 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Jakpro Asri",
+    "addressPublic": "Jalan Pluit Karang Utara",
+    "regionCode": "31.72",
+    "latitude": -6.112154,
+    "longitude": 106.780746,
+    "source": "OpenStreetMap way/29344767 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Beringin Indah",
+    "addressPublic": "Jalan Rawamangun Muka Barat II",
+    "regionCode": "31.75",
+    "latitude": -6.198031,
+    "longitude": 106.88154,
+    "source": "OpenStreetMap way/29991863 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Jeruk Manis",
+    "addressPublic": "Jalan Perum Kebon Jeruk Baru",
+    "regionCode": "31.73",
+    "latitude": -6.191459,
+    "longitude": 106.772361,
+    "source": "OpenStreetMap way/30215598 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pandawa",
+    "addressPublic": "Jalan Kedoya Azalea V",
+    "regionCode": "31.73",
+    "latitude": -6.18422,
+    "longitude": 106.763214,
+    "source": "OpenStreetMap way/30776851 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cabe Rawit",
+    "addressPublic": "Jalan Cabe Rawit Raya",
+    "regionCode": "31.73",
+    "latitude": -6.161873,
+    "longitude": 106.741779,
+    "source": "OpenStreetMap way/30843459 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sugriwa",
+    "addressPublic": "Jalan Taman Sugriwa",
+    "regionCode": "31.73",
+    "latitude": -6.167899,
+    "longitude": 106.738668,
+    "source": "OpenStreetMap way/30876751 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Karina Sayang",
+    "addressPublic": "Jalan Kacang Tanah Raya",
+    "regionCode": "31.73",
+    "latitude": -6.165006,
+    "longitude": 106.744605,
+    "source": "OpenStreetMap way/30876830 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mutiara Sumur Batu",
+    "addressPublic": "Jalan Mutiara",
+    "regionCode": "31.71",
+    "latitude": -6.164591,
+    "longitude": 106.868055,
+    "source": "OpenStreetMap way/99851797 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Biru Laut",
+    "addressPublic": "Jalan Gading Raya,Kelurahan Kelapa Gading Timur, Kecamatan Kelapa Gading, Jakarta Utara",
+    "regionCode": "31.72",
+    "latitude": -6.166184,
+    "longitude": 106.907103,
+    "source": "OpenStreetMap way/128170641 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Wangi Cempedak",
+    "addressPublic": "Jalan Berdikari I",
+    "regionCode": "31.75",
+    "latitude": -6.241145,
+    "longitude": 106.873991,
+    "source": "OpenStreetMap way/155957329 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Manah Bunda",
+    "addressPublic": "Gang Manggis XVIII",
+    "regionCode": "31.73",
+    "latitude": -6.17904,
+    "longitude": 106.786631,
+    "source": "OpenStreetMap way/156924660 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Lenteng Agung",
+    "addressPublic": "Jalan Raya Lenteng Agung",
+    "regionCode": "31.74",
+    "latitude": -6.322914,
+    "longitude": 106.835932,
+    "source": "OpenStreetMap way/157365282 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Meruya Utara",
+    "addressPublic": "Jalan Melati",
+    "regionCode": "31.73",
+    "latitude": -6.201017,
+    "longitude": 106.736848,
+    "source": "OpenStreetMap way/159967631 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kelapa Puan",
+    "addressPublic": "Jalan Kelapa Puan Timur V",
+    "regionCode": "31.72",
+    "latitude": -6.161596,
+    "longitude": 106.911906,
+    "source": "OpenStreetMap way/298470371 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Teratai",
+    "addressPublic": "Jalan Tebet Timur Raya",
+    "regionCode": "31.74",
+    "latitude": -6.235185,
+    "longitude": 106.853131,
+    "source": "OpenStreetMap way/484650682 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pulo Gundul",
+    "addressPublic": "Jalan Kramat Pulo Gundul K.106 RT. 005/13",
+    "regionCode": "31.71",
+    "latitude": -6.183279,
+    "longitude": 106.849114,
+    "source": "OpenStreetMap way/485987554 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Citra Permata",
+    "addressPublic": "Jalan Jatinegara Timur IV",
+    "regionCode": "31.75",
+    "latitude": -6.221677,
+    "longitude": 106.870237,
+    "source": "OpenStreetMap way/486010695 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Akasia",
+    "addressPublic": "Jalan Tebet Barat Raya",
+    "regionCode": "31.74",
+    "latitude": -6.2331,
+    "longitude": 106.850963,
+    "source": "OpenStreetMap way/486275921 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Flamboyan",
+    "addressPublic": "Jalan Flamboyan Raya",
+    "regionCode": "31.74",
+    "latitude": -6.228318,
+    "longitude": 106.840241,
+    "source": "OpenStreetMap way/486490938 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Rasamala Alam Sutera",
+    "addressPublic": "Jalan Rasamala",
+    "regionCode": "31.74",
+    "latitude": -6.233706,
+    "longitude": 106.836636,
+    "source": "OpenStreetMap way/486548543 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Saharjo Mentas",
+    "addressPublic": "Jalan Dr. Saharjo No. 123",
+    "regionCode": "31.74",
+    "latitude": -6.219184,
+    "longitude": 106.845159,
+    "source": "OpenStreetMap way/487295667 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Udara Segar 126",
+    "addressPublic": "Jalan Pos Inerbang",
+    "regionCode": "31.75",
+    "latitude": -6.282661,
+    "longitude": 106.863556,
+    "source": "OpenStreetMap way/487332818 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Muara Condet",
+    "addressPublic": "Jalan Kinyang",
+    "regionCode": "31.75",
+    "latitude": -6.277398,
+    "longitude": 106.858152,
+    "source": "OpenStreetMap way/487332851 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kebon Sirih",
+    "addressPublic": "Jalan Srikaya I",
+    "regionCode": "31.71",
+    "latitude": -6.183118,
+    "longitude": 106.832192,
+    "source": "OpenStreetMap way/487370072 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kampung Benda",
+    "addressPublic": "Jalan Cempaka Putih Tengah XV",
+    "regionCode": "31.71",
+    "latitude": -6.174657,
+    "longitude": 106.865422,
+    "source": "OpenStreetMap way/488106924 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cipinang Besar Utara",
+    "addressPublic": "Jalan Swadaya II",
+    "regionCode": "31.75",
+    "latitude": -6.217471,
+    "longitude": 106.88249,
+    "source": "OpenStreetMap way/488436084 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Borobudur",
+    "addressPublic": "Jalan Borobudur",
+    "regionCode": "31.71",
+    "latitude": -6.200289,
+    "longitude": 106.847606,
+    "source": "OpenStreetMap way/489538354 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Dahlia",
+    "addressPublic": "Kelurahan Kampung Tengah",
+    "regionCode": "31.75",
+    "latitude": -6.284931,
+    "longitude": 106.86601,
+    "source": "OpenStreetMap way/489540645 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Jatinegara",
+    "addressPublic": "Jalan Swadaya IV Pulo Jahe",
+    "regionCode": "31.75",
+    "latitude": -6.198148,
+    "longitude": 106.923529,
+    "source": "OpenStreetMap way/489757119 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Gondangdia",
+    "addressPublic": "Jalan Probolinggo",
+    "regionCode": "31.71",
+    "latitude": -6.194652,
+    "longitude": 106.838402,
+    "source": "OpenStreetMap way/489770782 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Amir Hamzah",
+    "addressPublic": "Jalan Amir Hamzah No. I RT 02 / RW 04",
+    "regionCode": "31.71",
+    "latitude": -6.20339,
+    "longitude": 106.850519,
+    "source": "OpenStreetMap way/489779038 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Utankase Berseri",
+    "addressPublic": "Jalan Gelar Sari II",
+    "regionCode": "31.75",
+    "latitude": -6.199528,
+    "longitude": 106.865747,
+    "source": "OpenStreetMap way/490841145 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA UTAKARA Beriman",
+    "addressPublic": "Jalan Balai Rakyat",
+    "regionCode": "31.75",
+    "latitude": -6.196115,
+    "longitude": 106.867496,
+    "source": "OpenStreetMap way/491554501 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Hati Suci",
+    "addressPublic": "Jalan Hati Suci No 7",
+    "regionCode": "31.71",
+    "latitude": -6.183139,
+    "longitude": 106.81725,
+    "source": "OpenStreetMap way/491571526 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mustika Kelurahan Kramatjati",
+    "addressPublic": "Jalan Langgar",
+    "regionCode": "31.75",
+    "latitude": -6.278282,
+    "longitude": 106.872056,
+    "source": "OpenStreetMap way/492027305 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cililitan",
+    "addressPublic": "Jl. Buluh Blok Haji Yusuf No.73/7, RT.9 RW.16, Cililitan, Kramatjati, Kota Jakarta Timur 13640",
+    "regionCode": "31.75",
+    "latitude": -6.266022,
+    "longitude": 106.856339,
+    "source": "OpenStreetMap way/492058676 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Harapan Mulia Agung Sedayu Group",
+    "addressPublic": "Jalan Harapan Mulya Barat",
+    "regionCode": "31.71",
+    "latitude": -6.170117,
+    "longitude": 106.85496,
+    "source": "OpenStreetMap way/492477449 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Penjaringan Indah II",
+    "addressPublic": "Jalan Bandengan Utara",
+    "regionCode": "31.72",
+    "latitude": -6.13407,
+    "longitude": 106.796139,
+    "source": "OpenStreetMap way/492692855 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bonti",
+    "addressPublic": "Jalan Awaludin IV",
+    "regionCode": "31.71",
+    "latitude": -6.200218,
+    "longitude": 106.814142,
+    "source": "OpenStreetMap way/492962224 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Krendang",
+    "addressPublic": "Jalan Krendang Barat",
+    "regionCode": "31.73",
+    "latitude": -6.152056,
+    "longitude": 106.801263,
+    "source": "OpenStreetMap way/493604211 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kembangan Gajah Tunggal",
+    "addressPublic": "Jalan Kompas RT 01/07",
+    "regionCode": "31.73",
+    "latitude": -6.175347,
+    "longitude": 106.732581,
+    "source": "OpenStreetMap way/493711373 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kenanga",
+    "addressPublic": "Dekat Jalan Moti",
+    "regionCode": "31.71",
+    "latitude": -6.167009,
+    "longitude": 106.807417,
+    "source": "OpenStreetMap way/494047097 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Manggis",
+    "addressPublic": "Jalan Anggrek Rosliana II",
+    "regionCode": "31.73",
+    "latitude": -6.194171,
+    "longitude": 106.794266,
+    "source": "OpenStreetMap way/494099236 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Intiland Teduh",
+    "addressPublic": "Jalan Rusun Karet Tengsin",
+    "regionCode": "31.71",
+    "latitude": -6.204827,
+    "longitude": 106.811523,
+    "source": "OpenStreetMap way/494970786 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kenanga Berseri",
+    "addressPublic": "Rukem Jaya I",
+    "regionCode": "31.75",
+    "latitude": -6.179687,
+    "longitude": 106.962988,
+    "source": "OpenStreetMap way/495311377 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kampung Budaya",
+    "addressPublic": "Jalan T Utan Panjang 3",
+    "regionCode": "31.71",
+    "latitude": -6.167988,
+    "longitude": 106.855347,
+    "source": "OpenStreetMap way/495428564 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kebon Pala Berseri",
+    "addressPublic": "Jalan Cakrawala",
+    "regionCode": "31.75",
+    "latitude": -6.263022,
+    "longitude": 106.880991,
+    "source": "OpenStreetMap way/496002837 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Melati Duri Pulo",
+    "addressPublic": "Jalan Petojo Barat V",
+    "regionCode": "31.71",
+    "latitude": -6.163413,
+    "longitude": 106.809283,
+    "source": "OpenStreetMap way/496041090 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kejora",
+    "addressPublic": "Jalan Pembangunan II Taman",
+    "regionCode": "31.71",
+    "latitude": -6.162408,
+    "longitude": 106.817919,
+    "source": "OpenStreetMap way/496078571 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Tanah Abang 3",
+    "addressPublic": "Jalan Taman Tanah Abang III",
+    "regionCode": "31.71",
+    "latitude": -6.176922,
+    "longitude": 106.81475,
+    "source": "OpenStreetMap way/496643324 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kampung Pulo Asri",
+    "addressPublic": "Jalan Swadaya 1",
+    "regionCode": "31.75",
+    "latitude": -6.278054,
+    "longitude": 106.884133,
+    "source": "OpenStreetMap way/496812075 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bandar Kemayoran",
+    "addressPublic": "RW 08 Kemayoran",
+    "regionCode": "31.71",
+    "latitude": -6.162809,
+    "longitude": 106.848314,
+    "source": "OpenStreetMap way/497093792 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cahaya Ujung Krawang",
+    "addressPublic": "Jalan Ujung Krawang P. Komarudin",
+    "regionCode": "31.75",
+    "latitude": -6.193522,
+    "longitude": 106.942351,
+    "source": "OpenStreetMap way/498152120 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pulo Gebang Permai",
+    "addressPublic": "Perum Pulo Gebang Permai",
+    "regionCode": "31.75",
+    "latitude": -6.197492,
+    "longitude": 106.949345,
+    "source": "OpenStreetMap way/498152146 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Permata",
+    "addressPublic": "Jalan Al-Husna",
+    "regionCode": "31.72",
+    "latitude": -6.127843,
+    "longitude": 106.914721,
+    "source": "OpenStreetMap way/498476045 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Penggilingan",
+    "addressPublic": "Jalan Rengas Elok I Blok A RT 010/RW 09",
+    "regionCode": "31.75",
+    "latitude": -6.194814,
+    "longitude": 106.940287,
+    "source": "OpenStreetMap way/498836241 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Duri Kosambi",
+    "addressPublic": "Jalan Duri Kosambi Kawasan Rusunawa Duri Kosambi",
+    "regionCode": "31.73",
+    "latitude": -6.161501,
+    "longitude": 106.715089,
+    "source": "OpenStreetMap way/499250272 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Serdang Baru",
+    "addressPublic": "Dekat Jalan Serdang Baru IX",
+    "regionCode": "31.71",
+    "latitude": -6.159082,
+    "longitude": 106.864528,
+    "source": "OpenStreetMap way/499771971 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Joglo",
+    "addressPublic": "Jalan Komplek DKI Joglo",
+    "regionCode": "31.73",
+    "latitude": -6.222543,
+    "longitude": 106.734941,
+    "source": "OpenStreetMap way/499805078 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Malaka Sari",
+    "addressPublic": "Jalan Seruni III",
+    "regionCode": "31.75",
+    "latitude": -6.221086,
+    "longitude": 106.925823,
+    "source": "OpenStreetMap way/500565549 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Krida Serdang",
+    "addressPublic": "Jalan Krida",
+    "regionCode": "31.71",
+    "latitude": -6.157083,
+    "longitude": 106.858245,
+    "source": "OpenStreetMap way/500825964 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Guntur",
+    "addressPublic": "Jalan Danau Batur",
+    "regionCode": "31.71",
+    "latitude": -6.209526,
+    "longitude": 106.810094,
+    "source": "OpenStreetMap way/500845645 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kalideres",
+    "addressPublic": "Jalan Perumahan Citra I",
+    "regionCode": "31.73",
+    "latitude": -6.143395,
+    "longitude": 106.693802,
+    "source": "OpenStreetMap way/500876983 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pintu Air",
+    "addressPublic": "Jalan Pintu Air",
+    "regionCode": "31.71",
+    "latitude": -6.163076,
+    "longitude": 106.828891,
+    "source": "OpenStreetMap way/501968330 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mawar",
+    "addressPublic": "Jalan Mawar Indah",
+    "regionCode": "31.74",
+    "latitude": -6.297174,
+    "longitude": 106.770272,
+    "source": "OpenStreetMap way/501973534 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Seruni Saibun",
+    "addressPublic": "Dekat Jalan Haji Saibun",
+    "regionCode": "31.74",
+    "latitude": -6.289344,
+    "longitude": 106.83138,
+    "source": "OpenStreetMap way/501977742 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Poraya",
+    "addressPublic": "Jalan Walungan Kp. Rawa Bokor",
+    "regionCode": "31.73",
+    "latitude": -6.114205,
+    "longitude": 106.698178,
+    "source": "OpenStreetMap way/502327530 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Puri Kembangan Selatan",
+    "addressPublic": "Dekat Jalan Kembang Abadi 1",
+    "regionCode": "31.73",
+    "latitude": -6.184343,
+    "longitude": 106.752279,
+    "source": "OpenStreetMap way/502530400 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Arabika",
+    "addressPublic": "Jalan Arabika III",
+    "regionCode": "31.75",
+    "latitude": -6.229442,
+    "longitude": 106.945495,
+    "source": "OpenStreetMap way/506473226 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Rawa Jaya",
+    "addressPublic": "Jalan Rawa Jaya",
+    "regionCode": "31.75",
+    "latitude": -6.233846,
+    "longitude": 106.943369,
+    "source": "OpenStreetMap way/506473284 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Jangkrik",
+    "addressPublic": "Jalan Jangkrik",
+    "regionCode": "31.74",
+    "latitude": -6.341756,
+    "longitude": 106.807452,
+    "source": "OpenStreetMap way/506895105 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Ciracas",
+    "addressPublic": "Jalan Centex",
+    "regionCode": "31.75",
+    "latitude": -6.324009,
+    "longitude": 106.875981,
+    "source": "OpenStreetMap way/507135364 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kenanga",
+    "addressPublic": "Jalan Taman Surya",
+    "regionCode": "31.73",
+    "latitude": -6.133064,
+    "longitude": 106.71028,
+    "source": "OpenStreetMap way/507486735 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mahkota",
+    "addressPublic": "Dekat Perumahan Walikota",
+    "regionCode": "31.73",
+    "latitude": -6.213694,
+    "longitude": 106.723745,
+    "source": "OpenStreetMap way/508058820 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Gajah",
+    "addressPublic": "Jalan Cipete II",
+    "regionCode": "31.74",
+    "latitude": -6.276908,
+    "longitude": 106.799529,
+    "source": "OpenStreetMap way/508069785 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bagus",
+    "addressPublic": "Dekat Gang Haji Sindun",
+    "regionCode": "31.74",
+    "latitude": -6.303413,
+    "longitude": 106.82893,
+    "source": "OpenStreetMap way/508365300 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Baung",
+    "addressPublic": "Jalan Baung III",
+    "regionCode": "31.74",
+    "latitude": -6.304775,
+    "longitude": 106.836106,
+    "source": "OpenStreetMap way/508381011 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kecapi",
+    "addressPublic": "Dekat Gang Mushola Assalamah I",
+    "regionCode": "31.74",
+    "latitude": -6.314142,
+    "longitude": 106.830871,
+    "source": "OpenStreetMap way/508406621 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bahari",
+    "addressPublic": "Jalan Bahari",
+    "regionCode": "31.74",
+    "latitude": -6.279348,
+    "longitude": 106.79432,
+    "source": "OpenStreetMap way/508585323 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Anggrek",
+    "addressPublic": "Jalan H. Gandun",
+    "regionCode": "31.74",
+    "latitude": -6.308253,
+    "longitude": 106.786397,
+    "source": "OpenStreetMap way/508870479 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Krukut Pola",
+    "addressPublic": "Jalan Bango IV RT.010/03",
+    "regionCode": "31.74",
+    "latitude": -6.304349,
+    "longitude": 106.807319,
+    "source": "OpenStreetMap way/508915562 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Alur Dahlia",
+    "addressPublic": "Jalan Bima Kav. PTB Tegal Alur",
+    "regionCode": "31.73",
+    "latitude": -6.120279,
+    "longitude": 106.718176,
+    "source": "OpenStreetMap way/508955413 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Alur Kemuning",
+    "addressPublic": "Jalan Bakti II",
+    "regionCode": "31.73",
+    "latitude": -6.115737,
+    "longitude": 106.714711,
+    "source": "OpenStreetMap way/508955447 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pola Idaman",
+    "addressPublic": "Jalan H. Kamang",
+    "regionCode": "31.74",
+    "latitude": -6.308768,
+    "longitude": 106.788724,
+    "source": "OpenStreetMap way/509162211 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pinang Pola",
+    "addressPublic": "Jalan Pinang Pola Dalam",
+    "regionCode": "31.74",
+    "latitude": -6.310047,
+    "longitude": 106.798744,
+    "source": "OpenStreetMap way/509177982 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Alur Anggrek",
+    "addressPublic": "Jalan Komplek Kebersihan",
+    "regionCode": "31.73",
+    "latitude": -6.128476,
+    "longitude": 106.717046,
+    "source": "OpenStreetMap way/509195783 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kaca Piring",
+    "addressPublic": "Jalan Lapan I",
+    "regionCode": "31.75",
+    "latitude": -6.340945,
+    "longitude": 106.862621,
+    "source": "OpenStreetMap way/509204081 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kopi Gandaria",
+    "addressPublic": "Jalan Kopi",
+    "regionCode": "31.75",
+    "latitude": -6.348295,
+    "longitude": 106.861217,
+    "source": "OpenStreetMap way/509204173 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Meruya Selatan",
+    "addressPublic": "Dekat Jalan Rptra",
+    "regionCode": "31.73",
+    "latitude": -6.211588,
+    "longitude": 106.725929,
+    "source": "OpenStreetMap way/509806172 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Madusela Sedayu",
+    "addressPublic": "Jalan Mangga Besar 13",
+    "regionCode": "31.71",
+    "latitude": -6.145821,
+    "longitude": 106.82583,
+    "source": "OpenStreetMap way/510416101 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Intan",
+    "addressPublic": "Jalan Intan Ujung",
+    "regionCode": "31.74",
+    "latitude": -6.29492,
+    "longitude": 106.804143,
+    "source": "OpenStreetMap way/510501884 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Karang Anyar",
+    "addressPublic": "Jalan Karang Anyar Raya",
+    "regionCode": "31.71",
+    "latitude": -6.151484,
+    "longitude": 106.827221,
+    "source": "OpenStreetMap way/510986534 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pondom Bambu Berseri",
+    "addressPublic": "Jalan Balai Rakyat",
+    "regionCode": "31.75",
+    "latitude": -6.226447,
+    "longitude": 106.902498,
+    "source": "OpenStreetMap way/511877139 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Dupa Wangi",
+    "addressPublic": "Jalan Mangga IV",
+    "regionCode": "31.73",
+    "latitude": -6.17211,
+    "longitude": 106.775669,
+    "source": "OpenStreetMap way/511895416 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Gebang Sari",
+    "addressPublic": "Jalan Gebang Sari Dalam, Kelurahan Bambu Apus, Kecamatan Cipayung, Jakarta Timur",
+    "regionCode": "31.75",
+    "latitude": -6.31675,
+    "longitude": 106.905746,
+    "source": "OpenStreetMap way/512018176 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kedoya Utara",
+    "addressPublic": "Jalan Ratu Mawar",
+    "regionCode": "31.73",
+    "latitude": -6.164453,
+    "longitude": 106.766198,
+    "source": "OpenStreetMap way/512260728 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Intiland Teduh Rawa Buaya",
+    "addressPublic": "Jalan Bojong Raya",
+    "regionCode": "31.73",
+    "latitude": -6.169511,
+    "longitude": 106.734475,
+    "source": "OpenStreetMap way/512733002 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Ikapola",
+    "addressPublic": "Jalan Raya Pondok Kelapa",
+    "regionCode": "31.75",
+    "latitude": -6.247233,
+    "longitude": 106.934807,
+    "source": "OpenStreetMap way/512756878 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA DKI Berseri",
+    "addressPublic": "Perumkar DKI",
+    "regionCode": "31.75",
+    "latitude": -6.240085,
+    "longitude": 106.938427,
+    "source": "OpenStreetMap way/512756880 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Gedong Trikora",
+    "addressPublic": "Jalan Trikora Raya",
+    "regionCode": "31.75",
+    "latitude": -6.301061,
+    "longitude": 106.866227,
+    "source": "OpenStreetMap way/512762665 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sindang Jaya",
+    "addressPublic": "Jalan Sindang",
+    "regionCode": "31.72",
+    "latitude": -6.112145,
+    "longitude": 106.896805,
+    "source": "OpenStreetMap way/513612253 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Sawo",
+    "addressPublic": "Jalan Damai II",
+    "regionCode": "31.74",
+    "latitude": -6.262238,
+    "longitude": 106.80007,
+    "source": "OpenStreetMap way/514464774 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sungai Bambu",
+    "addressPublic": "Sungai Bambu Tanjung Priok",
+    "regionCode": "31.72",
+    "latitude": -6.130304,
+    "longitude": 106.890915,
+    "source": "OpenStreetMap way/514699998 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Rambutan",
+    "addressPublic": "Jalan Tanjung Duren Barat II",
+    "regionCode": "31.73",
+    "latitude": -6.175243,
+    "longitude": 106.781754,
+    "source": "OpenStreetMap way/515218167 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Mawar Duri Kosambi",
+    "addressPublic": "Jalan Kosambi Utara Raya",
+    "regionCode": "31.73",
+    "latitude": -6.167935,
+    "longitude": 106.715647,
+    "source": "OpenStreetMap way/515490305 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Radar Pembangunan",
+    "addressPublic": "Jalan Inspeksi Kali Sunter",
+    "regionCode": "31.72",
+    "latitude": -6.120071,
+    "longitude": 106.896663,
+    "source": "OpenStreetMap way/515850294 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Rawa Badak",
+    "addressPublic": "Jalan Inspeksi Kali Sunter",
+    "regionCode": "31.72",
+    "latitude": -6.117376,
+    "longitude": 106.896613,
+    "source": "OpenStreetMap way/515850928 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bhinekka",
+    "addressPublic": "Jalan Reformasi",
+    "regionCode": "31.74",
+    "latitude": -6.235987,
+    "longitude": 106.760228,
+    "source": "OpenStreetMap way/516528280 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Utama",
+    "addressPublic": "Jalan Utama Raya",
+    "regionCode": "31.73",
+    "latitude": -6.150089,
+    "longitude": 106.722487,
+    "source": "OpenStreetMap way/516542339 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sehati",
+    "addressPublic": "Jalan Masjid",
+    "regionCode": "31.73",
+    "latitude": -6.148485,
+    "longitude": 106.720295,
+    "source": "OpenStreetMap way/517144310 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Marunda Klaster A",
+    "addressPublic": "Komplek Rusunawa Marunda Cluster A",
+    "regionCode": "31.72",
+    "latitude": -6.099022,
+    "longitude": 106.963526,
+    "source": "OpenStreetMap way/517542494 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Malinjo",
+    "addressPublic": "Jalan Malinjo",
+    "regionCode": "31.74",
+    "latitude": -6.278999,
+    "longitude": 106.836081,
+    "source": "OpenStreetMap way/517823109 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Berseri Cengkareng Timur",
+    "addressPublic": "Jalan Lingkar Barat",
+    "regionCode": "31.73",
+    "latitude": -6.123907,
+    "longitude": 106.730889,
+    "source": "OpenStreetMap way/518166952 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kebon Bawang",
+    "addressPublic": "Jalan Kebon Bawang VI",
+    "regionCode": "31.72",
+    "latitude": -6.114938,
+    "longitude": 106.891484,
+    "source": "OpenStreetMap way/518173770 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Nusantara",
+    "addressPublic": "Jalan Inspeksi Ulujami",
+    "regionCode": "31.74",
+    "latitude": -6.247342,
+    "longitude": 106.766974,
+    "source": "OpenStreetMap way/518265636 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Amanah",
+    "addressPublic": "Jalan Kramat Jaya Gang 8 Blok F",
+    "regionCode": "31.72",
+    "latitude": -6.119886,
+    "longitude": 106.918293,
+    "source": "OpenStreetMap way/518480357 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kampung Perigi",
+    "addressPublic": "Jalan Ki Bagus H. Merah",
+    "regionCode": "31.74",
+    "latitude": -6.258311,
+    "longitude": 106.772851,
+    "source": "OpenStreetMap way/518511802 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Belimbing",
+    "addressPublic": "Dekat Gang Mawar",
+    "regionCode": "31.74",
+    "latitude": -6.282473,
+    "longitude": 106.840746,
+    "source": "OpenStreetMap way/518532372 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Matoa Jagakarsa",
+    "addressPublic": "Jalan H. Masmun",
+    "regionCode": "31.74",
+    "latitude": -6.330139,
+    "longitude": 106.822645,
+    "source": "OpenStreetMap way/519201027 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Duta Mas",
+    "addressPublic": "Jalan Kusuma VI D",
+    "regionCode": "31.73",
+    "latitude": -6.14747,
+    "longitude": 106.781508,
+    "source": "OpenStreetMap way/519224921 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Anggrek Bintaro",
+    "addressPublic": "Jalan Anggrek",
+    "regionCode": "31.74",
+    "latitude": -6.264116,
+    "longitude": 106.770428,
+    "source": "OpenStreetMap way/519262426 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pademangan Timur",
+    "addressPublic": "Jalan Pademangan IX No. 33 RT 16 RW 10, Pademangan Timur Jakarta Utara",
+    "regionCode": "31.72",
+    "latitude": -6.12861,
+    "longitude": 106.845756,
+    "source": "OpenStreetMap way/519590001 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Lestari Indah",
+    "addressPublic": "Jalan Warakas I Gang 26",
+    "regionCode": "31.72",
+    "latitude": -6.122045,
+    "longitude": 106.868646,
+    "source": "OpenStreetMap way/519904302 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA RW 09",
+    "addressPublic": "Jalan Bisma 21",
+    "regionCode": "31.72",
+    "latitude": -6.129504,
+    "longitude": 106.869715,
+    "source": "OpenStreetMap way/519904547 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA RW 010",
+    "addressPublic": "Jalan Bisma 7A",
+    "regionCode": "31.72",
+    "latitude": -6.128863,
+    "longitude": 106.866632,
+    "source": "OpenStreetMap way/519904553 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kemandoran",
+    "addressPublic": "Jalan Kemandoran VIII",
+    "regionCode": "31.74",
+    "latitude": -6.213616,
+    "longitude": 106.787114,
+    "source": "OpenStreetMap way/521138180 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Manunggal",
+    "addressPublic": "Jalan Inpres",
+    "regionCode": "31.74",
+    "latitude": -6.243848,
+    "longitude": 106.747211,
+    "source": "OpenStreetMap way/521153131 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pinang Indah",
+    "addressPublic": "Jalan H. Muhi",
+    "regionCode": "31.74",
+    "latitude": -6.266223,
+    "longitude": 106.771277,
+    "source": "OpenStreetMap way/521454801 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Puspita",
+    "addressPublic": "Jalan H. Garie",
+    "regionCode": "31.74",
+    "latitude": -6.253044,
+    "longitude": 106.760162,
+    "source": "OpenStreetMap way/522390198 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Melati Indah",
+    "addressPublic": "Jalan Dahlia II",
+    "regionCode": "31.73",
+    "latitude": -6.149259,
+    "longitude": 106.745615,
+    "source": "OpenStreetMap way/522414630 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA RW 015 Taman Beceng",
+    "addressPublic": "Perumahan Daan Mogot Estate",
+    "regionCode": "31.73",
+    "latitude": -6.149695,
+    "longitude": 106.741863,
+    "source": "OpenStreetMap way/523573496 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Berahmat",
+    "addressPublic": "Jalan Budi Mulya Raya",
+    "regionCode": "31.72",
+    "latitude": -6.132487,
+    "longitude": 106.839736,
+    "source": "OpenStreetMap way/524575665 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kamal Bahari",
+    "addressPublic": "Jalan Kamal Muara Raya",
+    "regionCode": "31.72",
+    "latitude": -6.095225,
+    "longitude": 106.718947,
+    "source": "OpenStreetMap way/524878397 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kelapa Nias IX",
+    "addressPublic": "Jalan Kelapa Nias Timur",
+    "regionCode": "31.72",
+    "latitude": -6.151214,
+    "longitude": 106.912788,
+    "source": "OpenStreetMap way/525520317 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kelapa Nias III",
+    "addressPublic": "Jalan Kelapa Nias IV",
+    "regionCode": "31.72",
+    "latitude": -6.153837,
+    "longitude": 106.910851,
+    "source": "OpenStreetMap way/525520319 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Griya Pratama",
+    "addressPublic": "Jalan Melodi Mas II",
+    "regionCode": "31.72",
+    "latitude": -6.173265,
+    "longitude": 106.912814,
+    "source": "OpenStreetMap way/525520321 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bellyra",
+    "addressPublic": "Jalan Taman Bellyra",
+    "regionCode": "31.72",
+    "latitude": -6.168874,
+    "longitude": 106.911735,
+    "source": "OpenStreetMap way/525520322 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA H. Oyar",
+    "addressPublic": "Jalan H. Oyar, Kelurahan Pegangsaan Dua, Kecamatan Kelapa Gading, Jakarta Utara",
+    "regionCode": "31.72",
+    "latitude": -6.177912,
+    "longitude": 106.917118,
+    "source": "OpenStreetMap way/525578356 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Dharma Suci",
+    "addressPublic": "Jalan Jembatan Tiga Raya",
+    "regionCode": "31.72",
+    "latitude": -6.132746,
+    "longitude": 106.792053,
+    "source": "OpenStreetMap way/525787694 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Pinus",
+    "addressPublic": "Perum Gading Griya Lestari",
+    "regionCode": "31.72",
+    "latitude": -6.14026,
+    "longitude": 106.917551,
+    "source": "OpenStreetMap way/526080984 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Manunggal Juang",
+    "addressPublic": "Jalan Manunggal Juang",
+    "regionCode": "31.72",
+    "latitude": -6.15514,
+    "longitude": 106.924502,
+    "source": "OpenStreetMap way/526080988 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sutra Indah 1",
+    "addressPublic": "Jalan Sunter Karya Selatan II",
+    "regionCode": "31.72",
+    "latitude": -6.140642,
+    "longitude": 106.869642,
+    "source": "OpenStreetMap way/526701902 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sutra 2",
+    "addressPublic": "Dekat Jalan Sunter Karya Selatan VI",
+    "regionCode": "31.72",
+    "latitude": -6.140278,
+    "longitude": 106.871505,
+    "source": "OpenStreetMap way/526701933 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sutra 4",
+    "addressPublic": "Jalan Agung Permai 4",
+    "regionCode": "31.72",
+    "latitude": -6.140267,
+    "longitude": 106.863113,
+    "source": "OpenStreetMap way/526701959 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sutra 3",
+    "addressPublic": "Jalan Agung Utara 10",
+    "regionCode": "31.72",
+    "latitude": -6.137457,
+    "longitude": 106.859475,
+    "source": "OpenStreetMap way/526702114 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Angke Interaktif",
+    "addressPublic": "Dekat Gang Coklat",
+    "regionCode": "31.72",
+    "latitude": -6.109316,
+    "longitude": 106.769712,
+    "source": "OpenStreetMap way/526807832 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sunter Mas",
+    "addressPublic": "Jalan Sunter Mas Hijau",
+    "regionCode": "31.72",
+    "latitude": -6.154905,
+    "longitude": 106.873339,
+    "source": "OpenStreetMap way/528379683 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Sunter Jaya I",
+    "addressPublic": "Jalan Sky IVA",
+    "regionCode": "31.72",
+    "latitude": -6.149243,
+    "longitude": 106.867125,
+    "source": "OpenStreetMap way/528379900 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Harapan",
+    "addressPublic": "Dekat Gang Taman",
+    "regionCode": "31.72",
+    "latitude": -6.156283,
+    "longitude": 106.867545,
+    "source": "OpenStreetMap way/528379955 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Nirmala",
+    "addressPublic": "Jalan Instalkes",
+    "regionCode": "31.72",
+    "latitude": -6.154487,
+    "longitude": 106.867316,
+    "source": "OpenStreetMap way/528379963 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Kemuning",
+    "addressPublic": "Dekat Jalan Pagujaten",
+    "regionCode": "31.74",
+    "latitude": -6.28008,
+    "longitude": 106.845683,
+    "source": "OpenStreetMap way/531914294 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Jeruk",
+    "addressPublic": "Jalan Taman Jeruk Raya",
+    "regionCode": "31.73",
+    "latitude": -6.16179,
+    "longitude": 106.738907,
+    "source": "OpenStreetMap way/586476140 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Tunas Muda",
+    "addressPublic": "Dekat Jalan Gandaria Tengah I",
+    "regionCode": "31.74",
+    "latitude": -6.243516,
+    "longitude": 106.789834,
+    "source": "OpenStreetMap way/630836413 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Bintaro Permai",
+    "addressPublic": "Jalan Bintaro Permai III, No.15 A",
+    "regionCode": "31.74",
+    "latitude": -6.257892,
+    "longitude": 106.76353,
+    "source": "OpenStreetMap way/684274157 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cempaka",
+    "addressPublic": "Jalan Klingkit I No. 2",
+    "regionCode": "31.73",
+    "latitude": -6.161446,
+    "longitude": 106.744531,
+    "source": "OpenStreetMap way/880256649 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Tunas Bangsa Bisa",
+    "addressPublic": "Dekat Gang Bintang",
+    "regionCode": "31.75",
+    "latitude": -6.344572,
+    "longitude": 106.911594,
+    "source": "OpenStreetMap way/960188076 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Garuda",
+    "addressPublic": "Dekat Jalan Sepakat IX",
+    "regionCode": "31.75",
+    "latitude": -6.342394,
+    "longitude": 106.903652,
+    "source": "OpenStreetMap way/960202515 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Taman Apel",
+    "addressPublic": "Jalan Tanjung Duren Utara III B",
+    "regionCode": "31.73",
+    "latitude": -6.171777,
+    "longitude": 106.784108,
+    "source": "OpenStreetMap way/1023822062 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Rorotan",
+    "addressPublic": "Dekat Jalan Rorotan X",
+    "regionCode": "31.72",
+    "latitude": -6.152177,
+    "longitude": 106.958512,
+    "source": "OpenStreetMap way/1378191866 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Cinta Aselih",
+    "addressPublic": "Dekat Jalan Aselih",
+    "regionCode": "31.74",
+    "latitude": -6.352953,
+    "longitude": 106.793163,
+    "source": "OpenStreetMap way/1450794053 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "RPTRA Pesona Manggarai",
+    "addressPublic": "Dekat Jalan Manggarai Utara I",
+    "regionCode": "31.74",
+    "latitude": -6.213107,
+    "longitude": 106.853136,
+    "source": "OpenStreetMap way/1568797906 (Geofabrik java-latest 2026-10-24)"
+  }
+]
