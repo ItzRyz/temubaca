@@ -87,19 +87,19 @@ export default async function ProfilePage() {
                 </div>
 
                 <div className="flex min-w-0 flex-col gap-6">
-                    <dl className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-3">
                         {stats.map(({ icon: Icon, value, label, href, tone }) => (
                             <div key={label} className="relative flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:border-primary/40">
                                 <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg ${tone}`}><Icon className="size-5" /></span>
-                                <div className="flex flex-col-reverse">
+                                <dl className="flex flex-col-reverse">
                                     <dt className="text-sm">
                                         <Link href={href} className="after:absolute after:inset-0 hover:underline">{label}</Link>
                                     </dt>
                                     <dd className="font-heading text-xl font-semibold">{value}</dd>
-                                </div>
+                                </dl>
                             </div>
                         ))}
-                    </dl>
+                    </div>
 
                     <section aria-labelledby="my-communities-title" className={cardClass}>
                         <h2 id="my-communities-title" className="font-heading text-lg font-semibold">Komunitas saya</h2>

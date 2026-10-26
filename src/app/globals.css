@@ -61,7 +61,8 @@
   --muted-foreground: #5d6760;
   --accent: #dae2db;
   --accent-foreground: #161d19;
-  --destructive: oklch(0.577 0.245 27.325);
+  /* Darker than the shadcn default so error text passes 4.5:1 on the cream page and on bg-destructive/10 (TB-042). */
+  --destructive: #b91c1c;
   --border: #e3e3db;
   --input: #d1d9ce;
   --ring: #1b4d37;

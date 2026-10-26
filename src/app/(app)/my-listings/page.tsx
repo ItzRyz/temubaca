@@ -134,17 +134,17 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                 <AddBookDialog />
             </header>
 
-            <dl className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {stats.map(({ icon: Icon, value, unit, label, tone }) => (
                     <div key={label} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
                         <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg ${tone}`}><Icon className="size-5" /></span>
-                        <div className="flex flex-col-reverse">
+                        <dl className="flex flex-col-reverse">
                             <dt className="text-sm">{label}</dt>
                             <dd><span className="font-heading text-xl font-semibold">{value}</span> <span className="text-xs text-muted-foreground">{unit}</span></dd>
-                        </div>
+                        </dl>
                     </div>
                 ))}
-            </dl>
+            </div>
 
             <nav aria-label="Bagian Buku Saya" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
                 <Link href="/my-listings" aria-current={tab === "koleksi" ? "page" : undefined}

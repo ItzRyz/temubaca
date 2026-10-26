@@ -102,17 +102,17 @@ export default async function BookmarksPage({ searchParams }: BookmarksPageProps
                 ))}
             </nav>
 
-            <dl className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {stats.map(({ icon: Icon, value, unit, label, tone }) => (
                     <div key={label} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
                         <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg ${tone}`}><Icon className="size-5" /></span>
-                        <div className="flex flex-col-reverse">
+                        <dl className="flex flex-col-reverse">
                             <dt className="text-sm">{label}</dt>
                             <dd><span className="font-heading text-xl font-semibold">{value}</span> <span className="text-xs text-muted-foreground">{unit}</span></dd>
-                        </div>
+                        </dl>
                     </div>
                 ))}
-            </dl>
+            </div>
 
             {tab === "saved" && (
                 <section aria-label="Buku disimpan" className="mt-6">
