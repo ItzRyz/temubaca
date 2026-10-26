@@ -25,23 +25,20 @@
  */
 import { readFileSync } from "node:fs";
 
-import { Pool } from "pg";
 import { z } from "zod";
 
-import { getDatabaseTlsConfig } from "../src/lib/db/ssl";
 import { curatedPlaceSchema } from "../src/lib/validation/schemas/place.schema";
 
-import { useCloud } from "./load-env";
+import { scriptDatabaseUrl, scriptPool, useCloud } from "./load-env";
 
 const apply = process.argv.includes("--apply");
 const rows = z.array(curatedPlaceSchema).parse(JSON.parse(readFileSync("scripts/data/places-osm.json", "utf8")));
 
 async function main() {
-    const databaseUrl = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
-    if (!databaseUrl) throw new Error("Set DATABASE_URL first.");
+    const databaseUrl = scriptDatabaseUrl();
     console.log(`Target: ${new URL(databaseUrl).hostname}${useCloud ? " (--cloud)" : ""}; ${apply ? "apply" : "dry run"}; ${rows.length} places in the file`);
 
-    const pool = new Pool({ connectionString: databaseUrl, ssl: getDatabaseTlsConfig(useCloud ? "production" : "development", process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n")), max: 1 });
+    const pool = scriptPool(databaseUrl);
     try {
         const { rows: existing } = await pool.query<{ source: string }>(`select source from places where source is not null`);
         const known = new Set(existing.map((row) => row.source));

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, mock, setDefaultTimeout, spyOn, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -41,12 +42,8 @@ setDefaultTimeout(60_000);
 const LIBRARY = "00000000-0000-4000-8000-000000000301";
 const HIDDEN = "00000000-0000-4000-8000-000000000302";
 const READER = { latitude: -6.176, longitude: 106.8225 };
-const route = {
-    mode: "drive", distance_m: 9040, duration_s_estimate: 1140,
-    geometry: { type: "LineString", coordinates: [[106.822759, -6.174613], [106.800827, -6.243235]] },
-    via_streets: ["Jalan Mohammad Husni Thamrin"], snap: { origin_offset_m: 156, destination_offset_m: 119 },
-    warnings: ["ESTIMATE_NO_TRAFFIC"], algorithm: "dijkstra", graph_version: "jakarta-tangerang-drive-2026-10-25",
-};
+// The ML Service's frozen reply (ML-T10), so this test and the service agree on one route.
+const route = JSON.parse(readFileSync(resolve(import.meta.dir, "../fixtures/ml-contract/route.json"), "utf8")).response;
 
 let POST: typeof import("../../src/app/api/places/[placeId]/route/route").POST;
 
@@ -93,8 +90,8 @@ describe("POST /api/places/[placeId]/route (TB-064)", () => {
             outcome: "ROUTE",
             externalUrl: "https://www.google.com/maps/search/?api=1&query=-6.1815%2C106.8272",
             route: {
-                mode: "drive", distanceM: 9040, durationS: 1140, coordinates: route.geometry.coordinates,
-                viaStreets: ["Jalan Mohammad Husni Thamrin"], warnings: ["ESTIMATE_NO_TRAFFIC"], graphVersion: "jakarta-tangerang-drive-2026-10-25",
+                mode: route.mode, distanceM: route.distance_m, durationS: route.duration_s_estimate, coordinates: route.geometry.coordinates,
+                viaStreets: route.via_streets, warnings: route.warnings, graphVersion: route.graph_version,
             },
         });
         // The destination comes from the database, never from the request.

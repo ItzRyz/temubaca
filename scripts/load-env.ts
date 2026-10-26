@@ -9,6 +9,9 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import { config, parse } from "dotenv";
+import { Pool, type PoolConfig } from "pg";
+
+import { getDatabaseTlsConfig } from "../src/lib/db/ssl";
 
 export const useCloud = process.argv.includes("--cloud");
 
@@ -19,4 +22,20 @@ if (useCloud) {
     Object.assign(process.env, cloud);
 } else {
     config({ path: [".env.development.local", ".env"], quiet: true });
+}
+
+/** The direct connection when set (writes and migrations), otherwise the pooled one. */
+export function scriptDatabaseUrl() {
+    const url = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
+    if (!url) throw new Error("Set DATABASE_URL first.");
+    return url;
+}
+
+/**
+ * One-connection pool for a script, with strict TLS for `--cloud` (the Supabase root CA from
+ * DATABASE_SSL_CA, stored on one line with `\n`).
+ */
+export function scriptPool(connectionString: string, options: Omit<PoolConfig, "connectionString" | "ssl"> = {}) {
+    const ca = process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n");
+    return new Pool({ connectionString, ssl: getDatabaseTlsConfig(useCloud ? "production" : "development", ca), max: 1, ...options });
 }

@@ -12,13 +12,11 @@
 import { writeFileSync } from "node:fs";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 
 import { buildMlSnapshot, ML_SNAPSHOT_MAX_LIMIT, type MlSnapshotPage } from "../src/features/recommendations/snapshot-query";
-import { getDatabaseTlsConfig } from "../src/lib/db/ssl";
 import * as schema from "../src/lib/db/schema";
 
-import { useCloud } from "./load-env";
+import { scriptPool, useCloud } from "./load-env";
 
 const outIndex = process.argv.indexOf("--out");
 const out = outIndex === -1 ? undefined : process.argv[outIndex + 1];
@@ -30,12 +28,7 @@ async function main() {
     if (!databaseUrl) throw new Error("Set DATABASE_URL first.");
     console.log(`Source: ${new URL(databaseUrl).hostname}${useCloud ? " (--cloud)" : ""}; read-only`);
 
-    const pool = new Pool({
-        connectionString: databaseUrl,
-        ssl: getDatabaseTlsConfig(useCloud ? "production" : "development", process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n")),
-        max: 1,
-        options: "-c default_transaction_read_only=on",
-    });
+    const pool = scriptPool(databaseUrl, { options: "-c default_transaction_read_only=on" });
 
     try {
         const database = drizzle({ client: pool, schema });

@@ -12,15 +12,13 @@
  *
  * With `--cloud`, export DATABASE_SSL_CA (the Supabase root CA) first; `.env` does not hold it.
  */
-import { Pool } from "pg";
 
 import { createGoogleBooksProvider } from "../src/lib/external/books/google-books";
 import { createOpenLibraryProvider } from "../src/lib/external/books/open-library";
 import type { BookCatalogProvider } from "../src/lib/external/books/provider";
-import { getDatabaseTlsConfig } from "../src/lib/db/ssl";
 import type { ExternalBook } from "../src/lib/validation/schemas/book.schema";
 
-import { useCloud } from "./load-env";
+import { scriptDatabaseUrl, scriptPool, useCloud } from "./load-env";
 
 const apply = process.argv.includes("--apply");
 const targetArg = process.argv[process.argv.indexOf("--target") + 1];
@@ -77,11 +75,10 @@ function usable(book: ExternalBook, query: Query) {
 
 async function main() {
     if (!Number.isInteger(TARGET) || TARGET < 1) throw new Error("--target needs a positive whole number.");
-    const databaseUrl = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
-    if (!databaseUrl) throw new Error("Set DATABASE_URL first.");
+    const databaseUrl = scriptDatabaseUrl();
     console.log(`Target: ${new URL(databaseUrl).hostname}${useCloud ? " (--cloud)" : ""}; ${apply ? "apply" : "dry run"}; stop at ${TARGET} books`);
 
-    const pool = new Pool({ connectionString: databaseUrl, ssl: getDatabaseTlsConfig(useCloud ? "production" : "development", process.env.DATABASE_SSL_CA?.replace(/\\n/g, "\n")), max: 1 });
+    const pool = scriptPool(databaseUrl);
     const providers: BookCatalogProvider[] = [
         createOpenLibraryProvider({
             baseUrl: process.env.OPEN_LIBRARY_BASE_URL || "https://openlibrary.org",

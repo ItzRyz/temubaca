@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { routeOutcomeOf } from "../../src/features/places/route";
 import { MlServiceError } from "../../src/lib/ml/request";
@@ -9,12 +11,8 @@ const ML = { url: "https://ml.example.test", apiKey: "k".repeat(64) };
 const MONAS = { latitude: -6.176, longitude: 106.8225 };
 const BLOK_M = { latitude: -6.2443, longitude: 106.8007 };
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const route = {
-    mode: "drive", distance_m: 9040, duration_s_estimate: 1140,
-    geometry: { type: "LineString", coordinates: [[106.822759, -6.174613], [106.800827, -6.243235]] },
-    via_streets: ["Jalan Mohammad Husni Thamrin"], snap: { origin_offset_m: 156, destination_offset_m: 119 },
-    warnings: ["ESTIMATE_NO_TRAFFIC"], algorithm: "dijkstra", graph_version: "jakarta-tangerang-drive-2026-10-25",
-};
+// The ML Service's frozen reply (ML-T10), so this test and the service agree on one route.
+const route = JSON.parse(readFileSync(resolve(import.meta.dir, "../fixtures/ml-contract/route.json"), "utf8")).response;
 
 function capture(response: Response) {
     const calls: { url: string; init: RequestInit }[] = [];
@@ -30,7 +28,7 @@ describe("ML route client (TB-064)", () => {
         const { calls, fetchImpl } = capture(json(200, route));
         const result = await requestRoute({ origin: MONAS, destination: BLOK_M, mode: "drive" }, { ...ML, fetchImpl });
 
-        expect(result.distance_m).toBe(9040);
+        expect(result.distance_m).toBe(route.distance_m);
         expect(calls[0].url).toBe("https://ml.example.test/api/routing/route");
         expect(JSON.parse(String(calls[0].init.body))).toEqual({
             origin: { lat: -6.176, lng: 106.8225 }, destination: { lat: -6.2443, lng: 106.8007 }, mode: "drive",
