@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import {
@@ -22,6 +22,7 @@ import type { BorrowingActionInput, BorrowRequestActionInput, CreateBorrowReques
 import { db } from "../client";
 import {
     adminAuditLogs,
+    places,
     bookListings,
     books,
     borrowEvents,
@@ -29,6 +30,7 @@ import {
     borrowRequests,
     userProfiles,
 } from "../schema";
+import { meetingPlaceNames } from "./places";
 
 const requesterProfile = alias(userProfiles, "requester_profile");
 const ownerProfile = alias(userProfiles, "owner_profile");
@@ -61,6 +63,7 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                 availability: bookListings.availability,
                 hiddenAt: bookListings.hiddenAt,
                 publicLocation: bookListings.publicLocation,
+                meetingPlaceIds: bookListings.meetingPlaceIds,
                 borrowingRules: bookListings.borrowingRules,
                 ownerSuspendedAt: userProfiles.suspendedAt,
                 ownerDeletionRequestedAt: userProfiles.deletionRequestedAt,
@@ -82,6 +85,9 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
         if (points.length > 0 && (!input.meetingPoint || !points.includes(input.meetingPoint))) {
             throw new ConflictError("Pilih salah satu titik temu publik dari pemilik.");
         }
+        // The chosen point's Peta Literasi place, if the owner picked it from the map (TB-027).
+        const meetingPlaces = await meetingPlaceNames(listing.meetingPlaceIds, tx);
+        const meetingPlaceId = [...meetingPlaces].find(([, name]) => name === input.meetingPoint)?.[0] ?? null;
 
         try {
             const [request] = await tx
@@ -91,6 +97,7 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                     requesterId,
                     note: input.note ?? null,
                     meetingPoint: points.length > 0 ? input.meetingPoint! : null,
+                    meetingPlaceId,
                     loanDays: input.loanDays,
                     preferredTime: input.preferredTime ?? null,
                 })
@@ -326,6 +333,8 @@ export type LoanItem = {
     book: { id: string; title: string; authors: string[]; coverUrl: string | null };
     otherParty: { id: string; displayName: string };
     meetingPoint: string | null;
+    /** The meeting point on the Peta Literasi, while that place is still shown (TB-027). */
+    meetingPlace: { id: string; latitude: number; longitude: number } | null;
     loanDays: number;
     preferredTime: string | null;
     note: string | null;
@@ -357,6 +366,7 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             book: { id: books.id, title: books.title, authors: books.authors, coverUrl: books.coverUrl },
             requesterName: requesterProfile.displayName,
             ownerName: ownerProfile.displayName,
+            meetingPlace: { id: places.id, latitude: places.latitude, longitude: places.longitude },
         })
         .from(borrowRequests)
         .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
@@ -364,6 +374,7 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
         .innerJoin(requesterProfile, eq(requesterProfile.id, borrowRequests.requesterId))
         .innerJoin(ownerProfile, eq(ownerProfile.id, bookListings.ownerId))
         .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
+        .leftJoin(places, and(eq(places.id, borrowRequests.meetingPlaceId), isNull(places.hiddenAt)))
         .where(or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)))
         .orderBy(desc(borrowRequests.updatedAt))
         .limit(200);
@@ -375,7 +386,7 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
     const eventsByRequest = new Map<string, typeof eventRows>();
     for (const event of eventRows) eventsByRequest.set(event.requestId, [...(eventsByRequest.get(event.requestId) ?? []), event]);
 
-    return rows.map(({ request, borrowing, listingId, ownerId, book, requesterName, ownerName }) => {
+    return rows.map(({ request, borrowing, listingId, ownerId, book, requesterName, ownerName, meetingPlace }) => {
         const role: LoanRole = ownerId === userId ? "owner" : "requester";
         const snapshot = snapshotOf(request, borrowing);
         return {
@@ -388,6 +399,7 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             book,
             otherParty: role === "owner" ? { id: request.requesterId, displayName: requesterName } : { id: ownerId, displayName: ownerName },
             meetingPoint: request.meetingPoint,
+            meetingPlace,
             loanDays: request.loanDays,
             preferredTime: request.preferredTime,
             note: request.note,

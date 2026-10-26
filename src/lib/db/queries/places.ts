@@ -101,6 +101,17 @@ export function findPublicPin(owner: { communityId: string } | { eventId: string
     return firstOnMap("communityId" in owner ? eq(places.communityId, owner.communityId) : eq(places.eventId, owner.eventId), now);
 }
 
+/**
+ * Names of the given places that a book listing may use as meeting points (TB-027): curated
+ * libraries and public meeting points that are not hidden. Ids that fail this are left out.
+ */
+export async function meetingPlaceNames(placeIds: string[], client: Pick<typeof db, "select"> = db) {
+    if (!placeIds.length) return new Map<string, string>();
+    const rows = await client.select({ id: places.id, name: places.name }).from(places)
+        .where(and(inArray(places.id, placeIds), inArray(places.type, [...CURATED_PLACE_TYPES]), isNull(places.hiddenAt)));
+    return new Map(rows.map((row) => [row.id, row.name]));
+}
+
 /** Every place for the admin list, hidden ones included, with whether it is on the map right now. */
 export async function listPlacesForAdmin(now = new Date()) {
     const columns = {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { MAX_MEETING_POINTS } from "@/features/book-listings/listing-draft";
 import {
     bookConditionValues,
     bookProviderValues,
@@ -68,6 +69,11 @@ export const bookBrowseQuerySchema =
 export const bookIdSchema =
     bookIdParamSchema;
 
+const meetingPlaceIdsSchema =
+    z
+        .array(z.uuid())
+        .max(MAX_MEETING_POINTS);
+
 export const createBookListingSchema =
     z
         .object({
@@ -86,6 +92,11 @@ export const createBookListingSchema =
                     .string()
                     .trim()
                     .max(500)
+                    .optional(),
+
+            // Peta Literasi places among the meeting points (TB-027).
+            meetingPlaceIds:
+                meetingPlaceIdsSchema
                     .optional(),
 
             borrowingRules:
@@ -113,6 +124,10 @@ export const updateBookListingSchema =
                     .trim()
                     .max(500)
                     .nullable()
+                    .optional(),
+
+            meetingPlaceIds:
+                meetingPlaceIdsSchema
                     .optional(),
 
             borrowingRules:

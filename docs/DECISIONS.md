@@ -54,6 +54,7 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 
 - **Keputusan:**
   - Peminjam mengajukan permintaan dengan titik temu dari daftar pemilik, lama pinjam 7/14/21/30 hari (maksimal sesuai aturan listing), waktu bertemu opsional, dan pesan.
+  - **Titik temu dari Peta Literasi (TB-027, diputuskan pemilik repo 26 Okt 2026):** pemilik boleh memilih titik temu dari perpustakaan dan titik temu publik di Peta Literasi, atau tetap mengetik nama tempat umum. Titik dari peta menyimpan id tempatnya; setelah permintaan diterima, kedua pihak mendapat tautan ke Peta Literasi dan Google Maps. Opsi yang dipertimbangkan: wajib dari peta (ditolak, karena listing di luar Jakarta–Tangerang jadi tanpa titik temu), hanya tautan pencarian, atau tidak berubah.
   - Pemilik menerima, atau menolak dengan alasan dari daftar tetap.
   - Menerima satu permintaan membuat salinan `RESERVED`, dan permintaan lain yang menunggu otomatis ditolak ("Buku sedang tidak tersedia").
   - Peminjam dapat membatalkan selama permintaan belum ditanggapi. Setelah diterima, kedua pihak dapat membatalkan sebelum serah terima.

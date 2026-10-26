@@ -131,6 +131,8 @@ export const borrowRequests = pgTable('borrow_requests', {
     status: enumText(borrowRequestStatusValues).notNull().default('PENDING'), note: text(),
     // Chosen from the owner's public meeting points; the loan period is capped by the listing rules.
     meetingPoint: text(), loanDays: integer().notNull().default(14), preferredTime: text(),
+    // The Peta Literasi place behind `meetingPoint`, when the owner picked it from the map (TB-027).
+    meetingPlaceId: uuid().references(() => places.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     rejectionReason: text(), responseNote: text(),
     // Handover needs both parties (DEC-02); the borrowing starts once both timestamps are set.
     ownerHandoverAt: nowDate(), requesterHandoverAt: nowDate(),
@@ -161,6 +163,8 @@ export const bookListings = pgTable('book_listings', {
     bookId: uuid().notNull().references(() => books.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     condition: enumText(bookConditionValues).notNull(), availability: enumText(listingAvailabilityValues).notNull().default('AVAILABLE'),
     publicLocation: text(), borrowingRules: text(),
+    // Peta Literasi places among the meeting points in `publicLocation` (TB-027); typed points have none.
+    meetingPlaceIds: uuid().array().notNull().default(sql`'{}'::uuid[]`),
     hiddenAt: nowDate(), hiddenReason: text(), hiddenById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('book_listings_owner_id_idx').on(t.ownerId), index('book_listings_book_id_idx').on(t.bookId), index('book_listings_availability_idx').on(t.availability), enumCheck(t.condition, bookConditionValues), enumCheck(t.availability, listingAvailabilityValues)]).enableRLS();

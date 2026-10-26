@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { ChoiceOption, Field, FormAlert, Select, Switch, TextInput } from "@/components/ui/form";
+import { regionByCode } from "@/features/regions/regions";
 import { cn } from "@/lib/utils";
 
 import { addMeetingPoint, composeListingDetails, conditionChoices, loanDayOptions, MAX_MEETING_POINTS } from "../listing-draft";
@@ -26,6 +27,8 @@ async function postJson<T>(url: string, body: unknown) {
 }
 
 /** Figma "Tambah Buku" (152:807) and its manual variant (159:833): pick or enter a book, then listing details. */
+type PlaceSuggestion = { id: string; name: string; regionCode: string | null };
+
 export function AddBookDialog() {
     const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
@@ -47,6 +50,9 @@ export function AddBookDialog() {
     const [conditionNote, setConditionNote] = useState("");
     const [pointDraft, setPointDraft] = useState("");
     const [meetingPoints, setMeetingPoints] = useState<string[]>([]);
+    // Meeting point name -> Peta Literasi place id, for points picked from the map (TB-027).
+    const [mapPlaces, setMapPlaces] = useState<Record<string, string>>({});
+    const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
     const [loanDays, setLoanDays] = useState<(typeof loanDayOptions)[number]>(14);
     const [offered, setOffered] = useState(true);
     const [pending, setPending] = useState(false);
@@ -77,10 +83,25 @@ export function AddBookDialog() {
         };
     }, [query, manual]);
 
+    // Public libraries and meeting points from the Peta Literasi that match the typed point.
+    useEffect(() => {
+        const term = pointDraft.trim();
+        if (term.length < 2) return;
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            const response = await fetch(`/api/places?types=LIBRARY,MEETING_POINT&q=${encodeURIComponent(term)}`, { signal: controller.signal }).then((r) => r.json()).catch(() => null);
+            if (!controller.signal.aborted) setPlaceSuggestions(((response?.data?.items ?? []) as PlaceSuggestion[]).slice(0, 5));
+        }, 300);
+        return () => {
+            controller.abort();
+            clearTimeout(timer);
+        };
+    }, [pointDraft]);
+
     function reset() {
         setStep(1); setManual(false); setQuery(""); setLocalResults([]); setExternalResults([]); setChoice(null);
         setManualBook({ title: "", author: "", publishedAt: "", publisher: "", isbn: "", category: "" }); setManualErrors({});
-        setCondition("LIKE_NEW"); setConditionNote(""); setPointDraft(""); setMeetingPoints([]); setLoanDays(14); setOffered(true); setError(null);
+        setCondition("LIKE_NEW"); setConditionNote(""); setPointDraft(""); setMeetingPoints([]); setMapPlaces({}); setPlaceSuggestions([]); setLoanDays(14); setOffered(true); setError(null);
     }
 
     function open() {
@@ -118,6 +139,22 @@ export function AddBookDialog() {
     function addPoint() {
         setMeetingPoints((points) => addMeetingPoint(points, pointDraft));
         setPointDraft("");
+        setPlaceSuggestions([]);
+    }
+
+    function addMapPlace(place: PlaceSuggestion) {
+        const next = addMeetingPoint(meetingPoints, place.name);
+        if (next !== meetingPoints) {
+            setMeetingPoints(next);
+            setMapPlaces((places) => ({ ...places, [next[next.length - 1]]: place.id }));
+        }
+        setPointDraft("");
+        setPlaceSuggestions([]);
+    }
+
+    function removePoint(point: string) {
+        setMeetingPoints(meetingPoints.filter((item) => item !== point));
+        setMapPlaces((places) => Object.fromEntries(Object.entries(places).filter(([name]) => name !== point)));
     }
 
     function onPointKey(event: KeyboardEvent<HTMLInputElement>) {
@@ -160,7 +197,8 @@ export function AddBookDialog() {
         try {
             const bookId = await resolveBookId();
             const details = composeListingDetails({ meetingPoints, loanDays, conditionNote });
-            const result = await postJson("/api/book-listings", { bookId, condition, availability: offered ? "AVAILABLE" : "UNAVAILABLE", ...details });
+            const meetingPlaceIds = meetingPoints.flatMap((point) => (mapPlaces[point] ? [mapPlaces[point]] : []));
+            const result = await postJson("/api/book-listings", { bookId, condition, availability: offered ? "AVAILABLE" : "UNAVAILABLE", ...details, meetingPlaceIds });
             if (!result.ok) {
                 setError(result.status === 429 ? "Terlalu banyak perubahan. Coba lagi sebentar." : result.error?.message ?? "Listing belum dapat disimpan.");
                 return;
@@ -316,18 +354,34 @@ export function AddBookDialog() {
                                         </label>
                                         <button type="button" onClick={addPoint} disabled={!pointDraft.trim() || meetingPoints.length >= MAX_MEETING_POINTS} className="h-11 shrink-0 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50">Tambah</button>
                                     </div>
+                                    {pointDraft.trim().length >= 2 && placeSuggestions.length > 0 && meetingPoints.length < MAX_MEETING_POINTS && (
+                                        <ul aria-label="Saran dari Peta Literasi" className="flex list-none flex-col overflow-hidden rounded-lg border border-border p-0">
+                                            {placeSuggestions.map((place) => (
+                                                <li key={place.id} className="border-b border-border last:border-b-0">
+                                                    <button type="button" onClick={() => addMapPlace(place)} className="flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted">
+                                                        <MapPin aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                                                        <span className="min-w-0 flex-1">
+                                                            <span className="block truncate font-medium">{place.name}</span>
+                                                            <span className="block truncate text-xs text-muted-foreground">Peta Literasi · {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}</span>
+                                                        </span>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                     {meetingPoints.length > 0 && (
                                         <ul aria-label="Titik temu dipilih" className="flex list-none flex-wrap gap-2 p-0">
                                             {meetingPoints.map((point) => (
                                                 <li key={point} className="flex items-center gap-1 rounded-lg bg-[#e7efe8] py-1 pr-1 pl-2.5 text-sm">
                                                     <MapPin aria-hidden="true" className="size-3.5 text-primary" /> {point}
-                                                    <button type="button" onClick={() => setMeetingPoints(meetingPoints.filter((item) => item !== point))} aria-label={`Hapus ${point}`} className="flex size-8 items-center justify-center rounded hover:bg-card"><X aria-hidden="true" className="size-3.5" /></button>
+                                                    {mapPlaces[point] && <span className="text-xs text-muted-foreground">· Peta Literasi</span>}
+                                                    <button type="button" onClick={() => removePoint(point)} aria-label={`Hapus ${point}`} className="flex size-8 items-center justify-center rounded hover:bg-card"><X aria-hidden="true" className="size-3.5" /></button>
                                                 </li>
                                             ))}
                                         </ul>
                                     )}
                                     <p id={`${pointInputId}-hint`} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                        <ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /> Pilih tempat umum yang ramai, maksimal {MAX_MEETING_POINTS}. Alamat rumah Anda tidak pernah ditampilkan.
+                                        <ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /> Pilih tempat umum yang ramai, maksimal {MAX_MEETING_POINTS}; ketik untuk melihat saran dari Peta Literasi. Alamat rumah Anda tidak pernah ditampilkan.
                                     </p>
                                 </div>
                                 <div className="grid gap-4 sm:grid-cols-2">

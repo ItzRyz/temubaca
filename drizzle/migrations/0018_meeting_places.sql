@@ -1,0 +1,3 @@
+ALTER TABLE "book_listings" ADD COLUMN "meetingPlaceIds" uuid[] DEFAULT '{}'::uuid[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "borrow_requests" ADD COLUMN "meetingPlaceId" uuid;--> statement-breakpoint
+ALTER TABLE "borrow_requests" ADD CONSTRAINT "borrow_requests_meetingPlaceId_places_id_fk" FOREIGN KEY ("meetingPlaceId") REFERENCES "public"."places"("id") ON DELETE set null ON UPDATE cascade;

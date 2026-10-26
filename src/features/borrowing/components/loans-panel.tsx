@@ -1,11 +1,15 @@
-import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarDays, CheckCircle2, Clock, Hourglass, Inbox, MapPin, Search, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, Hourglass, Inbox, MapPin, Search, XCircle } from "lucide-react";
 import Link from "next/link";
 
+import { googleMapsUrl } from "@/features/places/places";
 import type { LoanItem } from "@/lib/db/queries/borrowing";
 import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
 
 import { allowedActions, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
+
+/** States in which the two still meet, to hand the book over or return it (TB-027). */
+const MEETING_STATES: LoanState[] = ["AWAITING_HANDOVER", "ACTIVE", "OVERDUE", "DISPUTED"];
 import { LoanActions } from "./loan-actions";
 
 export type LoanView = "pinjamkan" | "pinjam";
@@ -172,6 +176,14 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
 
                     <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-3.5" /> {loan.meetingPoint ? `Titik temu: ${loan.meetingPoint}` : "Titik temu disepakati bersama"}</span>
+                        {loan.meetingPlace && MEETING_STATES.includes(loan.state) && (
+                            <span className="flex items-center gap-3">
+                                <Link href={`/map?tempat=${loan.meetingPlace.id}`} className="font-semibold text-primary hover:underline">Lihat di Peta Literasi</Link>
+                                <a href={googleMapsUrl(loan.meetingPlace.latitude, loan.meetingPlace.longitude)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-semibold text-primary hover:underline">
+                                    Google Maps <ExternalLink aria-hidden="true" className="size-3" /><span className="sr-only"> (tab baru)</span>
+                                </a>
+                            </span>
+                        )}
                         {(loan.state === "ACTIVE" && loan.dueAt) ? (
                             <span className="flex items-center gap-1"><CalendarDays aria-hidden="true" className="size-3.5" /> Estimasi kembali: {dateFormatter.format(loan.dueAt)} (sisa {daysLeft} hari)</span>
                         ) : loan.state === "OVERDUE" && loan.handedOverAt ? (

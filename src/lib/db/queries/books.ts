@@ -18,8 +18,11 @@ import {
 } from "@/features/book-listings/listing-deletion";
 
 import { genreBySlug, genres } from "@/features/books/genres";
+import { meetingPointsOf } from "@/features/borrowing/lifecycle";
+import { ValidationError } from "@/lib/api/errors";
 
 import { db } from "../client";
+import { meetingPlaceNames } from "./places";
 
 import {
     books,
@@ -394,6 +397,19 @@ export async function findAvailableBookListings(
     });
 }
 
+/**
+ * The Peta Literasi places a listing keeps (TB-027): those whose name is still one of its meeting
+ * points. Newly sent ids (`strict`) must be curated places on the map; stored ids that no longer
+ * qualify, or whose point was edited away, are dropped quietly.
+ */
+async function linkedMeetingPlaces(publicLocation: string | null | undefined, placeIds: string[], strict: boolean) {
+    const ids = [...new Set(placeIds)];
+    const names = await meetingPlaceNames(ids);
+    if (strict && names.size !== ids.length) throw new ValidationError("Titik temu dari peta tidak ditemukan di Peta Literasi.");
+    const points = meetingPointsOf(publicLocation);
+    return ids.filter((id) => points.includes(names.get(id) ?? ""));
+}
+
 export async function createBookListing(input: {
     ownerId: string;
     bookId: string;
@@ -408,6 +424,7 @@ export async function createBookListing(input: {
     | "UNAVAILABLE"
     | "RESERVED";
     publicLocation?: string;
+    meetingPlaceIds?: string[];
     borrowingRules?: string;
 }) {
     const [listing] = await db
@@ -420,6 +437,8 @@ export async function createBookListing(input: {
                 input.availability ?? "AVAILABLE",
             publicLocation:
                 input.publicLocation,
+            meetingPlaceIds:
+                await linkedMeetingPlaces(input.publicLocation, input.meetingPlaceIds ?? [], true),
             borrowingRules:
                 input.borrowingRules,
         })
@@ -446,9 +465,26 @@ export async function updateBookListing(
 
         publicLocation?: string | null;
 
+        meetingPlaceIds?: string[];
+
         borrowingRules?: string | null;
     },
 ) {
+    // Editing the meeting points re-checks which of them are Peta Literasi places.
+    let meetingPlaceIds: string[] | undefined;
+    if (input.publicLocation !== undefined || input.meetingPlaceIds !== undefined) {
+        const current = await db.query.bookListings.findFirst({
+            where: and(eq(bookListings.id, listingId), eq(bookListings.ownerId, ownerId)),
+            columns: { publicLocation: true, meetingPlaceIds: true },
+        });
+        if (!current) return null;
+        meetingPlaceIds = await linkedMeetingPlaces(
+            input.publicLocation !== undefined ? input.publicLocation : current.publicLocation,
+            input.meetingPlaceIds ?? current.meetingPlaceIds,
+            input.meetingPlaceIds !== undefined,
+        );
+    }
+
     const [listing] = await db
         .update(bookListings)
         .set({
@@ -469,6 +505,12 @@ export async function updateBookListing(
                 ? {
                     publicLocation:
                         input.publicLocation,
+                }
+                : {}),
+
+            ...(meetingPlaceIds !== undefined
+                ? {
+                    meetingPlaceIds,
                 }
                 : {}),
 
