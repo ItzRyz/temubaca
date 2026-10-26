@@ -204,7 +204,8 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
 
                 <p aria-live="polite" className="text-sm text-muted-foreground">{visible.length} tempat{reader ? ", diurutkan dari yang terdekat" : ""}</p>
                 {visible.length ? (
-                    <ul aria-label="Daftar tempat" className="flex max-h-[640px] list-none flex-col gap-3 overflow-y-auto p-0 pr-1">
+                    <ul aria-label="Daftar tempat" className="relative flex max-h-[640px] list-none flex-col gap-3 overflow-y-auto p-0 pr-1">
+                        {/* `relative` keeps the sr-only labels (absolutely positioned) inside this scroll box; without it they stretch the page. */}
                         {visible.map((place) => (
                             <li key={place.id} id={`place-${place.id}`}>
                                 <article className={cn("rounded-2xl border bg-card p-4", place.id === selectedId ? "border-primary shadow-sm" : "border-border")}>
