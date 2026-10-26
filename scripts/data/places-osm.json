@@ -1654,5 +1654,113 @@
     "latitude": -6.213107,
     "longitude": 106.853136,
     "source": "OpenStreetMap way/1568797906 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-Alun Teluk Naga",
+    "addressPublic": "Dekat Jalan Raya Kampung Melayu",
+    "regionCode": "36.03",
+    "latitude": -6.07043,
+    "longitude": 106.647118,
+    "source": "OpenStreetMap way/1434260857 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-alun Tigaraksa",
+    "addressPublic": "Dekat Jalan Atiek Soeardi",
+    "regionCode": "36.03",
+    "latitude": -6.27413,
+    "longitude": 106.485203,
+    "source": "OpenStreetMap way/664663658 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Kota Tigaraksa",
+    "addressPublic": "Dekat Jalan H. Abdul Hamid",
+    "regionCode": "36.03",
+    "latitude": -6.276316,
+    "longitude": 106.483175,
+    "source": "OpenStreetMap way/664663653 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-Alun Kecamatan Periuk",
+    "addressPublic": "Dekat Jalan Wijaya Kusuma I",
+    "regionCode": "36.71",
+    "latitude": -6.169936,
+    "longitude": 106.594347,
+    "source": "OpenStreetMap way/1443847883 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-alun Pinang Kota Tangerang",
+    "addressPublic": "Dekat Jalan Kintamani",
+    "regionCode": "36.71",
+    "latitude": -6.230582,
+    "longitude": 106.671564,
+    "source": "OpenStreetMap way/1044421662 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Hutan Kota",
+    "addressPublic": "Dekat Pinang",
+    "regionCode": "36.71",
+    "latitude": -6.220837,
+    "longitude": 106.691511,
+    "source": "OpenStreetMap way/368699176 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Balai Kota Tangerang",
+    "addressPublic": "Dekat Jalan Satria-Sudirman",
+    "regionCode": "36.71",
+    "latitude": -6.169873,
+    "longitude": 106.640254,
+    "source": "OpenStreetMap way/1090450386 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-Alun Pamulang",
+    "addressPublic": "Dekat Jalan Siliwangi",
+    "regionCode": "36.74",
+    "latitude": -6.344355,
+    "longitude": 106.734843,
+    "source": "OpenStreetMap way/1115921940 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Alun-Alun Pondok Aren",
+    "addressPublic": "Dekat Jalan Graha Bintaro",
+    "regionCode": "36.74",
+    "latitude": -6.274585,
+    "longitude": 106.692989,
+    "source": "OpenStreetMap way/1249082491 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Hutan Kota Jombang",
+    "addressPublic": "Dekat Gang Sepakat",
+    "regionCode": "36.74",
+    "latitude": -6.290354,
+    "longitude": 106.696766,
+    "source": "OpenStreetMap way/1064551195 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Hutan Kota Pamulang 2",
+    "addressPublic": "Dekat Jalan Benda Permai 5",
+    "regionCode": "36.74",
+    "latitude": -6.325893,
+    "longitude": 106.706048,
+    "source": "OpenStreetMap way/1064532988 (Geofabrik java-latest 2026-10-24)"
+  },
+  {
+    "type": "MEETING_POINT",
+    "name": "Taman Kota 1 BSD",
+    "addressPublic": "Dekat Jalan Letnan Sutopo",
+    "regionCode": "36.74",
+    "latitude": -6.287698,
+    "longitude": 106.675401,
+    "source": "OpenStreetMap way/369457388 (Geofabrik java-latest 2026-10-24)"
   }
 ]

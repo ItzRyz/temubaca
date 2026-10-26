@@ -7,7 +7,9 @@
  *   agencies, kecamatan and kelurahan) or named "Perpustakaan Umum". Campus, ministry, embassy,
  *   and private libraries are left out.
  * - Meeting points: every RPTRA (Pemprov DKI's public child-friendly spaces) named "RPTRA …",
- *   city parks with a Wikidata entry, and Taman Literasi Martha Tiahahu.
+ *   city parks with a Wikidata entry, and Taman Literasi Martha Tiahahu. Tangerang has no RPTRA, so
+ *   there it is places named "Alun-Alun", "Taman Kota", "Hutan Kota", or "Taman Balai Kota" (added
+ *   26 Oct 2026); RT/RW, housing-estate, privately run, and campus parks are left out.
  *
  * The kab/kota comes from the area's administrative boundary. An address is the OSM `addr:*`
  * tags when present, otherwise "Dekat <street>" from the nearest named street in the walking
