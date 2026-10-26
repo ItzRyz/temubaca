@@ -102,8 +102,8 @@ export async function updateCommunityProfile(communityId: string, input: Communi
         .where(and(eq(communities.id, communityId), ne(communities.status, "SUSPENDED")))
         .returning({ id: communities.id });
     if (!community) throw new ConflictError("Profil komunitas yang ditangguhkan tidak dapat diubah.");
-    // The map pin carries the community's name and kab/kota (DEC-07).
-    await db.update(places).set({ name: input.name, regionCode: input.regionCode, updatedAt: new Date() }).where(eq(places.communityId, communityId));
+    // The map pin follows the community's kab/kota (DEC-07); its name is read from the community itself.
+    await db.update(places).set({ regionCode: input.regionCode, updatedAt: new Date() }).where(eq(places.communityId, communityId));
     return community;
 }
 

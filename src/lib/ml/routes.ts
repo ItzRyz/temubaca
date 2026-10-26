@@ -4,13 +4,15 @@
  */
 import { z } from "zod";
 
+import { ROUTE_MODES, type RouteMode } from "@/features/places/route";
+
 import { postToMlService, type MlServiceConfig } from "./request";
 
 /** Routing walks a city graph, so it gets more time than recommendations (Lampiran A: 5 s). */
 const ROUTE_TIMEOUT_MS = 5_000;
 
 const routeSchema = z.object({
-    mode: z.enum(["drive", "walk"]),
+    mode: z.enum(ROUTE_MODES),
     distance_m: z.number().nonnegative(),
     duration_s_estimate: z.number().nonnegative(),
     geometry: z.object({
@@ -32,7 +34,7 @@ export type RoutePoint = { latitude: number; longitude: number };
  * Throws `MlServiceError`; routing failures carry the service's `code` (OUT_OF_COVERAGE, NO_PATH, ...).
  */
 export async function requestRoute(
-    input: { origin: RoutePoint; destination: RoutePoint; mode: "drive" | "walk" },
+    input: { origin: RoutePoint; destination: RoutePoint; mode: RouteMode },
     config: MlServiceConfig,
 ): Promise<MlRoute> {
     const point = ({ latitude, longitude }: RoutePoint) => ({ lat: latitude, lng: longitude });

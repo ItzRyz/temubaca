@@ -50,7 +50,8 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     const event = await findEvent((await params).eventId);
     if (!event) notFound();
 
-    const [user, pin] = await Promise.all([getCurrentUser(), findPublicPin({ eventId: event.id })]);
+    // Only an in-person event can have a pin on the map.
+    const [user, pin] = await Promise.all([getCurrentUser(), event.locationType === "PHYSICAL" ? findPublicPin({ eventId: event.id }) : null]);
     const eventUrl = safeExternalUrl(event.eventUrl);
     const lastMoment = event.endsAt ?? event.startsAt;
     const isPast = lastMoment !== null && lastMoment < new Date();

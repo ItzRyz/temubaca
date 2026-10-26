@@ -8,7 +8,8 @@ import { removeMerchandisePhotos } from "@/lib/supabase/storage";
 import type { CommunityEventInput, CommunityMerchandiseInput } from "@/lib/validation/schemas/community-management.schema";
 
 import { db } from "../client";
-import { events, merchandiseListings, orderItems, places } from "../schema";
+import { events, merchandiseListings, orderItems } from "../schema";
+import { deleteEventPlace } from "./places";
 
 function eventValues(input: CommunityEventInput) {
     const online = input.locationType === "ONLINE";
@@ -51,9 +52,8 @@ export async function updateCommunityEvent(communityId: string, eventId: string,
         .where(and(eq(events.id, eventId), eq(events.communityId, communityId)))
         .returning({ id: events.id });
     if (!event) throw new NotFoundError("Acara tidak ditemukan.");
-    // The venue pin carries the event title, and an online event has no venue to pin (DEC-07).
-    if (input.locationType === "ONLINE") await db.delete(places).where(eq(places.eventId, eventId));
-    else await db.update(places).set({ name: input.title, updatedAt: new Date() }).where(eq(places.eventId, eventId));
+    // An online event has no venue to pin (DEC-07); the pin's name is read from the event itself.
+    if (input.locationType === "ONLINE") await deleteEventPlace(eventId);
     return event;
 }
 

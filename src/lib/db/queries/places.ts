@@ -1,9 +1,9 @@
 import "server-only";
 
-import { and, asc, eq, gte, ilike, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, inArray, isNull, like, or, sql, type SQL } from "drizzle-orm";
 import { alias, type PgSelect } from "drizzle-orm/pg-core";
 
-import type { PlaceType } from "@/features/places/places";
+import { CURATED_PLACE_TYPES, type PlaceType } from "@/features/places/places";
 import type { CommunityPlaceInput, CuratedPlaceInput, EventPlaceInput } from "@/lib/validation/schemas/place.schema";
 
 import { db } from "../client";
@@ -14,11 +14,15 @@ const PUBLIC_PLACE_LIMIT = 500;
 // An event pin has no communityId (`places_owner_check`); its organiser is reached through the event.
 const organisers = alias(communities, "organisers");
 
+// An event pin is named after its event and a community pin after its community, read live so a renamed
+// event or community never leaves a stale name behind; `places.name` is the stored fallback.
+const placeName = sql<string>`coalesce(${events.title}, ${communities.name}, ${places.name})`;
+
 /** Fields any visitor may see. Never the creator, hide reason, or anything about the people behind a place. */
 const publicColumns = {
     id: places.id,
     type: places.type,
-    name: places.name,
+    name: placeName,
     addressPublic: places.addressPublic,
     latitude: places.latitude,
     longitude: places.longitude,
@@ -47,7 +51,7 @@ function isOnMap(now: Date) {
     return and(
         isNull(places.hiddenAt),
         or(
-            inArray(places.type, ["LIBRARY", "MEETING_POINT"]),
+            inArray(places.type, [...CURATED_PLACE_TYPES]),
             and(eq(places.type, "COMMUNITY"), eq(communities.status, "VERIFIED")),
             and(
                 eq(places.type, "EVENT"),
@@ -60,38 +64,41 @@ function isOnMap(now: Date) {
     );
 }
 
+function publicPlaces() {
+    return withOwners(db.select(publicColumns).from(places).$dynamic());
+}
+
 /** Places on the Peta Literasi. `region` is a province (`NN`) or kab/kota (`NN.NN`) prefix. */
 export async function listPublicPlaces(filter: { types: PlaceType[]; region?: string; q?: string }, now = new Date()) {
     if (!filter.types.length) return [];
     const query = filter.q?.replace(/[\\%_]/g, "\\$&");
 
-    return withOwners(db.select(publicColumns).from(places).$dynamic())
+    return publicPlaces()
         .where(and(
             isOnMap(now),
             inArray(places.type, filter.types),
             filter.region ? like(places.regionCode, `${filter.region}%`) : undefined,
-            query ? or(ilike(places.name, `%${query}%`), ilike(communities.name, `%${query}%`), ilike(organisers.name, `%${query}%`), ilike(places.addressPublic, `%${query}%`)) : undefined,
+            query ? or(ilike(placeName, `%${query}%`), ilike(organisers.name, `%${query}%`), ilike(places.addressPublic, `%${query}%`)) : undefined,
         ))
-        .orderBy(asc(places.name))
+        .orderBy(asc(placeName))
         .limit(PUBLIC_PLACE_LIMIT);
 }
 
 export type PublicPlace = Awaited<ReturnType<typeof listPublicPlaces>>[number];
 
-/** One place by id while it is on the map; the route handler resolves its destination here (TB-064). */
-export async function findPublicPlace(placeId: string, now = new Date()) {
-    const [place] = await withOwners(db.select(publicColumns).from(places).$dynamic())
-        .where(and(isOnMap(now), eq(places.id, placeId)))
-        .limit(1);
+async function firstOnMap(where: SQL, now: Date) {
+    const [place] = await publicPlaces().where(and(isOnMap(now), where)).limit(1);
     return place ?? null;
 }
 
+/** One place by id while it is on the map; the route handler resolves its destination here (TB-064). */
+export function findPublicPlace(placeId: string, now = new Date()) {
+    return firstOnMap(eq(places.id, placeId), now);
+}
+
 /** The pin of one community or event while it is on the map, for "Lihat di Peta Literasi" links. */
-export async function findPublicPin(owner: { communityId: string } | { eventId: string }, now = new Date()) {
-    const [place] = await withOwners(db.select(publicColumns).from(places).$dynamic())
-        .where(and(isOnMap(now), "communityId" in owner ? eq(places.communityId, owner.communityId) : eq(places.eventId, owner.eventId)))
-        .limit(1);
-    return place ?? null;
+export function findPublicPin(owner: { communityId: string } | { eventId: string }, now = new Date()) {
+    return firstOnMap("communityId" in owner ? eq(places.communityId, owner.communityId) : eq(places.eventId, owner.eventId), now);
 }
 
 /** Every place for the admin list, hidden ones included, with whether it is on the map right now. */
@@ -104,7 +111,7 @@ export async function listPlacesForAdmin(now = new Date()) {
         onMap: sql<boolean>`coalesce(${isOnMap(now)}, false)`,
     };
     return withOwners(db.select(columns).from(places).$dynamic())
-        .orderBy(asc(places.type), asc(places.name));
+        .orderBy(asc(places.type), asc(placeName));
 }
 
 export async function createCuratedPlace(input: CuratedPlaceInput, actorId: string) {
@@ -122,7 +129,7 @@ export async function updateCuratedPlace(placeId: string, input: CuratedPlaceInp
         const now = new Date();
         const [place] = await tx.update(places)
             .set({ ...input, checkedAt: now, updatedAt: now })
-            .where(and(eq(places.id, placeId), inArray(places.type, ["LIBRARY", "MEETING_POINT"])))
+            .where(and(eq(places.id, placeId), inArray(places.type, [...CURATED_PLACE_TYPES])))
             .returning({ id: places.id });
         if (!place) return null;
         await tx.insert(adminAuditLogs).values({ actorId, action: "PLACE_UPDATED", targetType: "PLACE", targetId: place.id, note: input.name, createdAt: now });
@@ -182,8 +189,9 @@ export async function findEventPlace(eventId: string) {
 }
 
 /**
- * One venue pin per in-person event (`places_event_id_key`, DEC-07 phase 2). The name follows the
- * event title; the kab/kota is chosen per event, since a community can meet outside its home region.
+ * One venue pin per in-person event (`places_event_id_key`, DEC-07 phase 2). The map shows the
+ * event's current title (`placeName`); the kab/kota is chosen per event, since a community can meet
+ * outside its home region.
  * An admin-hidden pin stays hidden when it is moved.
  */
 export async function upsertEventPlace(event: { id: string; title: string }, input: EventPlaceInput, actorId: string) {

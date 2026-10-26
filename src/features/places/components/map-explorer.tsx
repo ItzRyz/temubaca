@@ -42,9 +42,6 @@ function placeHref(place: ExplorerPlace) {
     return place.communityId ? `/communities/${place.communityId}` : null;
 }
 
-/** A community pin is titled by its community; every other pin by its own name (an event pin carries the event title). */
-const placeTitle = (place: ExplorerPlace) => (place.type === "COMMUNITY" ? place.communityName ?? place.name : place.name);
-
 type Locating = { status: "idle" | "locating" } | { status: "error"; message: string };
 
 type RouteResult =
@@ -206,46 +203,49 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
                 {visible.length ? (
                     <ul aria-label="Daftar tempat" className="relative flex max-h-[640px] list-none flex-col gap-3 overflow-y-auto p-0 pr-1">
                         {/* `relative` keeps the sr-only labels (absolutely positioned) inside this scroll box; without it they stretch the page. */}
-                        {visible.map((place) => (
-                            <li key={place.id} id={`place-${place.id}`}>
-                                <article className={cn("rounded-2xl border bg-card p-4", place.id === selectedId ? "border-primary shadow-sm" : "border-border")}>
-                                    <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                                        <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: placeTypeColors[place.type] }} />
-                                        {placeTypeLabels[place.type]}
-                                        {place.distance !== null && <span className="ml-auto font-normal">± {formatDistance(place.distance)}</span>}
-                                    </p>
-                                    <h3 className="mt-1 font-heading text-base font-semibold">
-                                        {placeHref(place) ? <Link href={placeHref(place)!} className="hover:underline">{placeTitle(place)}</Link> : placeTitle(place)}
-                                    </h3>
-                                    {place.eventId && (
-                                        <p className="mt-1 text-sm">
-                                            {place.eventStartsAt && <span className="capitalize">{eventFormat.format(new Date(place.eventStartsAt))} WIB</span>}
-                                            {place.communityName && <span className="text-muted-foreground"> · oleh {place.communityName}</span>}
+                        {visible.map((place) => {
+                            const href = placeHref(place);
+                            return (
+                                <li key={place.id} id={`place-${place.id}`}>
+                                    <article className={cn("rounded-2xl border bg-card p-4", place.id === selectedId ? "border-primary shadow-sm" : "border-border")}>
+                                        <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                            <span aria-hidden="true" className="size-2.5 rounded-full" style={{ backgroundColor: placeTypeColors[place.type] }} />
+                                            {placeTypeLabels[place.type]}
+                                            {place.distance !== null && <span className="ml-auto font-normal">± {formatDistance(place.distance)}</span>}
                                         </p>
-                                    )}
-                                    {place.addressPublic && <p className="mt-1 flex gap-1 text-sm text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />{place.addressPublic}</p>}
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}
-                                        {place.checkedAt && ` · Diperbarui ${checkedFormat.format(new Date(place.checkedAt))}`}
-                                    </p>
-                                    <div className="mt-3 flex flex-wrap gap-2">
-                                        <button type="button" onClick={() => show(place)} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
-                                            Lihat di peta<span className="sr-only">: {placeTitle(place)}</span>
-                                        </button>
-                                        {reader && (
-                                            <button type="button" onClick={() => void requestRoute(place)} disabled={routeState?.placeId === place.id && routeState.status === "loading"}
-                                                className="flex min-h-10 items-center gap-1 rounded-lg border border-primary px-3 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
-                                                <Route aria-hidden="true" className="size-3.5" /> Rute {routeModeLabels[routeMode].toLowerCase()}<span className="sr-only">: {placeTitle(place)}</span>
-                                            </button>
+                                        <h3 className="mt-1 font-heading text-base font-semibold">
+                                            {href ? <Link href={href} className="hover:underline">{place.name}</Link> : place.name}
+                                        </h3>
+                                        {place.eventId && (
+                                            <p className="mt-1 text-sm">
+                                                {place.eventStartsAt && <span className="capitalize">{eventFormat.format(new Date(place.eventStartsAt))} WIB</span>}
+                                                {place.communityName && <span className="text-muted-foreground"> · oleh {place.communityName}</span>}
+                                            </p>
                                         )}
-                                        <a href={googleMapsUrl(place.latitude, place.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-                                            Buka di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
-                                        </a>
-                                    </div>
-                                    {routeState?.placeId === place.id && <RouteSummary state={routeState} />}
-                                </article>
-                            </li>
-                        ))}
+                                        {place.addressPublic && <p className="mt-1 flex gap-1 text-sm text-muted-foreground"><MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />{place.addressPublic}</p>}
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}
+                                            {place.checkedAt && ` · Diperbarui ${checkedFormat.format(new Date(place.checkedAt))}`}
+                                        </p>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            <button type="button" onClick={() => show(place)} className="min-h-10 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">
+                                                Lihat di peta<span className="sr-only">: {place.name}</span>
+                                            </button>
+                                            {reader && (
+                                                <button type="button" onClick={() => void requestRoute(place)} disabled={routeState?.placeId === place.id && routeState.status === "loading"}
+                                                    className="flex min-h-10 items-center gap-1 rounded-lg border border-primary px-3 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
+                                                    <Route aria-hidden="true" className="size-3.5" /> Rute {routeModeLabels[routeMode].toLowerCase()}<span className="sr-only">: {place.name}</span>
+                                                </button>
+                                            )}
+                                            <a href={googleMapsUrl(place.latitude, place.longitude)} target="_blank" rel="noopener noreferrer" className="flex min-h-10 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                                Buka di Google Maps <ExternalLink aria-hidden="true" className="size-3.5" /><span className="sr-only"> (tab baru)</span>
+                                            </a>
+                                        </div>
+                                        {routeState?.placeId === place.id && <RouteSummary state={routeState} />}
+                                    </article>
+                                </li>
+                            );
+                        })}
                     </ul>
                 ) : (
                     <p className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-sm text-muted-foreground">

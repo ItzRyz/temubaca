@@ -46,11 +46,11 @@ export const POST = withApiHandler(async (request, context: RouteContext) => {
             },
         });
     } catch (error) {
-        const code = error instanceof MlServiceError ? error.code : undefined;
-        const outcome = routeOutcomeOf(code);
+        const mlError = error instanceof MlServiceError ? error : null;
+        const outcome = routeOutcomeOf(mlError?.code);
         if (outcome === "UNAVAILABLE") {
             // The failure kind and code only, never the points.
-            console.error("[ML_SERVICE_ERROR]", { kind: error instanceof MlServiceError ? error.kind : "unknown", code });
+            console.error("[ML_SERVICE_ERROR]", { kind: mlError?.kind ?? "unknown", code: mlError?.code });
         }
         return apiSuccess({ outcome, message: routeOutcomeMessages[outcome], externalUrl });
     }

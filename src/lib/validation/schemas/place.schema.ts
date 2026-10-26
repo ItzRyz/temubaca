@@ -59,10 +59,7 @@ export const placeIdParamSchema = z.object({ placeId: z.uuid({ error: "Invalid I
  * so access logs cannot hold it. Only points inside Indonesia's box are accepted.
  */
 export const routeRequestSchema = z.object({
-    origin: z.object({
-        latitude: z.number().min(INDONESIA_BOUNDS.south, OUTSIDE).max(INDONESIA_BOUNDS.north, OUTSIDE),
-        longitude: z.number().min(INDONESIA_BOUNDS.west, OUTSIDE).max(INDONESIA_BOUNDS.east, OUTSIDE),
-    }).strict(),
+    origin: z.object({ latitude: latitudeSchema, longitude: longitudeSchema }).strict(),
     mode: z.enum(ROUTE_MODES, { error: "Pilih moda rute." }),
 }).strict();
 

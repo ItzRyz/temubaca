@@ -15,10 +15,10 @@ export default async function EditEventPage({ params }: PageProps<"/communities/
     const { can } = await loadManageContext(communityId);
     if (!can.manageContent) redirect(`/communities/${communityId}/manage/events`);
     if (!uuidSchema.safeParse(eventId).success) notFound();
-    const event = await findManagedEvent(communityId, eventId);
+    const [event, pin] = await Promise.all([findManagedEvent(communityId, eventId), findEventPlace(eventId)]);
     if (!event) notFound();
 
-    const place = event.locationType === "PHYSICAL" ? await findEventPlace(event.id) : null;
+    const place = event.locationType === "PHYSICAL" ? pin : null;
     const start = wibParts(event.startsAt);
     const end = wibParts(event.endsAt);
     return (

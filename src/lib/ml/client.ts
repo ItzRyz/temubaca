@@ -4,11 +4,10 @@ import { env } from "@/env";
 
 import { recommendBooks as requestBooks, type MlServiceConfig } from "./books";
 import { recommendCommunities as requestCommunities } from "./communities";
-import { requestRoute, type RoutePoint } from "./routes";
+import { requestRoute } from "./routes";
 
 export { ML_MAX_TOP_N, MlServiceError, type MlBookRecommendation, type MlServiceConfig, type MlServiceErrorKind } from "./books";
 export type { MlCommunityRecommendation } from "./communities";
-export type { MlRoute } from "./routes";
 
 function defaultConfig(): MlServiceConfig {
     return { url: env.RECOMMENDATION_API_URL, apiKey: env.RECOMMENDATION_API_KEY };
@@ -29,6 +28,6 @@ export function recommendCommunities(input: { interests: string[]; regionCode: s
 }
 
 /** Road route from the configured ML Service (TB-064); see `./routes`. */
-export function routeBetween(input: { origin: RoutePoint; destination: RoutePoint; mode: "drive" | "walk" }) {
+export function routeBetween(input: Parameters<typeof requestRoute>[0]) {
     return requestRoute(input, defaultConfig());
 }

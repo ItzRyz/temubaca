@@ -66,7 +66,7 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
                                         <div className="min-w-0">
                                             <p className="text-xs font-semibold text-muted-foreground">{placeTypeLabels[place.type]} · {status}</p>
                                             <p className="mt-1 font-semibold">
-                                                {place.eventId ? <Link href={`/events/${place.eventId}`} className="hover:underline">{place.name}</Link> : place.type === "COMMUNITY" ? place.communityName ?? place.name : place.name}
+                                                {place.eventId ? <Link href={`/events/${place.eventId}`} className="hover:underline">{place.name}</Link> : place.name}
                                             </p>
                                             {place.eventId && place.communityName && <p className="text-sm text-muted-foreground">Acara {place.communityName}</p>}
                                             <p className="text-sm text-muted-foreground">{place.addressPublic} · {regionByCode(place.regionCode)?.name ?? "Wilayah belum tercatat"}</p>
@@ -79,7 +79,7 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
                                                     Ubah<span className="sr-only">: {place.name}</span>
                                                 </Link>
                                             )}
-                                            <PlaceVisibilityControl placeId={place.id} placeName={place.type === "COMMUNITY" ? place.communityName ?? place.name : place.name} hidden={Boolean(place.hiddenAt)} />
+                                            <PlaceVisibilityControl placeId={place.id} placeName={place.name} hidden={Boolean(place.hiddenAt)} />
                                         </div>
                                     </li>
                                 );
