@@ -15,7 +15,7 @@ mock.module("server-only", () => ({}));
 mock.module(resolve(import.meta.dir, "../../src/lib/db/client.ts"), () => ({ db: testDb }));
 // community-content imports storage for merchandise photos; events never touch it.
 mock.module(resolve(import.meta.dir, "../../src/lib/supabase/storage.ts"), () => ({
-    removeMerchandisePhotos: async () => {},
+    removeCommunityImages: async () => {},
     isEvidenceStorageAvailable: () => false,
     uploadEvidenceFile: async () => { throw new Error("no storage in tests"); },
     uploadMerchandisePhoto: async () => { throw new Error("no storage in tests"); },

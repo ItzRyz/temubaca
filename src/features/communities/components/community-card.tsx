@@ -1,11 +1,14 @@
 import { BadgeCheck, CalendarDays, ChevronRight, MapPin, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { merchandisePhotoUrl } from "@/features/merchandise/format";
 import { ReportForm } from "@/features/reports/components/report-form";
+import { cn } from "@/lib/utils";
 
 export type CommunityCardData = {
     id: string;
     name: string;
+    logoPath: string | null;
     description: string | null;
     publicLocation: string | null;
     activeMemberCount: number;
@@ -24,14 +27,27 @@ export function colorFor(id: string) {
     return avatarColors[hash % avatarColors.length];
 }
 
+/**
+ * The community's logo (TB-030), or its initials on a colour picked from its id. Decorative: the name
+ * always sits next to it. `className` sets the size, corner radius, and text size.
+ */
+export function CommunityAvatar({ community, className }: { community: { id: string; name: string; logoPath: string | null }; className?: string }) {
+    return (
+        <span aria-hidden="true" className={cn("flex shrink-0 items-center justify-center overflow-hidden font-heading text-white", community.logoPath ? "bg-card" : colorFor(community.id), className)}>
+            {community.logoPath ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={merchandisePhotoUrl(community.logoPath)} alt="" loading="lazy" className="size-full object-cover" />
+            ) : initialsOf(community.name)}
+        </span>
+    );
+}
+
 /** `reason` is set when the card is a recommendation (TB-060). */
 export function CommunityCard({ community, isAuthenticated, reason }: { community: CommunityCardData; isAuthenticated: boolean; reason?: string }) {
     return (
         <article className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-[0_4px_16px_rgba(31,41,36,0.06)]">
             <div className="flex items-start gap-3">
-                <span aria-hidden="true" className={`flex size-10 shrink-0 items-center justify-center rounded-lg font-heading text-sm text-white ${colorFor(community.id)}`}>
-                    {initialsOf(community.name)}
-                </span>
+                <CommunityAvatar community={community} className="size-10 rounded-lg text-sm" />
                 <div className="min-w-0 flex-1">
                     <h3 className="font-heading text-lg leading-6 font-semibold text-[#1f2924]">
                         <Link href={`/communities/${community.id}`} className="hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring">{community.name}</Link>

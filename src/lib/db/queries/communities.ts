@@ -29,6 +29,7 @@ export async function findPublicCommunityProfile(communityId: string) {
         .select({
             id: communities.id,
             name: communities.name,
+            logoPath: communities.logoPath,
             description: communities.description,
             publicLocation: communities.publicLocation,
             regionCode: communities.regionCode,
@@ -96,6 +97,7 @@ export async function listCommunities(
         .select({
             id: communities.id,
             name: communities.name,
+            logoPath: communities.logoPath,
             description: communities.description,
             publicLocation: communities.publicLocation,
             status: communities.status,
@@ -463,6 +465,7 @@ export async function listRecommendableCommunities(userId: string, ids?: string[
         .select({
             id: communities.id,
             name: communities.name,
+            logoPath: communities.logoPath,
             description: communities.description,
             publicLocation: communities.publicLocation,
             regionCode: communities.regionCode,

@@ -62,7 +62,7 @@ export async function signedEvidenceUrl(path: string, fileName: string | null) {
 
 let photoBucketReady: Promise<void> | null = null;
 
-/** Public bucket for merchandise photos (DEC-12); uploads still go only through the server. */
+/** Public bucket for community images: merchandise photos (DEC-12) and logos (TB-030). Uploads go only through the server. */
 function ensureMerchandisePhotoBucket() {
     photoBucketReady ??= (async () => {
         const admin = getSupabaseAdmin();
@@ -84,11 +84,11 @@ function ensureMerchandisePhotoBucket() {
 
 const photoExtensionFor: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
-/** Stores an already-validated photo as `<communityId>/<uuid>.<ext>`; returns its storage path. */
-export async function uploadMerchandisePhoto(communityId: string, file: File) {
+/** Stores an already-validated image as `<communityId>/<prefix><uuid>.<ext>`; returns its storage path. */
+async function uploadCommunityImage(communityId: string, file: File, prefix = "") {
     await ensureMerchandisePhotoBucket();
     const admin = getSupabaseAdmin()!;
-    const path = `${communityId}/${randomUUID()}.${photoExtensionFor[file.type]}`;
+    const path = `${communityId}/${prefix}${randomUUID()}.${photoExtensionFor[file.type]}`;
     const body = await file.arrayBuffer();
     let { error } = await admin.storage.from(MERCH_PHOTO_BUCKET).upload(path, body, { contentType: file.type, upsert: false });
     // A dropped connection to Storage surfaces as StorageUnknownError; one retry covers it.
@@ -97,7 +97,15 @@ export async function uploadMerchandisePhoto(communityId: string, file: File) {
     return path;
 }
 
-export async function removeMerchandisePhotos(paths: string[]) {
+export function uploadMerchandisePhoto(communityId: string, file: File) {
+    return uploadCommunityImage(communityId, file);
+}
+
+export function uploadCommunityLogo(communityId: string, file: File) {
+    return uploadCommunityImage(communityId, file, "logo-");
+}
+
+export async function removeCommunityImages(paths: string[]) {
     const admin = getSupabaseAdmin();
     if (admin && paths.length > 0) await admin.storage.from(MERCH_PHOTO_BUCKET).remove(paths);
 }

@@ -141,6 +141,8 @@ describe("merchandise details (DEC-12)", () => {
 
     test("photos are JPG, PNG, or WebP up to 2 MB", () => {
         expect(merchPhotoError({ type: "image/webp", size: 1024 })).toBeNull();
+        expect(merchPhotoError({ type: "image/gif", size: 1024 }, "Logo")).toBe("Logo harus JPG, PNG, atau WebP.");
+        expect(merchPhotoError({ type: "image/png", size: 3 * 1024 * 1024 }, "Logo")).toBe("Ukuran logo maksimal 2 MB.");
         expect(merchPhotoError({ type: "image/gif", size: 1024 })).toContain("JPG");
         expect(merchPhotoError({ type: "image/png", size: 2 * 1024 * 1024 + 1 })).toContain("2 MB");
     });

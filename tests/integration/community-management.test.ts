@@ -15,7 +15,7 @@ mock.module("server-only", () => ({}));
 mock.module(resolve(import.meta.dir, "../../src/lib/db/client.ts"), () => ({ db: testDb }));
 const removedPhotos: string[][] = [];
 mock.module(resolve(import.meta.dir, "../../src/lib/supabase/storage.ts"), () => ({
-    removeMerchandisePhotos: async (paths: string[]) => { if (paths.length) removedPhotos.push(paths); },
+    removeCommunityImages: async (paths: string[]) => { if (paths.length) removedPhotos.push(paths); },
     isEvidenceStorageAvailable: () => false,
     uploadEvidenceFile: async () => { throw new Error("no storage in tests"); },
     uploadMerchandisePhoto: async () => { throw new Error("no storage in tests"); },
@@ -167,5 +167,31 @@ describe("applications", () => {
             expect((await management.getCommunityAccess(MANAGER, communityId))?.role).toBeNull();
             expect((await management.listManagedCommunities(OWNER)).length).toBe(3);
         });
+    });
+});
+
+describe("community logo (TB-030)", () => {
+    const LOGO_COMMUNITY = id(500), FROZEN = id(501);
+
+    test("setting, replacing, and removing the logo; replaced files are deleted", async () => {
+        await testDb.insert(schema.communities).values([
+            { id: LOGO_COMMUNITY, ownerId: OWNER, name: "Klub Logo", status: "VERIFIED" },
+            { id: FROZEN, ownerId: OWNER, name: "Klub Ditangguhkan", status: "SUSPENDED" },
+        ]);
+        const communities = await import("../../src/lib/db/queries/communities");
+        removedPhotos.length = 0;
+
+        await management.setCommunityLogo(LOGO_COMMUNITY, `${LOGO_COMMUNITY}/logo-a.png`);
+        expect((await communities.findPublicCommunityProfile(LOGO_COMMUNITY))?.logoPath).toBe(`${LOGO_COMMUNITY}/logo-a.png`);
+
+        await management.setCommunityLogo(LOGO_COMMUNITY, `${LOGO_COMMUNITY}/logo-b.webp`);
+        await management.setCommunityLogo(LOGO_COMMUNITY, null);
+        expect((await communities.findPublicCommunityProfile(LOGO_COMMUNITY))?.logoPath).toBeNull();
+        expect(removedPhotos).toEqual([[`${LOGO_COMMUNITY}/logo-a.png`], [`${LOGO_COMMUNITY}/logo-b.webp`]]);
+    });
+
+    test("a suspended community's logo is frozen like the rest of its profile", async () => {
+        await expect(management.setCommunityLogo(FROZEN, `${FROZEN}/logo-a.png`)).rejects.toThrow("ditangguhkan");
+        await expect(management.setCommunityLogo(id(599), null)).rejects.toThrow("tidak ditemukan");
     });
 });

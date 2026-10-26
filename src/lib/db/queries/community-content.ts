@@ -4,7 +4,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 import { wibDateTime } from "@/features/community-management/rules";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
-import { removeMerchandisePhotos } from "@/lib/supabase/storage";
+import { removeCommunityImages } from "@/lib/supabase/storage";
 import type { CommunityEventInput, CommunityMerchandiseInput } from "@/lib/validation/schemas/community-management.schema";
 
 import { db } from "../client";
@@ -145,7 +145,7 @@ export async function updateCommunityMerchandise(communityId: string, itemId: st
         .where(and(eq(merchandiseListings.id, itemId), eq(merchandiseListings.communityId, communityId)))
         .returning({ id: merchandiseListings.id });
     if (!item) throw new NotFoundError("Merchandise tidak ditemukan.");
-    await removeMerchandisePhotos(before.photoPaths.filter((path) => !values.photoPaths.includes(path)));
+    await removeCommunityImages(before.photoPaths.filter((path) => !values.photoPaths.includes(path)));
     return item;
 }
 
@@ -159,6 +159,6 @@ export async function deleteCommunityMerchandise(communityId: string, itemId: st
         return { id: itemId, archived: true };
     }
     await db.delete(merchandiseListings).where(eq(merchandiseListings.id, itemId));
-    await removeMerchandisePhotos(item.photoPaths);
+    await removeCommunityImages(item.photoPaths);
     return { id: itemId, archived: false };
 }

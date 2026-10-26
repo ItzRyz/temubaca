@@ -12,6 +12,7 @@ import {
     type CommunityStatus,
 } from "@/features/community-management/rules";
 import { ConflictError, NotFoundError } from "@/lib/api/errors";
+import { removeCommunityImages } from "@/lib/supabase/storage";
 import type { CommunityApplicationInput, CommunityProfileInput } from "@/lib/validation/schemas/community-management.schema";
 
 import { db } from "../client";
@@ -105,6 +106,23 @@ export async function updateCommunityProfile(communityId: string, input: Communi
     // The map pin follows the community's kab/kota (DEC-07); its name is read from the community itself.
     await db.update(places).set({ regionCode: input.regionCode, updatedAt: new Date() }).where(eq(places.communityId, communityId));
     return community;
+}
+
+/**
+ * Sets or clears the community logo (TB-030) and removes the replaced file. Returns the new path.
+ * A suspended community's profile is frozen, like the rest of its profile.
+ */
+export async function setCommunityLogo(communityId: string, logoPath: string | null) {
+    const previous = await db.transaction(async (tx) => {
+        const [community] = await tx.select({ status: communities.status, logoPath: communities.logoPath })
+            .from(communities).where(eq(communities.id, communityId)).for("update");
+        if (!community) throw new NotFoundError("Komunitas tidak ditemukan.");
+        if (community.status === "SUSPENDED") throw new ConflictError("Profil komunitas yang ditangguhkan tidak dapat diubah.");
+        await tx.update(communities).set({ logoPath, updatedAt: new Date() }).where(eq(communities.id, communityId));
+        return community.logoPath;
+    });
+    if (previous && previous !== logoPath) await removeCommunityImages([previous]);
+    return logoPath;
 }
 
 /** Re-verification of a VERIFIED community, or a new attempt after rejection (back to PENDING). */

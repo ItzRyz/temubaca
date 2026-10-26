@@ -94,9 +94,10 @@ export const MERCH_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
 export const MERCH_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MERCH_VARIANT_LIMIT = 10;
 
-export function merchPhotoError(file: { size: number; type: string }) {
-    if (!(MERCH_PHOTO_TYPES as readonly string[]).includes(file.type)) return "Foto harus JPG, PNG, atau WebP.";
-    if (file.size > MERCH_PHOTO_MAX_BYTES) return "Ukuran foto maksimal 2 MB.";
+/** Merchandise photos and community logos (TB-030) share these rules; `label` names the image in the message. */
+export function merchPhotoError(file: { size: number; type: string }, label = "Foto") {
+    if (!(MERCH_PHOTO_TYPES as readonly string[]).includes(file.type)) return `${label} harus JPG, PNG, atau WebP.`;
+    if (file.size > MERCH_PHOTO_MAX_BYTES) return `Ukuran ${label.toLowerCase()} maksimal 2 MB.`;
     if (file.size === 0) return "Berkas kosong.";
     return null;
 }

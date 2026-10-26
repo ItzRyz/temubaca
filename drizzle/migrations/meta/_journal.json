@@ -134,6 +134,13 @@
       "when": 1793020331513,
       "tag": "0018_meeting_places",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793033126549,
+      "tag": "0019_community_logo",
+      "breakpoints": true
     }
   ]
 }

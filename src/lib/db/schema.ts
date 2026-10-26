@@ -205,6 +205,8 @@ export const communities = pgTable('communities', {
     interests: text().array().notNull().default(sql`'{}'::text[]`), regionCode: text(),
     // Public contacts chosen by the owner (DEC-04); shown on the profile and used for merchandise.
     contactEmail: text(), instagramHandle: text(), whatsappNumber: text(),
+    // Storage path of the logo (TB-030), in the public community image bucket; null shows the initials.
+    logoPath: text(),
     createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
     index('communities_owner_id_idx').on(t.ownerId), index('communities_status_idx').on(t.status), index('communities_name_idx').on(t.name), enumCheck(t.status, communityStatusValues),

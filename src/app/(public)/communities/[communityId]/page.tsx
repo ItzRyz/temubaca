@@ -14,7 +14,7 @@ import { findPublicPin } from "@/lib/db/queries/places";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
 import { uuidSchema } from "@/lib/validation/common";
-import { colorFor, initialsOf } from "@/features/communities/components/community-card";
+import { CommunityAvatar } from "@/features/communities/components/community-card";
 import { regionByCode } from "@/features/regions/regions";
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
 import { ShareButton } from "@/features/books/components/share-button";
@@ -100,9 +100,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                 <div className="px-5 pb-6 sm:px-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex items-end gap-4">
-                            <span aria-hidden="true" className={`-mt-10 flex size-20 shrink-0 items-center justify-center rounded-xl border-4 border-card font-heading text-2xl text-white shadow-md sm:-mt-12 sm:size-24 ${colorFor(community.id)}`}>
-                                {initialsOf(community.name)}
-                            </span>
+                            <CommunityAvatar community={community} className="-mt-10 size-20 rounded-xl border-4 border-card text-2xl shadow-md sm:-mt-12 sm:size-24" />
                             <h1 className="pt-3 font-heading text-2xl leading-tight font-semibold text-primary sm:text-[32px]">{community.name}</h1>
                         </div>
                         <div className="flex flex-wrap gap-2 self-start sm:mt-4">
