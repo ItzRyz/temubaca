@@ -1,6 +1,6 @@
 # Kontrak API TemuBaca
 
-**Status:** snapshot endpoint yang sudah ada pada 2026-10-10. Endpoint yang belum disebut masih rencana, bukan kontrak yang dapat dipanggil.
+**Status:** snapshot endpoint yang sudah ada, diperbarui 2026-10-26 (kontrak keluar ke ML Service ditambahkan). Endpoint yang belum disebut masih rencana, bukan kontrak yang dapat dipanggil.
 
 ## Bentuk respons
 
@@ -87,10 +87,22 @@ Halaman server publik `/communities` dan endpoint `GET /api/communities` hanya m
 
 Katalog `/merchandise` dan `GET /api/merchandise` hanya menampilkan listing `PUBLISHED` milik komunitas `VERIFIED`, dengan proyeksi field publik dan pagination. Tampilan bersifat informasional; tidak ada checkout, pembuatan order, pembayaran, atau pengiriman pada kontrak aktif. Sesuai `DEC-03` merchandise hanya katalog. Detail (`DEC-12`) menampilkan foto, varian, dan catatan pengiriman/pengambilan; kartu katalog memakai foto pertama sebagai sampul.
 
-Endpoint rekomendasi memakai baseline kecocokan kategori/minat lokal pada TB-040. Ia tidak memanggil provider eksternal atau mengklaim personalisasi ML; pilihan DEC-08 tetap terbuka.
+Rekomendasi buku dan komunitas memanggil ML Service (DEC-08) bila `RECOMMENDATION_API_URL` diset, dan memakai baseline lokal TB-040 bila ML Service tidak dikonfigurasi, gagal, atau melewati batas waktu. Respons menyebut mesin yang dipakai lewat `engine`.
 
 ## Belum menjadi kontrak aktif
 
-Belum ada endpoint perpustakaan/akses buku, penulisan merchandise/order, atau verifikasi. Endpoint baca publik komunitas/acara/merchandise dan rekomendasi baseline sudah aktif sebagaimana dirinci di atas. Siklus pinjam mengikuti `DEC-02` (lihat `docs/DECISIONS.md`); perpanjangan pinjaman belum diputuskan. Integrasi katalog eksternal menunggu `DEC-06`; transaksi merchandise menunggu `DEC-03`.
+Belum ada endpoint perpustakaan/akses buku, penulisan merchandise/order, atau verifikasi. Siklus pinjam, termasuk perpanjangan satu kali, mengikuti `DEC-02` (lihat `docs/DECISIONS.md`). Merchandise hanya katalog (`DEC-03`); tidak ada order atau pembayaran.
 
 Halaman `/libraries` saat ini hanya menjelaskan bahwa inventaris buku perpustakaan belum dapat disajikan. Tidak ada endpoint ketersediaan perpustakaan sampai sumber data, pemilik pembaruan, status, dan kesegaran disepakati pada `DEC-13`.
+
+## Kontrak keluar ke ML Service
+
+Website memanggil ML Service (repo `temubaca-ml`, production https://temubaca-ml.fastapicloud.dev) dari server saja, lewat `src/lib/ml/`. Semua panggilan berupa `POST` JSON dengan header `X-Internal-Token: $RECOMMENDATION_API_KEY` ke basis `RECOMMENDATION_API_URL`; respons divalidasi dengan zod. Tanpa `RECOMMENDATION_API_URL`, website tidak memanggil apa pun dan memakai cadangan. Token salah atau tidak ada menghasilkan `401`; body di atas batas menghasilkan `413`. Error endpoint rekomendasi memakai bentuk FastAPI `{ "detail": ... }`, sedangkan error rute memakai `{ "error": { "code", "message", "point"? } }` dan website membaca `code`-nya.
+
+| Path ML Service | Batas waktu | Body yang dikirim | Respons yang diterima | Bila gagal |
+|---|---|---|---|---|
+| `/api/recommendations/books` | 3 detik | `{ user_interests: string[], top_n }` (`top_n` ≤ 20) | `{ recommendations: [{ book_id (UUID), title, score \| null, reason, source: "interest" \| "popularity" }], unmatched_interests }` | Baseline TB-040 |
+| `/api/recommendations/communities` | 3 detik | `{ user_interests, user_region_code?, top_n }`; kode kab/kota hanya dikirim bila ada di tabel wilayah | `{ recommendations: [{ community_id (UUID), name, region_code, region_name, interest_score, location_score, score, reason }], unmatched_interests, notice: "NEEDS_INTERESTS_OR_LOCATION" \| "NO_MATCH" \| null }` | Baseline SQL (DEC-08) |
+| `/api/routing/route` | 5 detik | `{ origin: { lat, lng }, destination: { lat, lng }, mode: "drive" \| "walk" }`; tujuan diambil dari tabel `places`, bukan dari pembaca | `{ mode, distance_m, duration_s_estimate, geometry: { type: "LineString", coordinates: [[lng, lat], ...] }, via_streets (≤ 3), snap: { origin_offset_m, destination_offset_m }, warnings, graph_version }` | `outcome` `OUT_OF_COVERAGE`/`SNAP_TOO_FAR`/`NO_PATH` dari kode error, selain itu `UNAVAILABLE`; tautan Google Maps tetap ada |
+
+Yang tidak pernah dikirim: user id, email, nama, atau koordinat selain titik asal pada permintaan rute (TB-057, DEC-07). Arah sebaliknya, ML Service membaca `GET /api/internal/ml/snapshot` (lihat tabel di atas) untuk melatih model.
