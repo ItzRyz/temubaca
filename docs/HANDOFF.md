@@ -21,6 +21,7 @@ Dokumen ini untuk melanjutkan pekerjaan di sesi atau akun Claude Code lain. Baca
 | `docs/DECISIONS.md` | Keputusan produk DEC-xx dan statusnya. |
 | `docs/API_SPEC.md`, `DATABASE.md` | Kontrak endpoint (termasuk admin) dan catatan skema/migrasi. |
 | `docs/PRD.md`, `FLOW.md`, `UI_UX_BRIEF.md`, `ARCHITECTURE.md`, `ERD.md`, `SECURITY.md`, `TESTING.md` | Kebutuhan produk, alur, arsitektur, keamanan, strategi tes. |
+| `docs/OPERATIONS.md` | Operasional production: log, pemeriksaan rutin, backup dan restore, rollback, respons insiden (TB-043). |
 | `supabase/templates/` | Template email OTP untuk keenam email Supabase Auth, beserta README cara pemasangannya. |
 | Figma `3JDR26euAGnt7PJ3ObTyTH` | Desain, halaman `0:1 UI Design`. Section `23:4592` "Autentikasi" berisi semua frame auth, termasuk varian error. Ambil per frame; metadata seluruh halaman terlalu besar. |
 
