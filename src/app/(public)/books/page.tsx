@@ -64,7 +64,7 @@ export default async function BooksPage({ searchParams }: BooksPageProps) {
         <main className="mx-auto w-full max-w-[1256px] px-4 py-8 sm:px-6">
             <h1 className="sr-only">Jelajahi buku</h1>
             <form action="/books" method="get" role="search" className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 sm:flex-row">
-                <label className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-lg bg-[#f1f0ea] px-4 focus-within:ring-2 focus-within:ring-ring/30">
+                <label className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-lg bg-[#f1f0ea] px-4 focus-within:ring-2 focus-within:ring-ring">
                     <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                     <span className="sr-only">Judul, penulis, ISBN, atau kategori</span>
                     <input

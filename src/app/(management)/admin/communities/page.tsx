@@ -122,7 +122,7 @@ export default async function AdminCommunitiesPage({ searchParams }: PageProps) 
                 </nav>
                 <form action="/admin/communities" method="get" role="search" className="flex flex-col gap-2 sm:flex-row">
                     {status && <input type="hidden" name="status" value={status} />}
-                    <label className="flex h-11 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30 sm:w-60">
+                    <label className="flex h-11 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring sm:w-60">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari nama komunitas atau pemilik</span>
                         <input name="q" type="search" maxLength={100} defaultValue={query} placeholder="Cari nama komunitas..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

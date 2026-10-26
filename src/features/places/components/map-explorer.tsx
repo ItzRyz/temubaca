@@ -152,7 +152,7 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
         <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
             <div className="flex min-w-0 flex-col gap-4">
                 <form role="search" onSubmit={(event) => event.preventDefault()} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4">
-                    <label className="flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari nama tempat atau komunitas</span>
                         <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="Cari tempat atau komunitas…" className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none" />

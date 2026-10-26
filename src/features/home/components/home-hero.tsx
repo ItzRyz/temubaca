@@ -11,7 +11,7 @@ export function HomeHero() {
                     Jelajahi rak buku terdekat, buat titik temu di kedai kopi atau taman kota, dan rasakan kembali kehangatan bertukar cerita secara langsung.
                 </p>
                 <form action="/books" method="get" role="search" className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 sm:flex-row">
-                    <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-4 focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari judul, penulis, atau ISBN</span>
                         <input

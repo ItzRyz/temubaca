@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  */
 
 export const controlClass =
-    "w-full min-w-0 rounded-lg border border-input bg-card px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive/25";
+    "w-full min-w-0 rounded-lg border border-input bg-card px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive/25";
 
 export type ControlProps = { id: string; "aria-describedby"?: string; "aria-invalid"?: boolean };
 
@@ -110,7 +110,7 @@ export function FormAlert({ tone = "error", children, className, id }: { tone?: 
 export function ChoiceOption({ children, className, ...input }: Omit<ComponentProps<"input">, "children"> & { children: ReactNode }) {
     return (
         <label className={cn(
-            "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/40",
+            "flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-muted/60 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
             className,
         )}>
             <input className="size-4 shrink-0 accent-primary focus-visible:outline-none" {...input} />

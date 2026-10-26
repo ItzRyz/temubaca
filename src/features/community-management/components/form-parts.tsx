@@ -60,7 +60,7 @@ export function EvidenceFilePicker({ file, onChange, error, onError }: { file: F
             <label
                 htmlFor={id}
                 className={cn(
-                    "flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-dashed px-4 py-6 text-center text-sm focus-within:ring-2 focus-within:ring-ring/40",
+                    "flex cursor-pointer flex-col items-center gap-1 rounded-xl border border-dashed px-4 py-6 text-center text-sm focus-within:ring-2 focus-within:ring-ring",
                     error ? "border-destructive bg-destructive/5" : "border-border bg-[#faf8f2] hover:bg-muted/60",
                 )}
             >

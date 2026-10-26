@@ -147,7 +147,7 @@ function Toolbar<View extends string>({ tab, views, view, query, hrefFor, placeh
             <form action="/admin/books" method="get" role="search" className="flex xl:w-64">
                 {tab === "catalog" && <input type="hidden" name="tab" value="catalog" />}
                 {view !== "all" && <input type="hidden" name="view" value={view} />}
-                <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                     <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                     <span className="sr-only">{placeholder}</span>
                     <input name="q" type="search" maxLength={100} defaultValue={query} placeholder={placeholder} className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

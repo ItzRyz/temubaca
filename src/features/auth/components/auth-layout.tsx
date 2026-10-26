@@ -19,7 +19,7 @@ const benefits = [
 
 /** Class names shared by auth form fields (Figma: Input 83:546). */
 export const authFieldShellClass =
-    "flex h-11 items-center gap-2.5 rounded-lg border bg-card px-3.5 focus-within:ring-2 focus-within:ring-ring/25";
+    "flex h-11 items-center gap-2.5 rounded-lg border bg-card px-3.5 focus-within:ring-2 focus-within:ring-ring";
 export const authInputClass =
     "h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0";
 export const authPrimaryButtonClass =

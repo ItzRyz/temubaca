@@ -74,7 +74,7 @@ export default async function ManageEventsPage({ params, searchParams }: PagePro
                     </div>
                     <form action={base} method="get" role="search" className="flex gap-2 lg:w-72">
                         {filter !== "all" && <input type="hidden" name="status" value={filter} />}
-                        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                        <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                             <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                             <span className="sr-only">Cari judul acara</span>
                             <input name="q" type="search" maxLength={100} defaultValue={needle} placeholder="Cari judul acara..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none" />

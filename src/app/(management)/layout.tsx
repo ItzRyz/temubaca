@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
+import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { countCommunitiesByStatus } from "@/lib/db/queries/communities";
@@ -23,8 +24,9 @@ export default async function ManagementLayout({ children }: LayoutProps<"/">) {
 
     return (
         <div className="flex min-h-screen flex-col bg-background lg:flex-row">
+            <SkipLink />
             <AdminSidebar displayName={user.displayName} pending={{ reports: pendingReports + reviewingReports, communities: pendingCommunities, disputes: openDisputes, appeals: pendingAppeals }} />
-            <div className="min-w-0 flex-1">{children}</div>
+            <div id={MAIN_CONTENT_ID} tabIndex={-1} className="min-w-0 flex-1 outline-none">{children}</div>
         </div>
     );
 }

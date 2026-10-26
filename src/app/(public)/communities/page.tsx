@@ -70,7 +70,7 @@ export default async function CommunitiesPage({ searchParams }: CommunitiesPageP
                         Jelajahi komunitas baca, agenda diskusi buku, dan kegiatan literasi. Kenali pengelolanya sebelum datang.
                     </p>
                     <form action="/communities" method="get" role="search" className="mt-6 flex flex-col gap-2 rounded-2xl border border-border bg-background p-4 sm:flex-row">
-                        <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-4 focus-within:ring-2 focus-within:ring-ring/30">
+                        <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
                             <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                             <span className="sr-only">Cari nama komunitas atau acara</span>
                             <input name="q" type="search" maxLength={100} defaultValue={rawQuery ?? ""} placeholder="Cari nama komunitas atau acara..." className="h-10 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

@@ -269,7 +269,7 @@ export function AddBookDialog() {
                         {step === 1 && !manual && (
                             <section aria-labelledby="pick-title" className="flex flex-col gap-2">
                                 <h3 id="pick-title" className="text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase">Buku</h3>
-                                <label className="flex h-11 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                                <label className="flex h-11 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                                     <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                                     <span className="sr-only">Cari judul, penulis, atau ISBN</span>
                                     <input autoFocus type="search" value={query} onChange={(event) => { setQuery(event.target.value); setChoice(null); }} maxLength={200} placeholder="Cari judul, penulis, atau ISBN..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
@@ -347,7 +347,7 @@ export function AddBookDialog() {
                                 <div className="flex flex-col gap-1.5">
                                     <label htmlFor={pointInputId} className="text-sm font-medium">Titik temu publik <span aria-hidden="true" className="text-destructive">*</span></label>
                                     <div className="flex gap-2">
-                                        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                                        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                                             <MapPin aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                                             <input id={pointInputId} value={pointDraft} onChange={(event) => setPointDraft(event.target.value)} onKeyDown={onPointKey} maxLength={80} disabled={meetingPoints.length >= MAX_MEETING_POINTS}
                                                 aria-describedby={`${pointInputId}-hint`} placeholder="Tempat umum, mis. stasiun, taman, kafe" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

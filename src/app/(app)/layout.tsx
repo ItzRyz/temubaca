@@ -1,6 +1,7 @@
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { DeletionPendingBanner } from "@/features/account-deletion/components/delete-account-dialog";
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
+            <SkipLink />
             <SiteHeader />
             {user.suspendedAt && (
                 <div role="alert" className="border-b border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive sm:px-8">
@@ -21,7 +23,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
                 </div>
             )}
             {user.deletionScheduledFor && <DeletionPendingBanner scheduledFor={user.deletionScheduledFor.toISOString()} />}
-            <div className="flex-1">{children}</div>
+            <div id={MAIN_CONTENT_ID} tabIndex={-1} className="flex-1 outline-none">{children}</div>
             <SiteFooter />
         </div>
     );

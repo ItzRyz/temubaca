@@ -278,7 +278,7 @@ export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanIte
                     <input type="hidden" name="tab" value="peminjaman" />
                     {view !== "pinjamkan" && <input type="hidden" name="view" value={view} />}
                     {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
-                    <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring/30">
+                    <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                         <Search aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                         <span className="sr-only">Cari judul atau nama</span>
                         <input name="q" type="search" maxLength={100} defaultValue={query} placeholder={view === "pinjamkan" ? "Cari judul, peminjam..." : "Cari judul, pemilik..."} className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />

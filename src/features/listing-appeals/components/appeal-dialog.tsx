@@ -114,7 +114,7 @@ export function AppealDialog({ listingId, bookTitle, hiddenAt, hiddenReason }: {
                             {file ? (
                                 <button type="button" aria-label="Hapus foto" onClick={() => setFile(null)} className="flex size-9 items-center justify-center rounded-lg hover:bg-muted"><X aria-hidden="true" className="size-4" /></button>
                             ) : (
-                                <label htmlFor={fileId} className="cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-muted focus-within:ring-2 focus-within:ring-ring/40">
+                                <label htmlFor={fileId} className="cursor-pointer rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-muted focus-within:ring-2 focus-within:ring-ring">
                                     Pilih File
                                     <input id={fileId} type="file" accept={APPEAL_FILE_TYPES.join(",")} className="sr-only" onChange={(event) => {
                                         const next = event.target.files?.[0] ?? null;
