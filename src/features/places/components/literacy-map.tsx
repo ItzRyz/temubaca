@@ -5,11 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
-import { INDONESIA_BOUNDS, INDONESIA_CENTER, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
-
-/** OSM tile policy: keep the URL configurable so the provider can change without a code change. */
-const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>';
+import { INDONESIA_BOUNDS, INDONESIA_CENTER, MAP_ATTRIBUTION, MAP_TILE_URL, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
 
 export type MapPlace = { id: string; type: PlaceType; name: string; latitude: number; longitude: number };
 
@@ -63,7 +59,7 @@ export default function LiteracyMap({ places, selectedId, focus, reader, route, 
             scrollWheelZoom={false}
             className="size-full"
         >
-            <TileLayer url={TILE_URL} attribution={ATTRIBUTION} maxZoom={19} />
+            <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} maxZoom={19} />
             <FocusOn target={focus} />
             <FitRoute points={routePoints} />
             {routePoints && <Polyline positions={routePoints} pathOptions={{ color: "#1d4ed8", weight: 5, opacity: 0.85 }} />}

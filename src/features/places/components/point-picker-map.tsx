@@ -5,10 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import { CircleMarker, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
 
-import { INDONESIA_CENTER, isInsideIndonesia, roundCoordinate } from "../places";
-
-const TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>';
+import { INDONESIA_CENTER, isInsideIndonesia, MAP_ATTRIBUTION, MAP_TILE_URL, roundCoordinate } from "../places";
 
 type Point = { latitude: number; longitude: number };
 
@@ -37,7 +34,7 @@ export default function PointPickerMap({ point, onPick }: { point: Point | null;
             zoom={point ? 15 : 5}
             className="size-full"
         >
-            <TileLayer url={TILE_URL} attribution={ATTRIBUTION} maxZoom={19} />
+            <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} maxZoom={19} />
             <ClickToPlace onPick={onPick} />
             <FollowPoint point={point} />
             {point && <CircleMarker center={[point.latitude, point.longitude]} radius={9} pathOptions={{ color: "#ffffff", weight: 3, fillColor: "#b4583f", fillOpacity: 1 }} />}

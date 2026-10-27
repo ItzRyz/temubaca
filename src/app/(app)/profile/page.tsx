@@ -175,7 +175,7 @@ export default async function ProfilePage() {
                         <h2 id="privacy-title" className="border-b border-border pb-3 font-heading text-lg font-semibold">Privasi &amp; Data</h2>
                         <dl className="divide-y divide-border text-sm">
                             {[
-                                ["Lokasi perangkat", "Belum dipakai. Fitur peta dan izin lokasi masih menunggu keputusan DEC-07; pencarian manual tetap tersedia."],
+                                ["Lokasi perangkat", "Hanya dipakai saat Anda menekan “Gunakan lokasiku” di Peta Literasi, untuk mengurutkan jarak di peramban. Tidak dikirim ke server dan tidak disimpan; untuk rute, titik asal dikirim sekali saat Anda menekan Rute."],
                                 ["Notifikasi permintaan pinjam", "Belum ada notifikasi email atau push. Permintaan, pengingat, dan status pinjaman tampil di Buku Saya, tab Peminjaman."],
                             ].map(([term, detail]) => (
                                 <div key={term} className="py-3">

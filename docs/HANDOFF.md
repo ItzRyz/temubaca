@@ -162,7 +162,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 | `/admin/communities` | `160:859` | Data Komunitas: statistik, filter, detail, tangguhkan/pulihkan |
 | `/admin/books` | `149:807`, `150:807` | Listing Buku (sembunyikan dengan alasan) + Katalog Eksternal (status sinkron, duplikat, riwayat, sinkron ulang) |
 | `/admin/users` | `147:807` | Data Pengguna: email tersamar + tampilkan email lengkap (diaudit), ubah peran, tangguhkan akun |
-| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; bagian lain menunggu DEC |
+| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; Peta & Lokasi (DEC-07) dan Retensi & Data (DEC-11) menampilkan kebijakan tetap dan statusnya; Moderasi dan Aturan Pinjam belum dapat diatur |
 
 - **Katalog:** adapter Open Library dan Google Books ada di `src/lib/external/books/`, dan sinkron per rekaman di `src/features/catalog/sync-book.ts`. Provider rekaman bersifat otoritatif, sedangkan provider lain hanya mengisi kolom kosong. Rekaman manual tanpa ISBN dicocokkan lewat judul + nama belakang penulis yang sama persis. Setiap percobaan dicatat di `book_sync_logs`.
 - **Moderasi:** listing tersembunyi (`book_listings.hiddenAt`) dan listing milik akun tertangguh (`user_profiles.suspendedAt`) dikecualikan dari semua query publik. Akun tertangguh tetap bisa masuk dan membaca, tetapi `requireUser`/`requireApiUser` menolak setiap aksinya, dan area akun menampilkan banner berisi alasannya.
@@ -181,7 +181,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 - **DEC-01** sudah diputuskan (Vercel + Supabase, project cloud = production, dev di Supabase lokal Docker, staging opsional di slot gratis kedua, Vercel Cron, region Singapura: Vercel `sin1`, Supabase `ap-southeast-1`). Yang masih terbuka: paket production, domain, dan backup.
 - **DEC-03/DEC-12** (checkout, stok, pengiriman merchandise): memblokir TB-035. Merchandise tetap katalog dengan transaksi di luar platform.
 - **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
-- **DEC-07** (peta/lokasi): memblokir Peta Ruang Baca, Peta Literasi v2, Peta & Lokasi di Pengaturan, TB-026/027, dan rekomendasi komunitas TB-041.
+- **DEC-07** (peta/lokasi) sudah diputuskan 23 dan 25 Okt 2026 (`DECISIONS.md`); yang masih terbuka hanya target latensi rute dan penggantian provider tile bila trafik naik.
 - **DEC-08, DEC-09, DEC-10**: layanan ML rekomendasi, target pengguna/wilayah/bahasa, serta tanggal rilis dan metrik.
 - **DEC-13** (ketersediaan perpustakaan): memblokir TB-023.
 - **Sisa DEC-02:** aturan Perpanjang. **Sisa DEC-11:** kanal dukungan, SLA laporan, durasi backup production.

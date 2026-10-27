@@ -23,6 +23,10 @@ export const placeTypeColors: Record<PlaceType, string> = {
     MEETING_POINT: "#a88445",
 };
 
+/** OSM tile policy: keep the URL configurable so the provider can change without a code change. */
+export const MAP_TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+export const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>';
+
 /** Matches the `places_coordinates_check` constraint: a generous box around Indonesia. */
 export const INDONESIA_BOUNDS = { south: -11.5, north: 6.5, west: 94.5, east: 141.5 } as const;
 

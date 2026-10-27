@@ -6,7 +6,11 @@ import { CatalogSettingsForm } from "@/features/settings/components/catalog-sett
 import { RunRetentionButton } from "@/features/account-deletion/components/retention-panel";
 import { AUDIT_RETENTION_MONTHS, DELETION_GRACE_DAYS, LOAN_HISTORY_RETENTION_MONTHS, REPORT_DETAILS_RETENTION_MONTHS } from "@/features/account-deletion/rules";
 import { countPendingDeletions, getLastRetentionRun } from "@/lib/db/queries/account-deletion";
+import { MAP_TILE_URL, PLACE_TYPES, placeTypeLabels } from "@/features/places/places";
+import { routeModeLabels, ROUTE_MODES } from "@/features/places/route";
+import { listPlacesForAdmin } from "@/lib/db/queries/places";
 import { getCatalogSettings } from "@/lib/db/queries/settings";
+import { isMlServiceConfigured } from "@/lib/ml/client";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Pengaturan" };
@@ -14,10 +18,10 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Sections from Figma 161:859. Only "Katalog Buku" has settings the app actually uses today. */
+/** Sections from Figma 161:859. Only "Katalog Buku" has settings the app actually uses today; map and retention show their fixed policy. */
 const sections = {
     catalog: { label: "Katalog Buku", pending: null },
-    map: { label: "Peta & Lokasi", pending: "DEC-07: peta memakai Leaflet dengan tile OpenStreetMap, tanpa geocoding. Lokasi pembaca hanya dipakai di peramban. Belum ada pengaturan yang dapat diubah; kelola titiknya di menu Data Tempat." },
+    map: { label: "Peta & Lokasi", pending: null },
     moderation: { label: "Moderasi & Publikasi", pending: "Belum ada aturan moderasi yang dapat diatur. Keputusan tinjauan saat ini selalu dilakukan manual oleh admin di menu Peninjauan." },
     borrowing: { label: "Aturan Pinjam", pending: "Aturan pinjam mengikuti DEC-02 dan belum dapat diubah dari sini: lama pinjam 7/14/21/30 hari sesuai batas pemilik, konfirmasi serah terima dan pengembalian oleh kedua pihak, pengingat sekali per 24 jam, tanpa denda. Perpanjangan belum diputuskan." },
     retention: { label: "Retensi & Data", pending: null },
@@ -57,6 +61,8 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
                 <div className="min-w-0">
                     {section === "retention" ? (
                         <RetentionSection />
+                    ) : section === "map" ? (
+                        <MapSection />
                     ) : current.pending ? (
                         <section aria-labelledby="section-title" className="rounded-xl border border-border bg-card p-6">
                             <h2 id="section-title" className="font-heading text-xl font-semibold">{current.label}</h2>
@@ -77,6 +83,62 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
                 </div>
             </div>
         </main>
+    );
+}
+
+/** DEC-07 policy (fixed in code and env) plus what is on the Peta Literasi right now. */
+async function MapSection() {
+    const places = await listPlacesForAdmin();
+    const tileHost = MAP_TILE_URL.match(/^https?:\/\/([^/]+)/)?.[1] ?? MAP_TILE_URL;
+    const routing = isMlServiceConfigured();
+    const rules = [
+        ["Peta", `Leaflet dengan tile ${tileHost}${tileHost === "tile.openstreetmap.org" ? ", beratribusi “© kontributor OpenStreetMap”. Kebijakan tile OSM hanya untuk trafik rendah; bila trafik naik, ganti provider lewat NEXT_PUBLIC_MAP_TILE_URL" : " (NEXT_PUBLIC_MAP_TILE_URL)"}. Daftar tempat tetap berfungsi tanpa peta.`],
+        ["Pencarian alamat", "Tanpa geocoding. Pembaca menyaring jenis, provinsi atau kab/kota, dan nama tempat; titik dipasang dengan mengeklik peta atau mengisi koordinat."],
+        ["Lokasi pembaca", "Opsional. “Gunakan lokasiku” hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak; tidak dikirim ke server dan tidak disimpan."],
+        ["Rute", `${ROUTE_MODES.map((mode) => routeModeLabels[mode]).join(" dan ")} lewat ML Service, untuk DKI Jakarta daratan, Kota/Kab. Tangerang, dan Tangerang Selatan. Titik asal dikirim hanya saat pembaca menekan Rute, dipakai sekali, tidak disimpan dan tidak dicatat di log. Di luar cakupan, pembaca diarahkan ke Google Maps.`],
+        ["Titik di peta", "Perpustakaan dan titik temu publik dikurasi admin. Titik komunitas tampil selama komunitas terverifikasi; titik acara selama acara terbit, tatap muka, dan belum selesai. Listing buku warga tidak pernah tampil di peta."],
+        ["Wilayah", "Koordinat dibatasi ke kotak wilayah Indonesia, enam desimal."],
+    ];
+    return (
+        <section aria-labelledby="map-title" className="rounded-xl border border-border bg-card p-6">
+            <h2 id="map-title" className="font-heading text-xl font-semibold">Peta &amp; Lokasi</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Kebijakan DEC-07 (23 dan 25 Okt 2026). Ditetapkan di kode dan environment, tidak dapat diubah dari sini.</p>
+            <dl className="mt-4 divide-y divide-border rounded-lg border border-border text-sm">
+                {rules.map(([term, detail]) => (
+                    <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr]">
+                        <dt className="font-medium">{term}</dt>
+                        <dd className="text-muted-foreground">{detail}</dd>
+                    </div>
+                ))}
+            </dl>
+            <div className="mt-6 flex flex-col gap-3">
+                <h3 className="font-heading text-base font-semibold">Status saat ini</h3>
+                <p className="text-sm text-muted-foreground">
+                    Layanan rute: {routing ? "terhubung ke ML Service" : "ML Service belum dikonfigurasi (RECOMMENDATION_API_URL); tombol Rute menampilkan tautan Google Maps"}.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-border">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-muted/50 text-xs text-muted-foreground">
+                            <tr><th scope="col" className="px-4 py-2 font-medium">Jenis</th><th scope="col" className="px-4 py-2 text-right font-medium">Total</th><th scope="col" className="px-4 py-2 text-right font-medium">Tampil di peta</th><th scope="col" className="px-4 py-2 text-right font-medium">Disembunyikan</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {PLACE_TYPES.map((type) => {
+                                const ofType = places.filter((place) => place.type === type);
+                                return (
+                                    <tr key={type}>
+                                        <th scope="row" className="px-4 py-2 font-medium">{placeTypeLabels[type]}</th>
+                                        <td className="px-4 py-2 text-right tabular-nums">{ofType.length}</td>
+                                        <td className="px-4 py-2 text-right tabular-nums">{ofType.filter((place) => place.onMap).length}</td>
+                                        <td className="px-4 py-2 text-right tabular-nums">{ofType.filter((place) => place.hiddenAt).length}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+                <Link href="/admin/places" className="flex min-h-10 w-fit items-center rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">Kelola di Data Tempat</Link>
+            </div>
+        </section>
     );
 }
 
