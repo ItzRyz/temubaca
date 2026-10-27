@@ -162,7 +162,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 | `/admin/communities` | `160:859` | Data Komunitas: statistik, filter, detail, tangguhkan/pulihkan |
 | `/admin/books` | `149:807`, `150:807` | Listing Buku (sembunyikan dengan alasan) + Katalog Eksternal (status sinkron, duplikat, riwayat, sinkron ulang) |
 | `/admin/users` | `147:807` | Data Pengguna: email tersamar + tampilkan email lengkap (diaudit), ubah peran, tangguhkan akun |
-| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; Peta & Lokasi (DEC-07), Aturan Pinjam (DEC-02), dan Retensi & Data (DEC-11) menampilkan kebijakan tetap dan statusnya; Moderasi belum dapat diatur |
+| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; Peta & Lokasi (DEC-07), Moderasi & Publikasi (DEC-04/05), Aturan Pinjam (DEC-02), dan Retensi & Data (DEC-11) menampilkan kebijakan tetap dan status/antreannya, tanpa nilai yang dapat diubah |
 
 - **Katalog:** adapter Open Library dan Google Books ada di `src/lib/external/books/`, dan sinkron per rekaman di `src/features/catalog/sync-book.ts`. Provider rekaman bersifat otoritatif, sedangkan provider lain hanya mengisi kolom kosong. Rekaman manual tanpa ISBN dicocokkan lewat judul + nama belakang penulis yang sama persis. Setiap percobaan dicatat di `book_sync_logs`.
 - **Moderasi:** listing tersembunyi (`book_listings.hiddenAt`) dan listing milik akun tertangguh (`user_profiles.suspendedAt`) dikecualikan dari semua query publik. Akun tertangguh tetap bisa masuk dan membaca, tetapi `requireUser`/`requireApiUser` menolak setiap aksinya, dan area akun menampilkan banner berisi alasannya.
