@@ -10,7 +10,9 @@
  * Options: --profile small|normal|large|stress (stress also needs --confirm-stress),
  * --anchor YYYY-MM-DD (default: today, UTC; a seeded database keeps its stored anchor).
  *
- * Refuses any database that is not on localhost: the only cloud project is production (DEC-01).
+ * Local by default. The only cloud project is production (DEC-01): it is reached only with
+ * `--cloud --production` (owner's decision, 27 Okt 2026; take a backup first, see
+ * docs/data-engineering/seed-operations.md), never with the stress profile.
  * Creates no Supabase Auth accounts and sends nothing anywhere.
  */
 import { writeFileSync } from "node:fs";
@@ -33,12 +35,16 @@ const option = (name: string) => {
     return index >= 0 ? args[index + 1] : undefined;
 };
 
-function localOnly(url: string) {
+/** The target host; anything but localhost needs `--cloud --production`. */
+function checkTarget(url: string) {
     const host = new URL(url).hostname;
-    if (useCloud) throw new Error("--cloud ditolak: project cloud adalah production. Seeder hanya untuk stack Supabase lokal.");
     if (process.env.NODE_ENV === "production") throw new Error("Menolak berjalan dengan NODE_ENV=production.");
-    if (!["127.0.0.1", "localhost", "::1", "[::1]"].includes(host)) throw new Error(`Menolak host ${host}: seeder hanya menulis ke database lokal.`);
-    return host;
+    const local = ["127.0.0.1", "localhost", "::1", "[::1]"].includes(host);
+    if (local) return { host, production: false };
+    if (!useCloud || !flag("--production")) {
+        throw new Error(`Host ${host} bukan lokal. Project cloud adalah production: tambahkan --cloud --production bila memang disengaja (backup dulu).`);
+    }
+    return { host, production: true };
 }
 
 function todayUtc() {
@@ -48,10 +54,11 @@ function todayUtc() {
 
 async function main() {
     const url = scriptDatabaseUrl();
-    const host = localOnly(url);
+    const { host, production } = checkTarget(url);
     const profile = seedProfile(option("--profile"));
     const apply = flag("--apply");
     const mode = flag("--cleanup") ? "cleanup" : flag("--verify") ? "verify" : apply ? "apply" : "dry-run";
+    if (production && profile.needsConfirmation) throw new Error(`Profil ${profile.name} tidak diizinkan di production.`);
     if (mode === "apply" && profile.needsConfirmation && !flag("--confirm-stress")) {
         throw new Error(`Profil ${profile.name} butuh --confirm-stress (volume besar; periksa ruang disk dan memori dulu).`);
     }
@@ -61,7 +68,7 @@ async function main() {
     const started = Date.now();
     try {
         const [server] = await queryRows<{ db: string; role: string }>(db, "select current_database() as db, current_user as role");
-        console.log(`Target: ${host} db=${server.db} role=${server.role}; mode ${mode}; profil ${profile.name}`);
+        console.log(`Target: ${host}${production ? " (PRODUCTION)" : ""} db=${server.db} role=${server.role}; mode ${mode}; profil ${profile.name}`);
 
         if (mode === "verify") return await verify(db, option("--report"));
         if (mode === "cleanup") return await cleanup(db, apply);
@@ -105,7 +112,7 @@ async function main() {
                 const sample = rows[table][Math.min(5, rows[table].length - 1)];
                 if (sample) console.log(`  ${table}: ${JSON.stringify(sample).slice(0, 300)}`);
             }
-            console.log("\nDry run: tidak ada yang ditulis. Tambahkan --apply untuk menulis ke DB lokal.");
+            console.log(`\nDry run: tidak ada yang ditulis. Tambahkan --apply untuk menulis ke ${production ? "PRODUCTION" : "DB lokal"}.`);
             return;
         }
 

@@ -1,6 +1,39 @@
 # Operasi seed data sintetis
 
-Hanya untuk **stack Supabase lokal**. Seeder menolak `--cloud`, `NODE_ENV=production`, dan host selain `localhost`/`127.0.0.1`, karena satu-satunya project cloud adalah production. Seeder tidak membuat akun Supabase Auth, tidak mengirim email, dan tidak memanggil layanan luar.
+Default-nya **stack Supabase lokal**. Host selain `localhost`/`127.0.0.1` ditolak kecuali dengan `--cloud --production`, karena satu-satunya project cloud adalah production. `NODE_ENV=production` selalu ditolak, dan profil `stress` tidak diizinkan di production. Seeder tidak membuat akun Supabase Auth, tidak mengirim email, dan tidak memanggil layanan luar.
+
+## Production (keputusan pemilik repo, 27 Okt 2026)
+
+Pemilik repo memutuskan memasukkan data seed penuh ke production setelah diberi tahu risikonya:
+
+- Acara sintetis mendatang tampil di peta, di tempat publik yang nyata.
+- Komunitas, buku, dan akun fiktif tampil seperti data asli.
+- Snapshot ML ikut memuat data seed.
+- Cleanup ditolak bila pengguna asli sudah berinteraksi dengan baris seed.
+
+Urutan wajib:
+
+1. Backup manual (`docs/OPERATIONS.md` → Backup), disimpan di luar repo.
+2. `bun run db:seed -- --cloud --production` (dry run, read-only).
+3. `bun run db:seed -- --cloud --production --apply`.
+4. `bun run db:seed -- --cloud --production --verify`, lalu cek halaman production.
+
+`--cloud` memakai `.env` dan TLS ketat dengan `DATABASE_SSL_CA`. Untuk menghapus: `bun run db:seed -- --cloud --production --cleanup [--apply]`.
+
+`DATABASE_SSL_CA` tidak disimpan di `.env`. Ekspor dari berkas CA Supabase (dashboard → Database → Settings → SSL Configuration): `export DATABASE_SSL_CA="$(cat ~/Downloads/prod-ca-2021.crt)"`. Tanpa CA, koneksi gagal `SELF_SIGNED_CERT_IN_CHAIN`, dan verifikasi TLS tidak dimatikan.
+
+**Diterapkan 27 Okt 2026:**
+
+| Langkah | Hasil |
+|---|---|
+| Backup | `~/temubaca-backup/2026-10-27/` (roles, schema, data: 5 akun, 330 buku, 196 tempat, 1 listing, 20 migrasi), di luar repo, izin 700/600; enkripsi gpg dilakukan pemilik |
+| Dry run | 29.426 baris (referensi: 196 tempat, 330 buku asli), pemeriksaan in-memory lulus |
+| `--apply` | 29.426 baris baru dalam 5,4 s, 0 ulangan, 0 error, 23/23 pemeriksaan SQL lulus |
+| Data asli | Tidak berubah (jumlah baris bukan seed sama dengan backup); 5 akun Auth, tanpa akun baru |
+| Halaman | `/`, `/books`, `/communities`, `/events`, `/merchandise`, `/map`, detail komunitas: 200; `/map` 32 pin komunitas + 52 pin acara; `/api/places` 200 |
+| Ukuran DB | 21 MB (kuota Free 500 MB) |
+
+Dampak lanjutan: snapshot ML (`bun run ml:snapshot`) berikutnya memuat buku dan komunitas seed, sehingga rekomendasi untuk pengguna asli bisa menyarankan data sintetis.
 
 ## Persiapan
 
