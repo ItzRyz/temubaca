@@ -48,6 +48,8 @@ Smoke test server hasil production build pada 2026-10-10 mengembalikan `200` unt
 
 Pada build lokal yang lebih baru, route publik berbasis komunitas/acara ditandai dinamis agar tidak melakukan query database saat prerender. Database lokal saat itu menolak TLS dengan `SELF_SIGNED_CERT_IN_CHAIN`; validasi sertifikat tidak dilonggarkan. Runtime query terhadap database lokal dan browser end-to-end tetap belum terverifikasi sampai tersedia sertifikat tepercaya atau environment staging yang benar.
 
+Data uji bervolume (27 Okt 2026): `bun run db:seed -- --apply` mengisi DB lokal dengan ±30 ribu baris sintetis yang konsisten (profil `normal`), cocok untuk menguji pagination, filter, dashboard admin, dan peta. `bun run db:seed -- --verify` menjalankan 23 pemeriksaan integritas dan aturan bisnis terhadap seluruh isi DB, bukan hanya baris seed. Seeder sendiri diuji di `tests/unit/seed-generator.test.ts` dan `tests/integration/seed.test.ts`. Detail: `docs/data-engineering/seed-operations.md`.
+
 ## Rencana cakupan sebelum rilis
 
 - Unit: validasi schema, policy/ownership, normalisasi data eksternal setelah provider dipilih.

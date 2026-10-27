@@ -22,6 +22,7 @@ Dokumen ini untuk melanjutkan pekerjaan di sesi atau akun Claude Code lain. Baca
 | `docs/API_SPEC.md`, `DATABASE.md` | Kontrak endpoint (termasuk admin) dan catatan skema/migrasi. |
 | `docs/PRD.md`, `FLOW.md`, `UI_UX_BRIEF.md`, `ARCHITECTURE.md`, `ERD.md`, `SECURITY.md`, `TESTING.md` | Kebutuhan produk, alur, arsitektur, keamanan, strategi tes. |
 | `docs/OPERATIONS.md` | Operasional production: log, pemeriksaan rutin, backup dan restore, rollback, respons insiden (TB-043). |
+| `docs/data-engineering/` | Seed data sintetis untuk DB lokal (`bun run db:seed`): schema audit, strategi, operasi, laporan kualitas data. |
 | `supabase/templates/` | Template email OTP untuk keenam email Supabase Auth, beserta README cara pemasangannya. |
 | Figma `3JDR26euAGnt7PJ3ObTyTH` | Desain, halaman `0:1 UI Design`. Section `23:4592` "Autentikasi" berisi semua frame auth, termasuk varian error. Ambil per frame; metadata seluruh halaman terlalu besar. |
 
@@ -62,7 +63,7 @@ Next dev dan semua skrip membaca `.env.development.local` sebelum `.env` (`scrip
 bun run db:migrate:dev
 ```
 
-Perintah ini menampilkan migrasi yang pending di DB lokal. Tambahkan `-- --apply` untuk menerapkannya, atau `-- --apply --cloud` untuk project cloud (production). Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. Tidak ada lagi seed dummy: `scripts/retire-seed-data.ts` (sekali jalan, sudah diterapkan) menggantinya dengan data asli. Tambah buku lewat pencarian di `/books` atau sinkron di Data Buku.
+Perintah ini menampilkan migrasi yang pending di DB lokal. Tambahkan `-- --apply` untuk menerapkannya, atau `-- --apply --cloud` untuk project cloud (production). Tambahkan `-- --apply` untuk menerapkannya; script menolak berjalan saat `NODE_ENV=production`. Tidak ada lagi seed dummy: `scripts/retire-seed-data.ts` (sekali jalan, sudah diterapkan) menggantinya dengan data asli. Untuk data uji bervolume di DB lokal, pakai seeder sintetis `bun run db:seed` (dry run dulu; lihat `docs/data-engineering/seed-operations.md`). Seeder menolak project cloud. Tambah buku lewat pencarian di `/books` atau sinkron di Data Buku.
 
 ### Database
 

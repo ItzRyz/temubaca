@@ -15,6 +15,7 @@
     "books:import": "bun scripts/import-books.ts",
     "places:import": "bun scripts/import-places.ts",
     "ml:snapshot": "bun scripts/export-ml-snapshot.ts",
+    "db:seed": "bun scripts/seed/index.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

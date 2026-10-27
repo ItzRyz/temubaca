@@ -311,6 +311,15 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 - Temuan dan perbaikan drift: Supabase dev hanya mencatat migrasi `0000` di `drizzle.__drizzle_migrations__`, padahal efek `0001`–`0003` sudah ada (kemungkinan lewat `drizzle-kit push`). `0004` (default `now()` untuk `updatedAt` di 13 tabel) belum diterapkan, sehingga insert yang tidak mengisi `updatedAt` gagal. Atas persetujuan pemilik proyek, `0004` diterapkan dan `0001`–`0004` dicatat di jurnal (hash SHA-256 dicocokkan dengan baris `0000` yang ada) dalam satu transaksi. Setelahnya semua kolom `updatedAt` punya default dan RLS aktif di semua tabel. Lingkungan lain (staging/production) perlu dicek dengan cara yang sama sebelum `drizzle-kit migrate`.
 - Bug yang ditemukan lewat data dummy dan sudah diperbaiki: subquery agregat (`availableCopies`, `activeMemberCount`, `upcomingEventCount`) membandingkan kolom tanpa nama tabel, sehingga selalu menghasilkan 0.
 
+## Data sintetis lokal — 2026-10-27
+
+- **Dibuat 27 Okt 2026:** seeder data sintetis `bun run db:seed` (`scripts/seed/`), khusus stack Supabase lokal. Seeder menolak `--cloud`, `NODE_ENV=production`, dan host selain localhost. Dokumen: `docs/data-engineering/` (schema audit, strategi + grafik ketergantungan, operasi, laporan kualitas data).
+- Profil `small`/`normal`/`large`/`stress` (stress butuh `--confirm-stress`); RNG berbenih; id deterministik `5eed0001-…` (prefiks berbeda dari seed dummy lama); `on conflict (id) do nothing`; metadata seed (jangkar, sidik jari referensi dan dataset) di `preferences` profil seed pertama, sehingga run ulang yang akan mencampur dua dataset ditolak. Cleanup hanya menghapus id seed dan ditolak bila ada data bukan seed yang menunjuk baris seed.
+- Data mengikuti jalur tulis aplikasi (siklus pinjaman DEC-02, review komunitas, banding listing, visibilitas pin peta). Akun Auth tidak dibuat, email tidak dikirim. Buku sintetis tanpa ISBN/sampul (`metadata.synthetic`). Kontak hanya `@temubaca.test`. Pin memakai koordinat tempat kurasi OSM.
+- Tidak diisi karena tidak dipakai aplikasi atau akan berupa peristiwa palsu: `orders`/`order_items`, `recommendations`, `book_accesses`, `libraries`, `book_sync_logs`, `app_settings`.
+- Hasil di DB lokal (profil normal): 30.535 baris dalam 2,0 s, 23/23 pemeriksaan SQL lulus, run ulang 0 baris baru, cleanup + seed ulang identik. Halaman publik (`/books`, `/communities`, `/events`, `/merchandise`, `/map`, dan halaman detail) merender 200; pin komunitas/acara di `/map` (32/52) sama dengan aturan `isOnMap`. Tes: 11 unit (`tests/unit/seed-generator.test.ts`) + 5 integrasi PGlite (`tests/integration/seed.test.ts`); `bun run check` 237 tes lulus.
+- Belum: profil `stress` belum dijalankan; halaman anggota dan admin dengan data seed belum dicek di browser (akun seed tidak bisa login); E2E belum dijalankan terhadap DB yang sudah di-seed.
+
 ## Verifikasi teknis — 2026-10-10
 
 - Line ending: `.gitattributes` memaksa LF; working copy dinormalisasi (isi index tidak berubah).
