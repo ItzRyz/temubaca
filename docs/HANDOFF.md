@@ -162,7 +162,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 | `/admin/communities` | `160:859` | Data Komunitas: statistik, filter, detail, tangguhkan/pulihkan |
 | `/admin/books` | `149:807`, `150:807` | Listing Buku (sembunyikan dengan alasan) + Katalog Eksternal (status sinkron, duplikat, riwayat, sinkron ulang) |
 | `/admin/users` | `147:807` | Data Pengguna: email tersamar + tampilkan email lengkap (diaudit), ubah peran, tangguhkan akun |
-| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; Peta & Lokasi (DEC-07) dan Retensi & Data (DEC-11) menampilkan kebijakan tetap dan statusnya; Moderasi dan Aturan Pinjam belum dapat diatur |
+| `/admin/settings` | `161:859` | Pengaturan Katalog Buku yang benar-benar berpengaruh; Peta & Lokasi (DEC-07), Aturan Pinjam (DEC-02), dan Retensi & Data (DEC-11) menampilkan kebijakan tetap dan statusnya; Moderasi belum dapat diatur |
 
 - **Katalog:** adapter Open Library dan Google Books ada di `src/lib/external/books/`, dan sinkron per rekaman di `src/features/catalog/sync-book.ts`. Provider rekaman bersifat otoritatif, sedangkan provider lain hanya mengisi kolom kosong. Rekaman manual tanpa ISBN dicocokkan lewat judul + nama belakang penulis yang sama persis. Setiap percobaan dicatat di `book_sync_logs`.
 - **Moderasi:** listing tersembunyi (`book_listings.hiddenAt`) dan listing milik akun tertangguh (`user_profiles.suspendedAt`) dikecualikan dari semua query publik. Akun tertangguh tetap bisa masuk dan membaca, tetapi `requireUser`/`requireApiUser` menolak setiap aksinya, dan area akun menampilkan banner berisi alasannya.
@@ -184,7 +184,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 - **DEC-07** (peta/lokasi) sudah diputuskan 23 dan 25 Okt 2026 (`DECISIONS.md`); yang masih terbuka hanya target latensi rute dan penggantian provider tile bila trafik naik.
 - **DEC-08, DEC-09, DEC-10**: layanan ML rekomendasi, target pengguna/wilayah/bahasa, serta tanggal rilis dan metrik.
 - **DEC-13** (ketersediaan perpustakaan): memblokir TB-023.
-- **Sisa DEC-02:** aturan Perpanjang. **Sisa DEC-11:** kanal dukungan, SLA laporan, durasi backup production.
+- **Sisa DEC-11:** kanal dukungan, SLA laporan, durasi backup production.
 
 ## 6. Langkah berikutnya (rekomendasi)
 

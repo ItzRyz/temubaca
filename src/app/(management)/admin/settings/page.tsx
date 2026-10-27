@@ -2,12 +2,15 @@ import { Info } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { loanDayOptions } from "@/features/book-listings/listing-draft";
+import { EXTENSION_MAX_DAYS, problemReasons, rejectionReasons, REMINDER_COOLDOWN_HOURS } from "@/features/borrowing/lifecycle";
 import { CatalogSettingsForm } from "@/features/settings/components/catalog-settings-form";
 import { RunRetentionButton } from "@/features/account-deletion/components/retention-panel";
 import { AUDIT_RETENTION_MONTHS, DELETION_GRACE_DAYS, LOAN_HISTORY_RETENTION_MONTHS, REPORT_DETAILS_RETENTION_MONTHS } from "@/features/account-deletion/rules";
 import { countPendingDeletions, getLastRetentionRun } from "@/lib/db/queries/account-deletion";
 import { MAP_TILE_URL, PLACE_TYPES, placeTypeLabels } from "@/features/places/places";
 import { routeModeLabels, ROUTE_MODES } from "@/features/places/route";
+import { countOpenLoans } from "@/lib/db/queries/borrowing";
 import { listPlacesForAdmin } from "@/lib/db/queries/places";
 import { getCatalogSettings } from "@/lib/db/queries/settings";
 import { isMlServiceConfigured } from "@/lib/ml/client";
@@ -18,12 +21,12 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Sections from Figma 161:859. Only "Katalog Buku" has settings the app actually uses today; map and retention show their fixed policy. */
+/** Sections from Figma 161:859. Only "Katalog Buku" has settings the app actually uses today; map, loans, and retention show their fixed policy. */
 const sections = {
     catalog: { label: "Katalog Buku", pending: null },
     map: { label: "Peta & Lokasi", pending: null },
     moderation: { label: "Moderasi & Publikasi", pending: "Belum ada aturan moderasi yang dapat diatur. Keputusan tinjauan saat ini selalu dilakukan manual oleh admin di menu Peninjauan." },
-    borrowing: { label: "Aturan Pinjam", pending: "Aturan pinjam mengikuti DEC-02 dan belum dapat diubah dari sini: lama pinjam 7/14/21/30 hari sesuai batas pemilik, konfirmasi serah terima dan pengembalian oleh kedua pihak, pengingat sekali per 24 jam, tanpa denda. Perpanjangan belum diputuskan." },
+    borrowing: { label: "Aturan Pinjam", pending: null },
     retention: { label: "Retensi & Data", pending: null },
 } as const;
 type Section = keyof typeof sections;
@@ -63,6 +66,8 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
                         <RetentionSection />
                     ) : section === "map" ? (
                         <MapSection />
+                    ) : section === "borrowing" ? (
+                        <BorrowingSection />
                     ) : current.pending ? (
                         <section aria-labelledby="section-title" className="rounded-xl border border-border bg-card p-6">
                             <h2 id="section-title" className="font-heading text-xl font-semibold">{current.label}</h2>
@@ -137,6 +142,54 @@ async function MapSection() {
                     </table>
                 </div>
                 <Link href="/admin/places" className="flex min-h-10 w-fit items-center rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">Kelola di Data Tempat</Link>
+            </div>
+        </section>
+    );
+}
+
+/** DEC-02 loan lifecycle (fixed in code) plus the loans open right now. */
+async function BorrowingSection() {
+    const open = await countOpenLoans();
+    const rules = [
+        ["Lama pinjam", `${loanDayOptions.join("/")} hari, maksimal sesuai batas yang ditetapkan pemilik di listing. Tenggat dihitung dari serah terima.`],
+        ["Permintaan", `Peminjam memilih titik temu dari daftar pemilik (tempat umum atau titik di Peta Literasi), waktu bertemu opsional, dan pesan. Pemilik menerima, atau menolak dengan alasan tetap (${rejectionReasons.join(", ")}). Menerima satu permintaan memesan salinan dan menolak otomatis permintaan lain yang menunggu.`],
+        ["Pembatalan", "Peminjam dapat membatalkan selama permintaan belum ditanggapi. Setelah diterima, kedua pihak dapat membatalkan sebelum serah terima."],
+        ["Serah terima & pengembalian", "Masing-masing butuh konfirmasi kedua pihak. Pinjaman baru berjalan, atau selesai, setelah dua konfirmasi."],
+        ["Perpanjangan", `Satu kali, diajukan peminjam sebelum tenggat, paling lama ${EXTENSION_MAX_DAYS} hari dari tenggat lama. Pemilik menerima atau menolak.`],
+        ["Keterlambatan", `Ditampilkan “Terlambat N hari”. Pemilik dapat mengirim pengingat di aplikasi, sekali per ${REMINDER_COOLDOWN_HOURS} jam. Tanpa denda dan tanpa ganti rugi uang di platform.`],
+        ["Sengketa", `Salah satu pihak melaporkan masalah (${problemReasons.map((reason) => reason.value).join(", ")}). Pinjaman terkunci sampai admin memutuskan Dikembalikan atau Hilang; keputusan tercatat di riwayat pinjaman dan jejak audit.`],
+    ];
+    const status = [
+        ["Menunggu tanggapan pemilik", open.pending],
+        ["Menunggu serah terima", open.awaitingHandover],
+        ["Sedang dipinjam", open.active],
+        ["Terlambat", open.overdue],
+        ["Perpanjangan menunggu jawaban", open.extensionPending],
+        ["Sengketa terbuka", open.disputed],
+    ] as const;
+    return (
+        <section aria-labelledby="borrowing-title" className="rounded-xl border border-border bg-card p-6">
+            <h2 id="borrowing-title" className="font-heading text-xl font-semibold">Aturan Pinjam</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Kebijakan DEC-02 (18 Okt 2026). Ditetapkan di kode dan tidak dapat diubah dari sini.</p>
+            <dl className="mt-4 divide-y divide-border rounded-lg border border-border text-sm">
+                {rules.map(([term, detail]) => (
+                    <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr]">
+                        <dt className="font-medium">{term}</dt>
+                        <dd className="text-muted-foreground">{detail}</dd>
+                    </div>
+                ))}
+            </dl>
+            <div className="mt-6 flex flex-col gap-3">
+                <h3 className="font-heading text-base font-semibold">Pinjaman berjalan saat ini</h3>
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {status.map(([label, total]) => (
+                        <div key={label} className="rounded-lg border border-border px-4 py-3">
+                            <dt className="text-xs text-muted-foreground">{label}</dt>
+                            <dd className="mt-1 font-heading text-2xl font-semibold tabular-nums">{total}</dd>
+                        </div>
+                    ))}
+                </dl>
+                <Link href="/admin/loans" className="flex min-h-10 w-fit items-center rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted">Tinjau sengketa pinjam</Link>
             </div>
         </section>
     );

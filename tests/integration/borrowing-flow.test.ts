@@ -198,3 +198,20 @@ describe("loan extension", () => {
         await expect(borrowing.actOnBorrowing(active.borrowingId!, OTHER_READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("satu kali");
     });
 });
+
+describe("admin overview", () => {
+    test("open-loan counts match the states the loan list derives", async () => {
+        for (const now of [new Date(), new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)]) {
+            const loans = await borrowing.listLoansForUser(OWNER, now);
+            const count = (state: string) => loans.filter((loan) => loan.state === state).length;
+            expect(await borrowing.countOpenLoans(now)).toEqual({
+                pending: count("PENDING"),
+                awaitingHandover: count("AWAITING_HANDOVER"),
+                active: count("ACTIVE"),
+                overdue: count("OVERDUE"),
+                disputed: count("DISPUTED"),
+                extensionPending: loans.filter((loan) => loan.extension?.status === "PENDING" && (loan.state === "ACTIVE" || loan.state === "OVERDUE")).length,
+            });
+        }
+    });
+});

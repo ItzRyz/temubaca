@@ -481,6 +481,26 @@ export async function countOpenBorrowingDisputes() {
     return row?.total ?? 0;
 }
 
+/** Open loans by state for Pengaturan → Aturan Pinjam; OVERDUE is derived from `dueAt`, as in `loanState`. */
+export async function countOpenLoans(now = new Date()) {
+    const [requests] = await db
+        .select({
+            pending: sql<number>`count(*) filter (where ${borrowRequests.status} = 'PENDING')::int`,
+            awaitingHandover: sql<number>`count(*) filter (where ${borrowRequests.status} = 'APPROVED')::int`,
+        })
+        .from(borrowRequests);
+    const running = sql`${borrowings.status} in ('ACTIVE', 'OVERDUE')`;
+    const [loans] = await db
+        .select({
+            active: sql<number>`count(*) filter (where ${running} and (${borrowings.dueAt} is null or ${borrowings.dueAt} >= ${now.toISOString()}))::int`,
+            overdue: sql<number>`count(*) filter (where ${running} and ${borrowings.dueAt} < ${now.toISOString()})::int`,
+            disputed: sql<number>`count(*) filter (where ${borrowings.status} = 'DISPUTED')::int`,
+            extensionPending: sql<number>`count(*) filter (where ${running} and ${borrowings.extensionStatus} = 'PENDING')::int`,
+        })
+        .from(borrowings);
+    return { ...requests, ...loans };
+}
+
 export function listBorrowEvents(requestId: string) {
     return db.select().from(borrowEvents).where(eq(borrowEvents.requestId, requestId)).orderBy(borrowEvents.createdAt);
 }
