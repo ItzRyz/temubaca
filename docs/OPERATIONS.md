@@ -118,3 +118,7 @@ commit;
 5. **Catat.** Tulis ringkasan di `docs/HANDOFF.md`: kronologi, penyebab, dampak, dan pencegahan.
 
 Penanggung jawab: pemilik repo website untuk Vercel, Supabase, dan Upstash; pemilik akun ML untuk FastAPI Cloud.
+
+## Email autentikasi
+
+Kode verifikasi dan atur ulang kata sandi dikirim Supabase Auth lewat SMTP Resend, dari domain `mail.finsight.space`. Template, subjek, catatan DNS (DKIM, SPF, DMARC), dan daftar periksa anti-spam ada di [`supabase/templates/README.md`](../supabase/templates/README.md). Template di repo disalin manual ke dashboard Supabase; aplikasi tidak perlu dideploy ulang.

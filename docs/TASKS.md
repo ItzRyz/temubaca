@@ -323,6 +323,15 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Email verifikasi masuk spam — 2026-10-28
+
+- **Pemeriksaan DNS publik:** Resend memakai `mail.finsight.space`. DKIM, SPF return-path (`send.mail`), dan MX bounce sudah ada. **DMARC belum ada** di `_dmarc.mail.finsight.space` maupun `_dmarc.finsight.space`; inilah penyebab paling mungkin, karena Gmail dan Yahoo mewajibkan DMARC. Faktor lain: nama pengirim "TemuBaca" tidak cocok dengan domain `finsight.space`, dan domainnya masih baru.
+- **Repo:**
+  - Keenam template tidak lagi memuat alamat email pengguna maupun tagline footer, sesuai panduan Supabase untuk email autentikasi.
+  - Subjek dipersingkat (`Kode verifikasi TemuBaca: …`, `Kode undangan TemuBaca: …`), dan `supabase/config.toml` disamakan.
+  - `supabase/templates/README.md` memuat status DNS dan daftar periksa; `docs/OPERATIONS.md` menautkannya.
+- **Menunggu pemilik repo:** tambah DMARC di Cloudflare, matikan tracking di Resend, cek pengirim SMTP di Supabase, salin template baru ke dashboard, lalu uji di mail-tester.com dan Gmail.
+
 ## Pilih minat setelah daftar dan login — 2026-10-28
 
 - **Keputusan pemilik repo:** dapat dilewati sementara (tidak disimpan; ditanya lagi pada login berikutnya selama akun tanpa minat), minimal 3 minat, kab/kota opsional di halaman yang sama.

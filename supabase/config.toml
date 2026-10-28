@@ -249,7 +249,7 @@ otp_expiry = 3600
 
 # OTP templates from supabase/templates (the cloud project uses the same text; see its README).
 [auth.email.template.confirmation]
-subject = "Kode verifikasi akun TemuBaca: {{ .Token }}"
+subject = "Kode verifikasi TemuBaca: {{ .Token }}"
 content_path = "./supabase/templates/confirm-signup.html"
 
 [auth.email.template.recovery]
@@ -261,7 +261,7 @@ subject = "Kode masuk TemuBaca: {{ .Token }}"
 content_path = "./supabase/templates/magic-link.html"
 
 [auth.email.template.invite]
-subject = "Undangan bergabung ke TemuBaca: {{ .Token }}"
+subject = "Kode undangan TemuBaca: {{ .Token }}"
 content_path = "./supabase/templates/invite-user.html"
 
 [auth.email.template.email_change]
