@@ -29,14 +29,7 @@ export const SEED_TABLES = [
     "user_interests",
     "bookmarks",
     "admin_audit_logs",
-    // Added 28 Okt 2026, after the v1 seed reached production. Appended so the table codes above stay
-    // the same, and hashed separately (`SeedMeta.extensions`) so the v1 rows can be shown unchanged.
-    "libraries",
-    "book_accesses",
 ] as const;
-
-/** Tables added to seed v1 later; see `SeedMeta.extensions`. */
-export const SEED_EXTENSION_TABLES: readonly SeedTable[] = ["libraries", "book_accesses"];
 
 export type SeedTable = (typeof SEED_TABLES)[number];
 

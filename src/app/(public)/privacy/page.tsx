@@ -19,6 +19,7 @@ export default function PrivacyPage() {
                     <li><strong>Aktivitas baca:</strong> bookmark, minat bacaan, dan rekomendasi yang dihitung dari minat itu.</li>
                     <li><strong>Buku yang kamu bagikan:</strong> kondisi buku, aturan pinjam, dan titik temu publik yang kamu pilih. Alamat rumah tidak diminta dan jangan dicantumkan.</li>
                     <li><strong>Pinjam-meminjam:</strong> permintaan, pesan singkat, waktu serah terima dan pengembalian, perpanjangan, serta laporan masalah.</li>
+                    <li><strong>Pengajuan ke perpustakaan:</strong> buku dan perpustakaan yang kamu ajukan, pesan opsional, jawaban perpustakaan, dan batas ambil.</li>
                     <li><strong>Komunitas:</strong> profil dan kontak publik komunitas, keanggotaan, serta bukti verifikasi yang kamu unggah.</li>
                     <li><strong>Laporan dan moderasi:</strong> laporan konten yang kamu kirim dan keputusan pengelola atasnya.</li>
                     <li><strong>Data teknis:</strong> alamat IP dan identitas akun dipakai sementara untuk membatasi percobaan berlebihan (rate limit).</li>
@@ -29,6 +30,7 @@ export default function PrivacyPage() {
                 <ul>
                     <li>Pengguna lain melihat nama tampilanmu, buku yang kamu tawarkan, dan titik temu publik. Surel tidak ditampilkan kepada pengguna lain.</li>
                     <li>Detail pinjaman hanya terlihat oleh pemilik buku dan peminjamnya, serta pengelola bila ada sengketa.</li>
+                    <li>Pengajuan ke perpustakaan terlihat oleh pengelola perpustakaan itu dengan nama tampilanmu, tanpa email. Data koleksi dari Indonesia OneSearch diambil server TemuBaca tanpa menyertakan data apa pun tentangmu.</li>
                     <li>Bukti verifikasi komunitas hanya dapat dibuka pemilik komunitas dan pengelola TemuBaca.</li>
                     <li>Pengelola TemuBaca dapat melihat data akun untuk menangani laporan, sengketa, dan penyalahgunaan. Setiap tindakan pengelola dicatat.</li>
                 </ul>
@@ -46,7 +48,7 @@ export default function PrivacyPage() {
                 <ul>
                     <li>Setelah kamu meminta penghapusan akun, ada masa tenggang 14 hari untuk membatalkan. Setelah itu bookmark, minat, listing tanpa riwayat, dan keanggotaan dihapus. Namamu di riwayat pinjam, laporan, dan catatan pengelola diganti menjadi “Akun dihapus”.</li>
                     <li>Detail laporan yang sudah diputus dihapus setelah 12 bulan.</li>
-                    <li>Riwayat pinjaman yang selesai, catatan tindakan pengelola, dan bukti komunitas yang sudah ditinjau dihapus setelah 24 bulan.</li>
+                    <li>Riwayat pinjaman dan pengajuan perpustakaan yang selesai, catatan tindakan pengelola, dan bukti komunitas yang sudah ditinjau dihapus setelah 24 bulan.</li>
                     <li>Cadangan database mengikuti kebijakan bawaan Supabase.</li>
                 </ul>
             </PolicySection>

@@ -22,10 +22,10 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/lib/db/schema";
 import { scriptDatabaseUrl, scriptPool, useCloud } from "../load-env";
 
-import { applyRows, countSeedRows, deleteSeedRows, findCleanupBlockers, readReference, readSeedMeta, referenceAsSeeded, referenceFingerprint, writeSeedMeta } from "./apply";
+import { applyRows, countSeedRows, deleteSeedRows, findCleanupBlockers, readReference, readSeedMeta, referenceAsSeeded, referenceFingerprint } from "./apply";
 import { SEED_VERSION, seedProfile } from "./config";
 import { countRows, generateSeed } from "./generate";
-import { SEED_EXTENSION_TABLES, SEED_TABLES } from "./ids";
+import { SEED_TABLES } from "./ids";
 import { queryRows, runSqlChecks, runStats, validateRows, type AnyDb } from "./validate";
 
 const args = process.argv.slice(2);
@@ -96,12 +96,7 @@ async function main() {
         if (stored && stored.dataset !== meta.dataset) {
             throw new Error(`Generator menghasilkan baris yang berbeda dari seed yang tersimpan (${stored.dataset} ≠ ${meta.dataset}); menulis di atasnya akan mencampur dua dataset. Jalankan --cleanup --apply dulu, atau naikkan SEED_VERSION saat mengubah generator.`);
         }
-        // A seed made before the extension tables existed gains them; changed extension rows are refused like any other change.
-        const addsExtensions = Boolean(stored && !stored.extensions);
-        if (stored?.extensions && stored.extensions !== meta.extensions) {
-            throw new Error(`Generator menghasilkan baris tabel tambahan (${SEED_EXTENSION_TABLES.join(", ")}) yang berbeda dari seed yang tersimpan; jalankan --cleanup --apply dulu.`);
-        }
-        if (addsExtensions) console.log(`Seed tersimpan belum punya tabel tambahan (${SEED_EXTENSION_TABLES.join(", ")}); baris lain terbukti sama dan dilewati.`);
+
         const counts = countRows(rows);
         const refIds = { places: new Set(reference.places.map((place) => place.id)), books: new Set(reference.books.map((book) => book.id)) };
         const issues = validateRows(rows, { anchor, refIds });
@@ -127,10 +122,7 @@ async function main() {
         }
 
         const results = await applyRows(db, rows, { batchSize: profile.batchSize, maxRetries: profile.maxRetries, log: (line) => console.log(line) });
-        if (addsExtensions) {
-            await writeSeedMeta(db, meta);
-            console.log("Metadata seed diperbarui dengan sidik jari tabel tambahan.");
-        }
+
         const inserted = results.reduce((sum, result) => sum + result.inserted, 0);
         console.log(`\nSelesai dalam ${((Date.now() - started) / 1000).toFixed(1)} s: ${inserted} baris baru, ${total - inserted} dilewati (sudah ada), 0 diubah, ${results.reduce((sum, result) => sum + result.retries, 0)} ulangan.`);
         await verify(db);

@@ -17,7 +17,7 @@ const blankToUndefined = (value: unknown) => (typeof value === "string" && value
 const optionalText = (max: number, label: string) =>
     z.preprocess(blankToUndefined, z.string().trim().max(max, `${label} maksimal ${max} karakter.`).optional());
 
-const linkSchema = (label: string) =>
+export const linkSchema = (label: string) =>
     z.string({ error: `${label} wajib diisi.` }).trim().max(2048)
         .refine((value) => {
             try {

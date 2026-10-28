@@ -1,5 +1,5 @@
-/** Client-side calls to the loan endpoints; returns the server's message on failure. */
-export async function sendLoanRequest(url: string, method: "POST" | "PATCH", body: unknown): Promise<{ ok: true } | { ok: false; message: string }> {
+/** Client-side calls to the loan and library endpoints; returns the server's message on failure. */
+export async function sendLoanRequest(url: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body: unknown): Promise<{ ok: true } | { ok: false; message: string }> {
     try {
         const response = await fetch(url, {
             method,

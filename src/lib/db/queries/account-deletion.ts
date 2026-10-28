@@ -20,6 +20,7 @@ import { db } from "../client";
 import {
     adminAuditLogs,
     appSettings,
+    bookAccesses,
     bookListings,
     bookmarks,
     books,
@@ -29,6 +30,8 @@ import {
     communities,
     communityMemberships,
     communitySubmissions,
+    libraries,
+    libraryManagers,
     reports,
     userInterests,
     userProfiles,
@@ -102,6 +105,9 @@ export async function requestAccountDeletion(userId: string, now = new Date()) {
             ...incoming.map((row) => ({ requestId: row.id, actorId: userId, type: "REJECTED" as const, note: OWNER_CLOSED_REASON })),
         ];
         if (events.length > 0) await tx.insert(borrowEvents).values(events);
+        // Library requests still open are withdrawn too (TB-023); the libraries see them as cancelled.
+        await tx.update(bookAccesses).set({ status: "CANCELLED", updatedAt: now })
+            .where(and(eq(bookAccesses.requesterId, userId), inArray(bookAccesses.status, ["PENDING", "APPROVED"])));
 
         const scheduledFor = deletionDate(now);
         await tx.update(userProfiles).set({ deletionRequestedAt: now, deletionScheduledFor: scheduledFor, updatedAt: now }).where(eq(userProfiles.id, userId));
@@ -140,6 +146,8 @@ export async function purgeAccount(userId: string, now = new Date()) {
             .where(and(eq(bookListings.ownerId, userId), inArray(bookListings.id, withHistory)));
         await tx.delete(bookListings).where(and(eq(bookListings.ownerId, userId), notInArray(bookListings.id, withHistory)));
         await tx.update(borrowRequests).set({ note: null, preferredTime: null }).where(eq(borrowRequests.requesterId, userId));
+        await tx.update(bookAccesses).set({ message: null }).where(eq(bookAccesses.requesterId, userId));
+        await tx.delete(libraryManagers).where(eq(libraryManagers.userId, userId));
 
         const owned = await tx.select({ id: communities.id }).from(communities).where(and(eq(communities.ownerId, userId), ne(communities.status, "VERIFIED")));
         const ownedIds = owned.map((row) => row.id);
@@ -212,6 +220,14 @@ export async function applyRetention(now = new Date()) {
             await tx.delete(borrowRequests).where(inArray(borrowRequests.id, finishedIds));
         }
 
+        // Finished library requests (TB-023): answered, cancelled, collected, or never picked up.
+        const finishedAccess = await tx.delete(bookAccesses)
+            .where(and(lt(bookAccesses.updatedAt, loanCutoff), or(
+                inArray(bookAccesses.status, ["REJECTED", "CANCELLED", "COLLECTED"]),
+                and(eq(bookAccesses.status, "APPROVED"), lt(bookAccesses.expiresAt, loanCutoff)),
+            )))
+            .returning({ id: bookAccesses.id });
+
         const oldEvidence = await tx.delete(communitySubmissions)
             .where(and(ne(communitySubmissions.status, "PENDING"), lt(communitySubmissions.reviewedAt, auditCutoff)))
             .returning({ path: communitySubmissions.filePath });
@@ -219,7 +235,7 @@ export async function applyRetention(now = new Date()) {
         return {
             reportDetails: purgedReports.length,
             auditEntries: deletedAudit.length,
-            loans: finishedIds.length,
+            loans: finishedIds.length + finishedAccess.length,
             evidence: oldEvidence.length,
             filePaths: oldEvidence.map((row) => row.path).filter((path): path is string => Boolean(path)),
         };
@@ -257,7 +273,7 @@ export async function countPendingDeletions() {
 export async function exportUserData(userId: string) {
     const counterpart = alias(userProfiles, "counterpart");
     const listingOwner = alias(userProfiles, "listing_owner");
-    const [profile, interests, saved, listings, loans, memberships, sentReports] = await Promise.all([
+    const [profile, interests, saved, listings, loans, memberships, sentReports, libraryRequests] = await Promise.all([
         db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, regionCode: true, createdAt: true, deletionScheduledFor: true } }),
         db.select({ subject: userInterests.subject }).from(userInterests).where(eq(userInterests.userId, userId)),
         db.select({ title: books.title, savedAt: bookmarks.createdAt }).from(bookmarks).innerJoin(books, eq(books.id, bookmarks.bookId)).where(eq(bookmarks.userId, userId)),
@@ -292,6 +308,9 @@ export async function exportUserData(userId: string) {
             .from(communityMemberships).innerJoin(communities, eq(communities.id, communityMemberships.communityId)).where(eq(communityMemberships.userId, userId)),
         db.select({ targetType: reports.targetType, reason: reports.reason, details: reports.details, status: reports.status, createdAt: reports.createdAt })
             .from(reports).where(eq(reports.reporterId, userId)).orderBy(desc(reports.createdAt)),
+        db.select({ library: libraries.name, title: books.title, status: bookAccesses.status, message: bookAccesses.message, responseNote: bookAccesses.responseNote, expiresAt: bookAccesses.expiresAt, createdAt: bookAccesses.createdAt })
+            .from(bookAccesses).innerJoin(libraries, eq(libraries.id, bookAccesses.libraryId)).innerJoin(books, eq(books.id, bookAccesses.bookId))
+            .where(eq(bookAccesses.requesterId, userId)).orderBy(desc(bookAccesses.createdAt)),
     ]);
     return {
         exportedAt: new Date().toISOString(),
@@ -303,5 +322,6 @@ export async function exportUserData(userId: string) {
         loans: loans.map(({ asOwner, ownerName, requesterName, ...loan }) => ({ role: asOwner ? "pemilik" : "peminjam", counterpart: asOwner ? requesterName : ownerName, ...loan })),
         communities: memberships,
         reports: sentReports,
+        libraryRequests,
     };
 }

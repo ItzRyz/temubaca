@@ -12,7 +12,8 @@ import { allowedActions, disputeConsequenceLabels, disputeDeadline, loanEventLab
 const MEETING_STATES: LoanState[] = ["AWAITING_HANDOVER", "ACTIVE", "OVERDUE", "DISPUTED"];
 import { LoanActions } from "./loan-actions";
 
-export type LoanView = "pinjamkan" | "pinjam";
+/** "perpustakaan" lists the reader's requests to libraries (TB-023); it has its own panel. */
+export type LoanView = "pinjamkan" | "pinjam" | "perpustakaan";
 export type LoanFilter = "all" | "action" | "ongoing" | "history";
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
@@ -275,14 +276,7 @@ export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanIte
         <>
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
-                    <nav aria-label="Arah pinjaman" className="flex gap-1 rounded-lg bg-[#f1f0ea] p-1">
-                        {([["pinjamkan", "Dipinjamkan ke kawan"], ["pinjam", "Saya pinjam"]] as const).map(([value, label]) => (
-                            <Link key={value} href={hrefFor({ view: value })} aria-current={view === value ? "page" : undefined}
-                                className={cn("rounded-md px-3 py-1.5 text-xs font-semibold", view === value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground")}>
-                                {label}
-                            </Link>
-                        ))}
-                    </nav>
+                    <LoanViewNav view={view} />
                     {(Object.keys(filterLabels) as LoanFilter[]).map((value) => (
                         <Link key={value} href={hrefFor({ filter: value })} aria-current={filter === value ? "true" : undefined}
                             className={cn("rounded-lg border px-3 py-1.5 text-sm font-semibold", filter === value ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted")}>
@@ -328,6 +322,20 @@ export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanIte
                 </>
             )}
         </>
+    );
+}
+
+/** Which loans the tab shows: lent to others, borrowed, or asked of libraries. */
+export function LoanViewNav({ view }: { view: LoanView }) {
+    return (
+        <nav aria-label="Arah pinjaman" className="flex flex-wrap gap-1 rounded-lg bg-[#f1f0ea] p-1">
+            {([["pinjamkan", "Dipinjamkan ke kawan"], ["pinjam", "Saya pinjam"], ["perpustakaan", "Perpustakaan"]] as const).map(([value, label]) => (
+                <Link key={value} href={value === "pinjamkan" ? "/my-listings?tab=peminjaman" : `/my-listings?tab=peminjaman&view=${value}`} aria-current={view === value ? "page" : undefined}
+                    className={cn("rounded-md px-3 py-1.5 text-xs font-semibold", view === value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    {label}
+                </Link>
+            ))}
+        </nav>
     );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, BookOpen, CircleCheck, MapPin, Settings2, UserRound, UsersRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, BookOpen, CircleCheck, Library, MapPin, Settings2, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -33,6 +33,7 @@ export function AdminSidebar({ displayName, pending }: { displayName: string; pe
         { href: "/admin/communities", label: "Data Komunitas", icon: UsersRound },
         { href: "/admin/books", label: "Data Buku", icon: BookOpen, badge: pending.appeals, badgeDetail: `${pending.appeals} banding listing menunggu keputusan` },
         { href: "/admin/places", label: "Data Tempat", icon: MapPin },
+        { href: "/admin/libraries", label: "Perpustakaan", icon: Library },
         { href: "/admin/users", label: "Data Pengguna", icon: UserRound },
         { href: "/admin/settings", label: "Pengaturan", icon: Settings2 },
     ];

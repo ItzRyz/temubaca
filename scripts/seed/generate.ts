@@ -18,7 +18,7 @@ import { reportReasonsFor, type ReportTargetType } from "../../src/features/repo
 import type * as schema from "../../src/lib/db/schema";
 
 import { SEED_VERSION, type SeedProfile } from "./config";
-import { SEED_EXTENSION_TABLES, seedId, type SeedTable } from "./ids";
+import { seedId, type SeedTable } from "./ids";
 import { addDays, addHours, createRng, DAY_MS, maxDate, minDate, weightedSampler, type Rng } from "./random";
 import * as vocab from "./vocab";
 
@@ -44,8 +44,6 @@ export type SeedRows = {
     user_interests: Insert<typeof schema.userInterests>[];
     bookmarks: Insert<typeof schema.bookmarks>[];
     admin_audit_logs: Insert<typeof schema.adminAuditLogs>[];
-    libraries: Insert<typeof schema.libraries>[];
-    book_accesses: Insert<typeof schema.bookAccesses>[];
 };
 
 /** Curated places (not hidden) used as venues, meeting points, and community pins. Coordinates are real. */
@@ -56,12 +54,8 @@ export type RefBook = { id: string; title: string; categories: string[]; created
 /** `reference`: fingerprint of `places` + `books`, stored with the seed so a re-run can tell they changed. */
 export type SeedInput = { profile: SeedProfile; anchor: Date; places: RefPlace[]; books: RefBook[]; reference: string };
 
-/**
- * `dataset`: hash of every generated row of the v1 tables, so a rerun can tell the generator or its inputs
- * changed. `extensions`: the same for `SEED_EXTENSION_TABLES`; a seed made before they existed has none,
- * and gains them on the next `--apply` as long as `dataset` still matches.
- */
-export type SeedMeta = { version: number; profile: string; seed: number; anchor: string; reference: string; dataset: string; extensions?: string };
+/** `dataset`: hash of every generated row, so a rerun can tell the generator or its inputs changed. */
+export type SeedMeta = { version: number; profile: string; seed: number; anchor: string; reference: string; dataset: string };
 
 /** Kab/kota used when the reference places do not cover enough of them (Jabodetabek and a few big cities). */
 const FALLBACK_REGIONS = ["31.71", "31.72", "31.73", "31.74", "31.75", "36.03", "36.71", "36.74", "32.01", "32.75", "32.76", "33.74", "34.71", "35.78", "73.71"];
@@ -105,7 +99,6 @@ export function generateSeed(input: SeedInput): { rows: SeedRows; meta: SeedMeta
         user_profiles: [], books: [], communities: [], community_submissions: [], community_invites: [], community_memberships: [],
         events: [], places: [], merchandise_listings: [], book_listings: [], borrow_requests: [], borrowings: [], borrow_events: [],
         listing_appeals: [], reports: [], verifications: [], user_interests: [], bookmarks: [], admin_audit_logs: [],
-        libraries: [], book_accesses: [],
     };
     const meta: SeedMeta = { version: SEED_VERSION, profile: profile.name, seed: profile.seed, anchor: anchor.toISOString(), reference: input.reference, dataset: "" };
 
@@ -808,51 +801,10 @@ export function generateSeed(input: SeedInput): { rows: SeedRows; meta: SeedMeta
         }
     }
 
-    // Extension tables (28 Okt 2026). Both are derived from rows above without drawing from any RNG,
-    // so adding them leaves every v1 row as it was.
-
-    // `libraries`: the real curated libraries on the Peta Literasi. Opening hours and websites are not
-    // known, so they stay empty rather than invented.
-    for (const place of [...input.places].filter((item) => item.type === "LIBRARY").sort((a, b) => a.id.localeCompare(b.id))) {
-        rows.libraries.push({ id: nextId("libraries"), name: place.name, publicLocation: place.addressPublic, source: `Peta Literasi (places ${place.id})`, openingHours: null, websiteUrl: null, createdAt: launch, updatedAt: launch });
-    }
-
-    // `book_accesses`: the access an accepted request gives the reader, following that loan: ACTIVE until
-    // the book comes back (EXPIRED), REVOKED when the loan is cancelled before handover or the book is lost.
-    const eventsOf = new Map<string, SeedRows["borrow_events"]>();
-    for (const event of rows.borrow_events) eventsOf.set(event.requestId, [...(eventsOf.get(event.requestId) ?? []), event]);
-    const borrowingOf = new Map(rows.borrowings.map((item) => [item.requestId, item]));
-    for (const request of rows.borrow_requests) {
-        const history = eventsOf.get(request.id!) ?? [];
-        const approved = history.find((event) => event.type === "APPROVED")?.createdAt;
-        if (!approved) continue;
-        const borrowing = borrowingOf.get(request.id!);
-        const cancelled = request.status === "CANCELLED" ? history.find((event) => event.type === "CANCELLED")?.createdAt ?? request.updatedAt! : null;
-        const lost = borrowing?.status === "LOST" ? borrowing.resolvedAt! : null;
-        const returned = borrowing?.status === "RETURNED" ? borrowing.returnedAt! : null;
-        const status = cancelled || lost ? "REVOKED" : returned ? "EXPIRED" : "ACTIVE";
-        rows.book_accesses.push({
-            id: nextId("book_accesses"),
-            requestId: request.id!,
-            status,
-            grantedAt: approved,
-            expiresAt: borrowing?.dueAt ?? null,
-            revokedAt: cancelled ?? lost,
-            note: cancelled ? "Dibatalkan sebelum serah terima." : lost ? "Buku dinyatakan hilang." : null,
-            createdAt: approved,
-            updatedAt: cancelled ?? lost ?? returned ?? borrowing?.updatedAt ?? approved,
-        });
-    }
-
     // The meta row is the first seed profile; it is written with the first batch.
-    const hashOf = (tables: [string, unknown[]][]) => {
-        const hash = createHash("sha256");
-        for (const [, list] of tables) for (const row of list) hash.update(JSON.stringify(row));
-        return hash.digest("hex").slice(0, 16);
-    };
-    const entries = Object.entries(rows) as [SeedTable, unknown[]][];
-    meta.dataset = hashOf(entries.filter(([table]) => !SEED_EXTENSION_TABLES.includes(table)));
-    meta.extensions = hashOf(entries.filter(([table]) => SEED_EXTENSION_TABLES.includes(table)));
+    const hash = createHash("sha256");
+    for (const list of Object.values(rows)) for (const row of list) hash.update(JSON.stringify(row));
+    meta.dataset = hash.digest("hex").slice(0, 16);
     if (rows.user_profiles[0]) rows.user_profiles[0].preferences = { seed: meta };
     return { rows, meta };
 }

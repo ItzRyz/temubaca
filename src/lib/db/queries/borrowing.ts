@@ -61,12 +61,17 @@ function assertAllowed(loan: LoanSnapshot, role: LoanRole, action: LoanAction, n
     if (blocker) throw new ConflictError(blocker);
 }
 
+/** A dispute decision may block new requests for a while (28 Okt 2026); it covers copies from readers and libraries alike. */
+export async function assertNotBorrowBlocked(tx: Pick<Tx, "select">, userId: string) {
+    const [user] = await tx.select({ borrowBlockedUntil: userProfiles.borrowBlockedUntil }).from(userProfiles).where(eq(userProfiles.id, userId));
+    if (user?.borrowBlockedUntil && user.borrowBlockedUntil > new Date()) {
+        throw new ForbiddenError(`Anda belum dapat mengajukan pinjam sampai ${blockDate.format(user.borrowBlockedUntil)} karena keputusan sengketa sebelumnya.`);
+    }
+}
+
 export async function createBorrowRequest(requesterId: string, input: CreateBorrowRequestInput) {
     return db.transaction(async (tx) => {
-        const [requester] = await tx.select({ borrowBlockedUntil: userProfiles.borrowBlockedUntil }).from(userProfiles).where(eq(userProfiles.id, requesterId));
-        if (requester?.borrowBlockedUntil && requester.borrowBlockedUntil > new Date()) {
-            throw new ForbiddenError(`Anda belum dapat mengajukan pinjam sampai ${blockDate.format(requester.borrowBlockedUntil)} karena keputusan sengketa sebelumnya.`);
-        }
+        await assertNotBorrowBlocked(tx, requesterId);
         const [listing] = await tx
             .select({
                 id: bookListings.id,

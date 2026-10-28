@@ -9,6 +9,7 @@ import {
     text,
     varchar,
     integer,
+    boolean,
     numeric,
     doublePrecision,
     jsonb,
@@ -48,7 +49,12 @@ export const disputeConsequenceValues = ['NONE', 'WARNING', 'BORROW_BLOCK', 'SUS
 export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED', 'EXTENSION_REQUESTED', 'EXTENSION_APPROVED', 'EXTENSION_REJECTED', 'DISPUTE_INFO_REQUESTED', 'DISPUTE_INFO_ADDED'] as const;
 // One extension per loan (DEC-02): the borrower asks before the due date, the owner answers.
 export const loanExtensionStatusValues = ['PENDING', 'APPROVED', 'REJECTED'] as const;
-export const bookAccessStatusValues = ['ACTIVE', 'REVOKED', 'EXPIRED'] as const;
+// A reader's request to borrow or read a book at a library (TB-023). EXPIRED is derived from expiresAt and never stored.
+export const bookAccessStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COLLECTED'] as const;
+// Where a library holding came from; a library's own manager outranks OneSearch, which outranks admin curation.
+export const libraryHoldingSourceValues = ['CURATED', 'MANAGER', 'ONESEARCH'] as const;
+// No open source broadcasts copy status, so LISTED ("tercatat di koleksi") is the default; AVAILABLE/ON_LOAN come from the library's manager.
+export const libraryHoldingStatusValues = ['LISTED', 'AVAILABLE', 'ON_LOAN', 'UNKNOWN'] as const;
 export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'] as const;
 export const membershipRoleValues = ['OWNER', 'MANAGER', 'MEMBER'] as const;
 export const membershipStatusValues = ['PENDING', 'ACTIVE', 'REJECTED', 'LEFT', 'REMOVED'] as const;
@@ -57,12 +63,12 @@ export const eventLocationTypeValues = ['PHYSICAL', 'ONLINE'] as const;
 export const merchandiseStatusValues = ['DRAFT', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED'] as const;
 export const reportStatusValues = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED'] as const;
 export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'] as const;
-export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'PLACE', 'OTHER'] as const;
+export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'PLACE', 'LIBRARY', 'OTHER'] as const;
 export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'REFUNDED'] as const;
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 // SCHEDULED: the daily cron refreshes records older than the admin's "usang" threshold (DEC-06).
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL', 'SCHEDULED'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN', 'PLACE_CREATED', 'PLACE_UPDATED', 'PLACE_HIDDEN', 'PLACE_RESTORED'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN', 'PLACE_CREATED', 'PLACE_UPDATED', 'PLACE_HIDDEN', 'PLACE_RESTORED', 'LIBRARY_CREATED', 'LIBRARY_UPDATED', 'LIBRARY_MANAGER_ADDED', 'LIBRARY_MANAGER_REMOVED', 'LIBRARY_HOLDING_CHANGED'] as const;
 /** Peta Literasi (DEC-07). EVENT pins arrive in phase 2; book listings never appear on the map. */
 export const placeTypeValues = ['LIBRARY', 'COMMUNITY', 'EVENT', 'MEETING_POINT'] as const;
 
@@ -95,7 +101,10 @@ export const books = pgTable('books', {
     isbn: text(), title: text().notNull(), authors: text().array().notNull().default(sql`'{}'::text[]`),
     description: text(), publisher: text(), publishedAt: text(), language: text(),
     categories: text().array().notNull().default(sql`'{}'::text[]`), coverUrl: text(), metadata: jsonb(),
-    syncedAt: nowDate(), createdAt: createdAt(), updatedAt: updatedAt(),
+    syncedAt: nowDate(),
+    // Last time Indonesia OneSearch was asked which libraries hold this book, found or not (TB-023).
+    librariesCheckedAt: nowDate(),
+    createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [unique('books_provider_provider_id_key').on(t.provider, t.providerId), index('books_title_idx').on(t.title), index('books_isbn_idx').on(t.isbn), enumCheck(t.provider, bookProviderValues)]).enableRLS();
 
 /** Platform settings edited in the admin portal, one JSON document per section (e.g. `catalog`). */
@@ -126,8 +135,46 @@ export const userInterests = pgTable('user_interests', {
 
 export const libraries = pgTable('libraries', {
     id: id(), name: text().notNull(), publicLocation: text(), source: text(), openingHours: jsonb(), websiteUrl: text(),
+    // TB-023: the library's point on the Peta Literasi, its kab/kota, and its official catalog.
+    placeId: uuid().unique().references((): AnyPgColumn => places.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    regionCode: text(), catalogUrl: text(),
+    // Exact institution name on Indonesia OneSearch, used to match its records (only while ONESEARCH_ENABLED).
+    oneSearchInstitution: text(),
+    // Readers can ask for access through TemuBaca only when the library opts in.
+    accessEnabled: boolean().notNull().default(false), accessRules: text(), pickupDays: integer().notNull().default(3),
+    hiddenAt: nowDate(),
     createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('libraries_name_idx').on(t.name)]).enableRLS();
+}, t => [
+    index('libraries_name_idx').on(t.name),
+    check('libraries_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`),
+    check('libraries_pickup_days_check', sql`${t.pickupDays} between 1 and 14`),
+]).enableRLS();
+
+/** Accounts an admin appointed to run a library on TemuBaca: its holdings, access requests, and rules. */
+export const libraryManagers = pgTable('library_managers', {
+    id: id(), libraryId: uuid().notNull().references(() => libraries.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    userId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    createdById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(),
+}, t => [uniqueIndex('library_managers_library_user_idx').on(t.libraryId, t.userId), index('library_managers_user_idx').on(t.userId)]).enableRLS();
+
+/** "This library holds this book", per source; shown merged per library (DEC-13). */
+export const libraryHoldings = pgTable('library_holdings', {
+    id: id(), libraryId: uuid().notNull().references(() => libraries.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    bookId: uuid().notNull().references(() => books.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    source: enumText(libraryHoldingSourceValues).notNull(),
+    // The record id at the source ('' for curated and manager rows), its link, and the shelf mark.
+    sourceRecordId: text().notNull().default(''), sourceUrl: text(), callNumber: text(),
+    status: enumText(libraryHoldingStatusValues).notNull().default('LISTED'),
+    copiesTotal: integer(), copiesAvailable: integer(),
+    checkedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+    updatedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    createdAt: createdAt(), updatedAt: updatedAt(),
+}, t => [
+    uniqueIndex('library_holdings_source_idx').on(t.libraryId, t.bookId, t.source, t.sourceRecordId),
+    index('library_holdings_book_idx').on(t.bookId), enumCheck(t.source, libraryHoldingSourceValues), enumCheck(t.status, libraryHoldingStatusValues),
+    check('library_holdings_copies_check', sql`${t.copiesTotal} >= 0 and ${t.copiesAvailable} >= 0 and ${t.copiesAvailable} <= ${t.copiesTotal}`),
+]).enableRLS();
 
 export const borrowRequests = pgTable('borrow_requests', {
     id: id(), listingId: uuid().notNull().references(() => bookListings.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
@@ -158,11 +205,23 @@ export const borrowEvents = pgTable('borrow_events', {
     type: enumText(borrowEventTypeValues).notNull(), note: text(), createdAt: createdAt(),
 }, t => [index('borrow_events_request_id_idx').on(t.requestId, t.createdAt), enumCheck(t.type, borrowEventTypeValues)]).enableRLS();
 
+/**
+ * A reader's request to borrow or read a book at a library (TB-023), answered by the library's manager.
+ * `expiresAt` is the pick-up deadline set on approval; past it, an APPROVED request reads as expired.
+ */
 export const bookAccesses = pgTable('book_accesses', {
-    id: id(), requestId: uuid().notNull().unique().references(() => borrowRequests.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
-    status: enumText(bookAccessStatusValues).notNull().default('ACTIVE'), grantedAt: createdAt(), expiresAt: nowDate(), revokedAt: nowDate(),
-    note: text(), createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('book_accesses_status_expires_at_idx').on(t.status, t.expiresAt), index('book_accesses_granted_at_idx').on(t.grantedAt), enumCheck(t.status, bookAccessStatusValues)]).enableRLS();
+    id: id(), libraryId: uuid().notNull().references(() => libraries.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+    bookId: uuid().notNull().references(() => books.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+    requesterId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
+    status: enumText(bookAccessStatusValues).notNull().default('PENDING'), message: text(),
+    responseNote: text(), respondedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    respondedAt: nowDate(), expiresAt: nowDate(), collectedAt: nowDate(),
+    createdAt: createdAt(), updatedAt: updatedAt(),
+}, t => [
+    index('book_accesses_library_status_idx').on(t.libraryId, t.status), index('book_accesses_requester_idx').on(t.requesterId, t.createdAt), enumCheck(t.status, bookAccessStatusValues),
+    // One open request per reader per book per library.
+    uniqueIndex('book_accesses_open_idx').on(t.libraryId, t.bookId, t.requesterId).where(sql`${t.status} in ('PENDING', 'APPROVED')`),
+]).enableRLS();
 
 export const bookListings = pgTable('book_listings', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
@@ -347,9 +406,9 @@ export const bookSyncLogsRelations = relations(bookSyncLogs, ({ one }) => ({ boo
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({ user: one(userProfiles, { fields: [bookmarks.userId], references: [userProfiles.id] }), book: one(books, { fields: [bookmarks.bookId], references: [books.id] }) }));
 export const userInterestsRelations = relations(userInterests, ({ one }) => ({ user: one(userProfiles, { fields: [userInterests.userId], references: [userProfiles.id] }) }));
 export const bookListingsRelations = relations(bookListings, ({ one, many }) => ({ ownerUser: one(userProfiles, { fields: [bookListings.ownerId], references: [userProfiles.id] }), book: one(books, { fields: [bookListings.bookId], references: [books.id] }), requests: many(borrowRequests) }));
-export const borrowRequestsRelations = relations(borrowRequests, ({ one, many }) => ({ listing: one(bookListings, { fields: [borrowRequests.listingId], references: [bookListings.id] }), requester: one(userProfiles, { fields: [borrowRequests.requesterId], references: [userProfiles.id] }), borrowing: one(borrowings), access: one(bookAccesses), events: many(borrowEvents) }));
+export const borrowRequestsRelations = relations(borrowRequests, ({ one, many }) => ({ listing: one(bookListings, { fields: [borrowRequests.listingId], references: [bookListings.id] }), requester: one(userProfiles, { fields: [borrowRequests.requesterId], references: [userProfiles.id] }), borrowing: one(borrowings), events: many(borrowEvents) }));
 export const borrowEventsRelations = relations(borrowEvents, ({ one }) => ({ request: one(borrowRequests, { fields: [borrowEvents.requestId], references: [borrowRequests.id] }) }));
-export const bookAccessesRelations = relations(bookAccesses, ({ one }) => ({ request: one(borrowRequests, { fields: [bookAccesses.requestId], references: [borrowRequests.id] }) }));
+export const bookAccessesRelations = relations(bookAccesses, ({ one }) => ({ library: one(libraries, { fields: [bookAccesses.libraryId], references: [libraries.id] }), book: one(books, { fields: [bookAccesses.bookId], references: [books.id] }) }));
 export const borrowingsRelations = relations(borrowings, ({ one }) => ({ request: one(borrowRequests, { fields: [borrowings.requestId], references: [borrowRequests.id] }) }));
 export const communitiesRelations = relations(communities, ({ one, many }) => ({ owner: one(userProfiles, { fields: [communities.ownerId], references: [userProfiles.id] }), memberships: many(communityMemberships), events: many(events), merchandise: many(merchandiseListings) }));
 export const communityMembershipsRelations = relations(communityMemberships, ({ one }) => ({ user: one(userProfiles, { fields: [communityMemberships.userId], references: [userProfiles.id] }), community: one(communities, { fields: [communityMemberships.communityId], references: [communities.id] }) }));

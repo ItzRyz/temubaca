@@ -14,6 +14,7 @@
     "db:local": "bun scripts/local-db.ts",
     "books:import": "bun scripts/import-books.ts",
     "places:import": "bun scripts/import-places.ts",
+    "libraries:import": "bun scripts/import-libraries.ts",
     "ml:snapshot": "bun scripts/export-ml-snapshot.ts",
     "db:seed": "bun scripts/seed/index.ts",
     "test:e2e": "playwright test"

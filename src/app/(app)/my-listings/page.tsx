@@ -7,6 +7,9 @@ import { BookListingAvailability } from "@/features/book-listings/components/boo
 import { BookListingDelete } from "@/features/book-listings/components/book-listing-delete";
 import { BookListingEditor } from "@/features/book-listings/components/book-listing-editor";
 import { LoansPanel, loanStats, type LoanFilter, type LoanView } from "@/features/borrowing/components/loans-panel";
+import { accessState } from "@/features/libraries/access";
+import { LibraryAccessPanel } from "@/features/libraries/components/library-access-panel";
+import { listAccessRequestsForUser } from "@/lib/db/queries/libraries";
 import { loanGroup } from "@/features/borrowing/lifecycle";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
@@ -72,12 +75,17 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     const requestedPage = Number.parseInt(single(params.page) ?? "1", 10);
 
     const tab = single(params.tab) === "peminjaman" ? "peminjaman" : "koleksi";
-    const loanView: LoanView = single(params.view) === "pinjam" ? "pinjam" : "pinjamkan";
+    const requestedView = single(params.view);
+    const loanView: LoanView = requestedView === "pinjam" || requestedView === "perpustakaan" ? requestedView : "pinjamkan";
     const loanFilters: LoanFilter[] = ["all", "action", "ongoing", "history"];
     const loanFilter = loanFilters.find((value) => value === params.filter) ?? "all";
     const now = new Date();
 
-    const [listings, loans] = await Promise.all([listUserBookListings(user.id), listLoansForUser(user.id, now)]);
+    const [listings, loans, accessRequests] = await Promise.all([
+        listUserBookListings(user.id),
+        listLoansForUser(user.id, now),
+        tab === "peminjaman" && loanView === "perpustakaan" ? listAccessRequestsForUser(user.id) : Promise.resolve([]),
+    ]);
     const appeals = await latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id));
     const loansNeedingAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length;
     const statusOf = (listing: (typeof listings)[number]) => (listing.hiddenAt ? "HIDDEN" : listing.availability);
@@ -110,7 +118,13 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     };
 
     const loanCounts = loanStats(loans, loanView, now);
-    const stats = tab === "peminjaman" ? [
+    const accessStates = accessRequests.map((request) => accessState(request, now));
+    const stats = tab === "peminjaman" && loanView === "perpustakaan" ? [
+        { icon: Hourglass, value: accessStates.filter((state) => state === "PENDING").length, unit: "Pengajuan", label: "Menunggu Jawaban", tone: "bg-[#fbecc4] text-[#5c3d00]" },
+        { icon: AlertTriangle, value: accessStates.filter((state) => state === "APPROVED").length, unit: "Buku", label: "Siap Diambil", tone: "bg-[#c9ecd6] text-primary" },
+        { icon: CheckCircle2, value: accessStates.filter((state) => state === "COLLECTED").length, unit: "Buku", label: "Sudah Diambil", tone: "bg-[#e7efe8] text-primary" },
+        { icon: Lock, value: accessStates.filter((state) => state === "REJECTED" || state === "CANCELLED" || state === "EXPIRED").length, unit: "Pengajuan", label: "Ditolak/Batal", tone: "bg-[#f1f0ea] text-foreground" },
+    ] : tab === "peminjaman" ? [
         { icon: AlertTriangle, value: loanCounts.action, unit: "Item", label: "Perlu Tindakan", tone: "bg-[#fbecc4] text-[#5c3d00]" },
         { icon: Hourglass, value: loanCounts.pending, unit: "Permintaan", label: loanView === "pinjamkan" ? "Permintaan Baru" : "Menunggu Jawaban", tone: "bg-[#dbe2dc] text-primary" },
         { icon: ArrowLeftRight, value: loanCounts.ongoing, unit: loanView === "pinjamkan" ? "Pinjaman" : "Buku", label: loanView === "pinjamkan" ? "Sedang Dipinjam" : "Sedang Saya Pinjam", tone: "bg-[#ffdbd1] text-[#5c1a0a]" },
@@ -163,7 +177,9 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
             </nav>
 
             {tab === "peminjaman" ? (
-                <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} />
+                loanView === "perpustakaan"
+                    ? <LibraryAccessPanel requests={accessRequests} now={now} />
+                    : <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} />
             ) : (
                 <>
                     <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">

@@ -36,11 +36,22 @@ Gunakan PostgreSQL relasional. Skema pada `ERD.md` adalah rancangan, bukan hasil
 - `user_profiles.suspendedAt/suspendedReason/suspendedById` menandai akun yang ditangguhkan admin (migrasi 0006). Penangguhan berlaku di aplikasi: `requireUser`/`requireApiUser` menolak setiap aksi, dan listing akun tersebut dikecualikan dari query publik; login Supabase tidak diblokir. `admin_audit_logs` mencatat penangguhan, pemulihan, perubahan peran, dan setiap kali email lengkap ditampilkan.
 - `app_settings` (migrasi 0007) menyimpan pengaturan platform per bagian sebagai JSON (`catalog`). Nilai dibaca lewat `getCatalogSettings` dengan fallback per kolom ke default; perubahan dicatat sebagai `SETTINGS_UPDATED` di `admin_audit_logs` dengan `targetType = OTHER` dan id nol tetap.
 
-## Akses pinjam dan ketersediaan perpustakaan
+## Perpustakaan, koleksi, dan akses buku (TB-023, migrasi 0021–0022, 28 Okt 2026)
 
-Di skema Drizzle saat ini, `book_accesses` mencatat akses yang diberikan untuk sebuah `borrow_request` (misalnya status, masa berlaku, dan pencabutan). Tabel tersebut bukan catatan ketersediaan buku pada perpustakaan. Jangan mengganti makna, mengganti nama, atau menambahkan relasi perpustakaan ke tabel itu sebelum dampak terhadap alur pinjam dan data lama ditinjau.
-
-Ketersediaan buku perpustakaan adalah konsep terpisah yang belum dimodelkan. Keputusan tentang sumber data, siapa yang memperbarui data, status, kesegaran, dan penanganan duplikasi dicatat sebagai DEC-13. Sampai keputusan itu tersedia, jangan membuat migrasi atau mengklaim informasi stok/ketersediaan di UI.
+- **Migrasi 0021** menghapus baris seed `libraries` dan `book_accesses` (prefiks `5eed0001-`) lalu kolom lama `book_accesses`. `book_accesses` sebelumnya terikat ke `borrow_requests` dan tidak pernah dibaca aplikasi; maknanya kini diganti dengan sengaja.
+- **`libraries`:** perpustakaan nyata, dibuat dari tempat LIBRARY di Peta Literasi (`placeId` unik). Kolom: `regionCode`, `catalogUrl`, `oneSearchInstitution` (nama institusi persis di OneSearch), `accessEnabled`, `accessRules`, `pickupDays` (1–14), dan `hiddenAt`.
+- **`library_managers`:** akun yang ditunjuk admin, unik per perpustakaan dan akun.
+- **`library_holdings`:** "perpustakaan ini mencatat buku ini", per sumber `CURATED`/`MANAGER`/`ONESEARCH`.
+  - Status `LISTED`/`AVAILABLE`/`ON_LOAN`/`UNKNOWN`, jumlah eksemplar, nomor panggil, tautan rekaman, dan `checkedAt`.
+  - Unik `(libraryId, bookId, source, sourceRecordId)`.
+  - Tampilannya digabung per perpustakaan (`mergeHoldings`): pengelola > OneSearch > kurasi admin.
+  - `AVAILABLE`/`ON_LOAN` hanya dipercaya 24 jam, `LISTED` 30 hari.
+- **`books.librariesCheckedAt`:** kapan OneSearch terakhir ditanya, ditemukan atau tidak.
+- **`book_accesses`:** pengajuan pembaca ke perpustakaan, dengan `libraryId`, `bookId`, `requesterId`, `message`, `responseNote`, `respondedById`/`At`, `expiresAt` (batas ambil), dan `collectedAt`.
+  - Status `PENDING`/`APPROVED`/`REJECTED`/`CANCELLED`/`COLLECTED`.
+  - EXPIRED tidak disimpan, tetapi dihitung dari `expiresAt`.
+  - Ada satu pengajuan terbuka per pembaca per (perpustakaan, buku).
+- Ketersediaan perpustakaan tetap terpisah dari pinjaman antarwarga (`borrow_requests`/`borrowings`).
 
 ## Tinjauan migrasi
 

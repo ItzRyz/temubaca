@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, CheckCircle2, ChevronRight, Clock, Info, Library
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 
 import { db } from "@/lib/db";
@@ -20,6 +21,13 @@ import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-request-dialog";
 import { genresForSubjects } from "@/features/books/genres";
+import { mergeHoldings } from "@/features/libraries/access";
+import { AccessRequestDialog } from "@/features/libraries/components/access-request-dialog";
+import { OneSearchSyncButton } from "@/features/libraries/components/admin-library-forms";
+import { HoldingBadge } from "@/features/libraries/components/holding-badge";
+import { syncOneSearchForBook } from "@/features/libraries/sync-onesearch";
+import { isOneSearchEnabled } from "@/lib/external/libraries/onesearch";
+import { listHoldingsForBook, listManagedLibraries, openAccessRequestLibraries } from "@/lib/db/queries/libraries";
 import { conditionNoteFromRules, guaranteeFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
 
@@ -71,15 +79,25 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
     if (!book) notFound();
     const showAllCopies = (await searchParams).salinan === "semua";
 
-    const [user, listings, { settings }, sources] = await Promise.all([
+    const [user, listings, { settings }, sources, holdingRows] = await Promise.all([
         getCurrentUser(),
         listBookListings(book.id),
         getCatalogSettings(),
         listBookDataSources(book),
+        listHoldingsForBook(book.id),
     ]);
-    const [isBookmarked, openRequests] = user
-        ? await Promise.all([hasBookmark(user.id, book.id), findOpenRequestsForListings(user.id, listings.map((listing) => listing.id))])
-        : [false, new Map<string, { id: string; status: string }>()];
+    const [isBookmarked, openRequests, openAccess, managed] = user
+        ? await Promise.all([
+            hasBookmark(user.id, book.id),
+            findOpenRequestsForListings(user.id, listings.map((listing) => listing.id)),
+            openAccessRequestLibraries(user.id, book.id),
+            listManagedLibraries(user.id),
+        ])
+        : [false, new Map<string, { id: string; status: string }>(), new Set<string>(), []];
+    const managedIds = new Set(managed.map((library) => library.id));
+    const holdings = mergeHoldings(holdingRows);
+    // OneSearch is asked after the response, at most once per book per 30 days (TB-023); off until Perpusnas agrees.
+    if (isOneSearchEnabled()) after(() => syncOneSearchForBook(book.id));
     const bookGenres = genresForSubjects(book.categories);
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
     const details = [
@@ -93,10 +111,10 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
     const now = new Date();
     const returnTo = `/books/${book.id}`;
 
-    // Library availability is not modelled yet (DEC-13), so the summary only speaks about shared copies.
+    const librariesText = holdings.length > 0 ? `Tercatat di ${holdings.length} perpustakaan` : "Belum tercatat di perpustakaan";
     const summary = listings.length > 0
-        ? `Belum tercatat di perpustakaan, tetapi ada ${listings.length} salinan warga yang sedang ditawarkan.`
-        : "Belum tercatat di perpustakaan, dan belum ada salinan warga yang ditawarkan.";
+        ? `${librariesText}, dan ada ${listings.length} salinan warga yang sedang ditawarkan.`
+        : `${librariesText}, dan belum ada salinan warga yang ditawarkan.`;
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-10 sm:px-6">
@@ -212,16 +230,58 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                         </p>
 
                         <h3 className="mt-6 flex items-center gap-2 font-heading text-base font-semibold"><Library aria-hidden="true" className="size-4" /> Perpustakaan</h3>
-                        <div className="mt-3 flex flex-col items-center rounded-xl border border-dashed border-border bg-[#faf7f0] px-5 py-6 text-center">
-                            <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary"><Library className="size-4" /></span>
-                            <p className="mt-3 font-heading text-base font-semibold">Data perpustakaan belum tersedia</p>
-                            <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                                TemuBaca belum menampilkan koleksi perpustakaan sampai sumber datanya terverifikasi. Ini tidak berarti bukunya tidak ada di perpustakaan.
-                            </p>
-                            <Link href="/libraries" className="mt-4 inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-semibold hover:bg-muted">
-                                Tentang data perpustakaan <ChevronRight aria-hidden="true" className="size-4" />
-                            </Link>
-                        </div>
+                        {holdings.length > 0 ? (
+                            <ul className="mt-3 flex list-none flex-col gap-3 p-0">
+                                {holdings.map((holding) => (
+                                    <li key={holding.libraryId} className="flex flex-col gap-3 rounded-xl border border-border bg-[#faf7f0] p-4 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold"><Link href={`/libraries/${holding.libraryId}`} className="hover:underline">{holding.library.name}</Link></p>
+                                            {holding.library.publicLocation && <p className="text-sm text-muted-foreground">{holding.library.publicLocation}</p>}
+                                            <div className="mt-2"><HoldingBadge holding={holding} now={now} /></div>
+                                            <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold">
+                                                {holding.library.placeId && <Link href={`/map?tempat=${holding.library.placeId}`} className="flex items-center gap-1 text-primary hover:underline"><MapPin aria-hidden="true" className="size-3" /> Peta Literasi</Link>}
+                                                {(holding.sourceUrl ?? holding.library.catalogUrl) && (
+                                                    <a href={(holding.sourceUrl ?? holding.library.catalogUrl)!} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Rekaman katalog<span className="sr-only"> (tab baru)</span></a>
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="shrink-0">
+                                            {!holding.library.accessEnabled ? (
+                                                <span className="text-xs text-muted-foreground">Datang langsung ke perpustakaan</span>
+                                            ) : !user ? (
+                                                <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className={borrowButtonClass}>Masuk untuk mengajukan</Link>
+                                            ) : managedIds.has(holding.libraryId) ? (
+                                                <Link href={`/libraries/${holding.libraryId}/manage`} className="text-xs font-semibold text-primary hover:underline">Perpustakaan Anda · Kelola</Link>
+                                            ) : openAccess.has(holding.libraryId) ? (
+                                                <Link href="/my-listings?tab=peminjaman&view=perpustakaan" className="inline-flex min-h-9 items-center rounded-lg bg-[#e7efe8] px-3 text-xs font-semibold text-primary hover:bg-[#d9e6db]">Pengajuan terkirim · Lihat</Link>
+                                            ) : (
+                                                <AccessRequestDialog
+                                                    libraryId={holding.libraryId}
+                                                    libraryName={holding.library.name}
+                                                    bookId={book.id}
+                                                    bookTitle={book.title}
+                                                    accessRules={holding.library.accessRules}
+                                                    pickupDays={holding.library.pickupDays}
+                                                    triggerClassName={borrowButtonClass}
+                                                />
+                                            )}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="mt-3 flex flex-col items-center rounded-xl border border-dashed border-border bg-[#faf7f0] px-5 py-6 text-center">
+                                <span aria-hidden="true" className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary"><Library className="size-4" /></span>
+                                <p className="mt-3 font-heading text-base font-semibold">Belum tercatat di perpustakaan</p>
+                                <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                                    Belum ada perpustakaan di TemuBaca yang mencatat buku ini. Ini tidak berarti bukunya tidak ada di perpustakaan.
+                                </p>
+                                <Link href="/libraries" className="mt-4 inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-semibold hover:bg-muted">
+                                    Lihat daftar perpustakaan <ChevronRight aria-hidden="true" className="size-4" />
+                                </Link>
+                            </div>
+                        )}
+                        {user?.role === "ADMIN" && <div className="mt-3"><OneSearchSyncButton bookId={book.id} /></div>}
 
                         <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
                             <h3 className="flex items-center gap-2 font-heading text-base font-semibold"><UsersRound aria-hidden="true" className="size-4" /> Berbagi Buku</h3>

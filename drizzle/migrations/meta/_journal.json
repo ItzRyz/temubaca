@@ -148,6 +148,20 @@
       "when": 1793143394606,
       "tag": "0020_dispute_followup",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793168114418,
+      "tag": "0021_book_accesses_reset",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793168198541,
+      "tag": "0022_library_access",
+      "breakpoints": true
     }
   ]
 }
