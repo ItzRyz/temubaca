@@ -358,6 +358,18 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
   - Pengambilan berhenti dua kali karena JAKLITERA menjawab 429, padahal jedanya 8 detik. Sisa judul tidak dipaksakan dan bisa dicatat admin satu per satu di `/admin/libraries`.
   - OPAC Perpusnas menolak klien otomatis (403) dan tidak dicoba diakali.
 - **Production:** commit `e5d218b` ter-deploy. Migrasi 0023 (hapus kolom OneSearch) diterapkan ke production setelah deploy, lewat `scripts/migrate-dev.ts --cloud --apply` (24 migrasi tercatat). `/libraries`, `/admin/libraries`, `/books`, dan halaman Laskar Pelangi menjawab 200.
+- **Impor koleksi dari JAKLITERA (keputusan pemilik repo, 28 Okt 2026):** semua buku asli ber-ISBN dicek di katalog resmi, dan jumlah eksemplar dari katalog ikut dicatat. Skrip `bun run libraries:jaklitera`:
+  - `--collect --out <file>` hanya membaca DB.
+    - Mencari ISBN-13 lalu ISBN-10, karena katalog sering menyimpan ISBN-10, lalu membuka paling banyak 4 rekaman.
+    - Rekaman disimpan hanya bila ISBN-nya cocok.
+    - Jeda 10 detik; setelah 429 menunggu 15 menit, dan berhenti setelah tiga kali berturut-turut.
+    - Hasil disimpan per buku, sehingga run berikutnya melanjutkan.
+  - `--apply-file <file> [--apply]` menulis koleksi `CURATED` (LISTED, tautan rekaman, nomor panggil) beserta audit, untuk lokasi yang terpetakan ke perpustakaan Peta Literasi.
+    - Jumlah eksemplar = dapat dipinjam + baca di tempat + sedang dipinjam.
+    - "Tidak sedang dipinjam" = dua yang pertama.
+    - Jumlah dicatat hanya bila rekamannya menyebut satu lokasi.
+  - Label koleksi menampilkan "N dari M eksemplar tidak sedang dipinjam, menurut katalog" di samping waktu cek.
+  - Parser diuji dengan halaman JAKLITERA tersimpan (`tests/fixtures/jaklitera/`).
 - **Belum:** pustakawan sungguhan mendaftar lalu ditunjuk sebagai pengelola, pengaktifan pengajuan, dan uji alur lengkap dengan akun asli di production.
 
 ## Notifikasi akun dan tindak lanjut sengketa — 2026-10-28

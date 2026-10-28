@@ -72,14 +72,18 @@ export const COPY_STATUS_FRESH_HOURS = 24;
 
 export type HoldingLabel = { tone: "available" | "on_loan" | "listed" | "unknown"; text: string; stale: boolean };
 
-export function holdingLabel(holding: { status: string; copiesAvailable: number | null; checkedAt: Date }, now = new Date()): HoldingLabel {
+export function holdingLabel(holding: { status: string; copiesTotal?: number | null; copiesAvailable: number | null; checkedAt: Date }, now = new Date()): HoldingLabel {
     const ageHours = (now.getTime() - holding.checkedAt.getTime()) / (60 * 60 * 1000);
     if (holding.status === "AVAILABLE" || holding.status === "ON_LOAN") {
         if (ageHours > COPY_STATUS_FRESH_HOURS) return { tone: "unknown", text: "Status eksemplar belum diperbarui", stale: true };
         if (holding.status === "ON_LOAN") return { tone: "on_loan", text: "Sedang dipinjam", stale: false };
         return { tone: "available", text: holding.copiesAvailable ? `Tersedia ${holding.copiesAvailable} eksemplar` : "Tersedia", stale: false };
     }
-    if (holding.status === "LISTED") return { tone: "listed", text: "Tercatat di koleksi", stale: ageHours > LISTED_FRESH_DAYS * 24 };
+    if (holding.status === "LISTED") {
+        // Counts copied from a library catalog are shown as the catalog's, next to when they were checked.
+        const counts = holding.copiesTotal ? ` · ${holding.copiesAvailable ?? 0} dari ${holding.copiesTotal} eksemplar tidak sedang dipinjam, menurut katalog` : "";
+        return { tone: "listed", text: `Tercatat di koleksi${counts}`, stale: ageHours > LISTED_FRESH_DAYS * 24 };
+    }
     return { tone: "unknown", text: "Status tidak diketahui", stale: false };
 }
 

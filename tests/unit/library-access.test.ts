@@ -40,6 +40,7 @@ describe("holdings (DEC-13)", () => {
         expect(holdingLabel({ status: "AVAILABLE", copiesAvailable: 2, checkedAt: new Date(now.getTime() - hour) }, now)).toEqual({ tone: "available", text: "Tersedia 2 eksemplar", stale: false });
         expect(holdingLabel({ status: "AVAILABLE", copiesAvailable: 2, checkedAt: new Date(now.getTime() - 25 * hour) }, now).tone).toBe("unknown");
         expect(holdingLabel({ status: "LISTED", copiesAvailable: null, checkedAt: new Date(now.getTime() - 31 * 24 * hour) }, now)).toEqual({ tone: "listed", text: "Tercatat di koleksi", stale: true });
+        expect(holdingLabel({ status: "LISTED", copiesTotal: 3, copiesAvailable: 1, checkedAt: now }, now).text).toBe("Tercatat di koleksi · 1 dari 3 eksemplar tidak sedang dipinjam, menurut katalog");
     });
 
     test("merging keeps one row per library: manager over curation, latest check", () => {

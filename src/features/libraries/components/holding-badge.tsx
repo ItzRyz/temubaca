@@ -11,7 +11,7 @@ const toneClass = {
 } as const;
 
 /** "Tercatat di koleksi · dicek 3 hari lalu": the status words never claim more than the source says (DEC-13). */
-export function HoldingBadge({ holding, now }: { holding: { status: string; copiesAvailable: number | null; checkedAt: Date; source: string; sources?: HoldingSource[] }; now: Date }) {
+export function HoldingBadge({ holding, now }: { holding: { status: string; copiesTotal?: number | null; copiesAvailable: number | null; checkedAt: Date; source: string; sources?: HoldingSource[] }; now: Date }) {
     const label = holdingLabel(holding, now);
     return (
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
