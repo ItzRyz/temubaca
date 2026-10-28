@@ -323,6 +323,26 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Filter Jelajahi sebagai dropdown — 2026-10-29
+
+- **Permintaan pemilik repo:** filter `/books` tidak lagi di panel kiri, melainkan dropdown di atas hasil, langsung diterapkan saat dipilih.
+- **Baris filter** (`src/features/books/components/catalog-filter-bar.tsx`):
+  - Genre, Bahasa, dan **Ketersediaan** baru ("Ada salinan warga" / "Tercatat di perpustakaan") di kiri; **Urutkan** baru (Terbaru, Judul A–Z, Paling banyak salinan) di kanan.
+  - Opsi adalah tautan, jadi tetap berfungsi tanpa JavaScript. Dengan JavaScript, navigasi berjalan dalam transition dengan penanda "Memuat…".
+  - Filter aktif tampil sebagai chip yang bisa dihapus, plus "Reset semua" (pencarian dipertahankan).
+  - Keyboard: panah, Home/End, Esc mengembalikan fokus. Di 375 px tombol membungkus dan popover di dalam layar.
+  - Panel lama `catalog-filters.tsx` dihapus.
+- **Server:**
+  - `bookBrowseQuerySchema` menerima `availability` (`warga`/`perpustakaan`) dan `sort` (`terbaru`/`judul`/`salinan`).
+  - `browseBooks` memfilter salinan tersedia dari pemilik aktif, atau holding di perpustakaan yang tidak disembunyikan. Subquery salinan tersedia kini satu konstanta, dipakai untuk filter, kolom, dan urutan.
+  - URL disusun satu helper, `catalogHref` (`src/features/books/catalog-url.ts`), untuk dropdown, chip, form cari, dan paginasi.
+- **Juga:**
+  - Kode bahasa ISO di data lama/seed ("id") tampil sebagai label ("Indonesia").
+  - Kolom pencarian di mobile tidak lagi tergencet (`flex-1` dalam kolom).
+- **Diuji:**
+  - `bun run check` lulus (276 tes): unit URL dan skema, serta integrasi filter dan urutan (pemilik ditangguhkan dan perpustakaan tersembunyi tidak terhitung).
+  - Browser lokal: panel kiri hilang; Genre, Ketersediaan, dan Urutkan langsung mengubah URL dan hasil; chip dihapus satu per satu; Reset; keyboard; tampilan 375 px tanpa overflow.
+
 ## Panduan TemuBaca dan dropdown profil — 2026-10-28
 
 - **Keputusan pemilik repo:** tur sorot langkah demi langkah tanpa library. Tur muncul sekali untuk akun baru setelah halaman pilih minat dan bisa dibuka lagi dari menu akun. Dropdown dikelompokkan dengan keterangan singkat.

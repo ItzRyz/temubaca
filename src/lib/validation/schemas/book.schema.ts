@@ -64,6 +64,9 @@ export const bookBrowseQuerySchema =
             q: optionalFilterText(200),
             category: optionalFilterText(100),
             language: optionalFilterText(35),
+            // Filter bar (29 Okt 2026): copies offered by readers or recorded at a library, and the order.
+            availability: z.enum(["warga", "perpustakaan"]).optional(),
+            sort: z.enum(["terbaru", "judul", "salinan"]).optional(),
         })
         .strict();
 

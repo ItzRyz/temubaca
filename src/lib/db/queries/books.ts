@@ -17,6 +17,7 @@ import {
     type ListingDeletionBlocker,
 } from "@/features/book-listings/listing-deletion";
 
+import type { CatalogAvailability, CatalogSort } from "@/features/books/catalog-url";
 import { genreBySlug, genres } from "@/features/books/genres";
 import { meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { ValidationError } from "@/lib/api/errors";
@@ -28,6 +29,8 @@ import {
     books,
     bookListings,
     borrowRequests,
+    libraries,
+    libraryHoldings,
 } from "../schema";
 
 /** Public listings exclude owners an admin has suspended or who asked to delete their account (DEC-11). */
@@ -149,7 +152,26 @@ export type BookBrowseFilters = {
     q?: string;
     category?: string;
     language?: string;
+    availability?: CatalogAvailability;
+    sort?: CatalogSort;
 };
+
+/**
+ * Copies readers offer now: AVAILABLE, not hidden, from an owner who is not suspended or leaving.
+ * Qualified names: drizzle renders bare column refs unqualified inside sql``, which would bind to the subquery table.
+ */
+const availableCopiesSql = sql<number>`(
+    select count(*)::int from ${bookListings}
+    where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
+    and "book_listings"."hiddenAt" is null
+    and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null)
+)`;
+
+/** Recorded at a library readers can see (TB-023). */
+const heldByLibrarySql = sql`exists (
+    select 1 from ${libraryHoldings} join ${libraries} on "libraries"."id" = "library_holdings"."libraryId"
+    where "library_holdings"."bookId" = "books"."id" and "libraries"."hiddenAt" is null
+)`;
 
 /** A genre slug matches any of its provider subjects; anything else is an exact subject (old links). */
 function categoryCondition(category: string) {
@@ -165,18 +187,20 @@ function browseCondition(filters: BookBrowseFilters) {
         q ? textSearchCondition(q) : undefined,
         filters.category ? categoryCondition(filters.category) : undefined,
         filters.language ? eq(books.language, filters.language) : undefined,
+        filters.availability === "warga" ? sql`${availableCopiesSql} > 0` : undefined,
+        filters.availability === "perpustakaan" ? heldByLibrarySql : undefined,
     );
 }
 
-/** Catalog browse with optional text/category/language filters and a count of AVAILABLE shared copies. */
+const browseOrder = {
+    terbaru: [desc(books.createdAt)],
+    judul: [sql`lower(${books.title}) asc`, desc(books.createdAt)],
+    salinan: [sql`${availableCopiesSql} desc`, desc(books.createdAt)],
+} as const;
+
+/** Catalog browse with optional text/category/language/availability filters, an order, and a count of AVAILABLE shared copies. */
 export async function browseBooks(filters: BookBrowseFilters, limit = 10, offset = 0) {
     const where = browseCondition(filters);
-    const availableCopies = sql<number>`(
-        select count(*)::int from ${bookListings}
-        where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
-        and "book_listings"."hiddenAt" is null
-        and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null)
-    )`; // Qualified names: drizzle renders bare column refs unqualified inside sql``, which would bind to the subquery table.
 
     const [items, [countRow]] = await Promise.all([
         db
@@ -189,11 +213,11 @@ export async function browseBooks(filters: BookBrowseFilters, limit = 10, offset
                 publishedAt: books.publishedAt,
                 categories: books.categories,
                 coverUrl: books.coverUrl,
-                availableCopies,
+                availableCopies: availableCopiesSql,
             })
             .from(books)
             .where(where)
-            .orderBy(desc(books.createdAt))
+            .orderBy(...browseOrder[filters.sort ?? "terbaru"])
             .limit(Math.min(Math.max(limit, 1), 50))
             .offset(Math.max(offset, 0)),
         db.select({ total: sql<number>`count(*)::int` }).from(books).where(where),
