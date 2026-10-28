@@ -345,7 +345,13 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
   - `bun run check` lulus (265 tes): unit aturan, parser OneSearch dengan halaman `onesearch.id` tersimpan (`tests/fixtures/onesearch/`, tanpa jaringan), dan 8 tes integrasi (sumber digabung, alur ajukan → terima → diambil, tolak, batal, ganda ditolak, blokir sengketa, non-pengelola ditolak, sembunyi, audit, hapus akun, retensi, ekspor).
   - Migrasi lokal diterapkan, seed tetap 23/23 dan dataset lama identik, dan `libraries:import` menambah 15 perpustakaan.
   - Di browser lokal (akun E2E sementara, data uji dibersihkan): halaman buku dengan dua sumber, dialog Ajukan Akses, "Pengajuan terkirim", titik dan angka di menu pengelola dan pembaca, halaman kelola, admin, panel pembaca dengan batas ambil, dan `/libraries` serta detail di 375 px tanpa overflow. Langkah tulis lewat SQL karena rate limit lokal.
-- **Belum:** izin Perpusnas untuk OneSearch (adapter mati), penunjukan pengelola perpustakaan nyata, dan pengisian nama institusi OneSearch per perpustakaan.
+- **Production, 28 Okt 2026:**
+  - Migrasi 0021–0022 diterapkan lewat `scripts/migrate-dev.ts --cloud --apply` (23 migrasi tercatat, dua tabel baru dengan policy, 15 + 1.012 baris seed terhapus, data asli utuh: 6 akun, 332 buku). Percobaan pertama lewat MCP gagal di sisi alat tanpa mengubah apa pun.
+  - Commit `7d8bf30` di-push dan deploy sukses.
+  - `libraries:import --apply --cloud --production` menambah 15 perpustakaan; run ulang menunjukkan 0 tambahan.
+  - `/libraries`, halaman buku, `/my-libraries`, `/admin/libraries`, dan `/my-listings` menjawab 200.
+- `next build` lokal tidak bisa selesai karena env production (Upstash, `NEXT_PUBLIC_*`) tidak lengkap di laptop. Kompilasi berhasil, dan kegagalannya ada di route lama; build Vercel sukses.
+- **Belum:** izin Perpusnas untuk OneSearch (adapter mati), penunjukan pengelola perpustakaan nyata dan pengaktifan pengajuan, pengisian nama institusi OneSearch per perpustakaan, dan uji alur lengkap dengan akun asli di production.
 
 ## Notifikasi akun dan tindak lanjut sengketa — 2026-10-28
 
