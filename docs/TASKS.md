@@ -351,6 +351,13 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
   - `libraries:import --apply --cloud --production` menambah 15 perpustakaan; run ulang menunjukkan 0 tambahan.
   - `/libraries`, halaman buku, `/my-libraries`, `/admin/libraries`, dan `/my-listings` menjawab 200.
 - `next build` lokal tidak bisa selesai karena env production (Upstash, `NEXT_PUBLIC_*`) tidak lengkap di laptop. Kompilasi berhasil, dan kegagalannya ada di route lama; build Vercel sukses.
+- **Koleksi awal dari katalog resmi (28 Okt 2026):** JAKLITERA (katalog Dispusip DKI, `perpustakaan.jakarta.go.id/book`) dicari per judul, lalu rekamannya dicocokkan lewat ISBN-13, dan "Tersedia di" dibaca.
+  - Lokasi dipetakan ke perpustakaan yang alamatnya jelas sama: Cikini, Nyi Ageng Serang, PDS HB Jassin, Jatinegara, Gandaria Tengah. Petojo Enclek tidak dipetakan karena belum terbukti sama dengan "Perpustakaan Jakarta Pusat".
+  - Tercatat di Perpustakaan Jakarta Cikini (status LISTED, dengan tautan rekaman dan nomor panggil): Gadis Kretek (`813 RAT g`), Laskar Pelangi (`813 AND l`), dan Laut Bercerita (`813 LEI l`). Kelima perpustakaan DKI itu juga mendapat tautan katalog resmi. Semuanya diaudit.
+  - Amba, Ayat-Ayat Api, Ayat-Ayat Cinta, Cantik Itu Luka, Hujan, dan Hujan Bulan Juni tidak cocok ISBN-nya.
+  - Pengambilan berhenti dua kali karena JAKLITERA menjawab 429, padahal jedanya 8 detik. Sisa judul tidak dipaksakan dan bisa dicatat admin satu per satu di `/admin/libraries`.
+  - OPAC Perpusnas menolak klien otomatis (403) dan tidak dicoba diakali.
+- **Production:** commit `e5d218b` ter-deploy. Migrasi 0023 (hapus kolom OneSearch) **belum** diterapkan ke production karena izin alat ditolak. Kode yang berjalan tidak lagi membaca kolom itu, jadi kolom sisa tidak berdampak. Terapkan dengan `bun scripts/migrate-dev.ts --cloud --apply` (ekspor `DATABASE_SSL_CA` dulu).
 - **Belum:** pustakawan sungguhan mendaftar lalu ditunjuk sebagai pengelola, pengaktifan pengajuan, dan uji alur lengkap dengan akun asli di production.
 
 ## Notifikasi akun dan tindak lanjut sengketa — 2026-10-28
