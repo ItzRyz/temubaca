@@ -323,6 +323,30 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Panduan TemuBaca dan dropdown profil — 2026-10-28
+
+- **Keputusan pemilik repo:** tur sorot langkah demi langkah tanpa library. Tur muncul sekali untuk akun baru setelah halaman pilih minat dan bisa dibuka lagi dari menu akun. Dropdown dikelompokkan dengan keterangan singkat.
+- **Tur** (`src/features/onboarding/`):
+  - 6 langkah (`tour-steps.ts`): sambutan, Jelajahi, Komunitas, Peta Literasi, menu akun, selesai (ajakan Jelajahi Buku / Bagikan Bukumu).
+  - `product-tour.tsx`: lapisan gelap dengan sorotan pada elemen `data-tour`, diukur sebelum paint dan diikuti saat resize/scroll. Kotak di atas atau bawah target, maksimal 320 px dan tetap di dalam layar. Ada penanda "N dari 6", Kembali/Lanjut/Lewati/Selesai, fokus terkunci di kotak, dan Esc = Lewati. Target yang tidak ada di halaman dilewati.
+- **Pemicu:**
+  - `/minat` meneruskan dengan `?panduan=1` (`withTourFlag`). Header membuka tur hanya bila flag ada dan `preferences.tourSeenAt` belum ada, lalu membuang flag dari URL.
+  - Selesai atau Lewati menyimpan `tourSeenAt` (`markTourSeen`: jsonb digabung, kunci lain aman, tanpa migrasi).
+  - Menu akun → "Panduan TemuBaca" membuka tur kapan saja (event `temubaca:tour`).
+  - `/help` menyebutnya.
+- **Dropdown profil:**
+  - Kepala berisi avatar, nama, peran, dan "Lihat profil". Dashboard diberi keterangan.
+  - Kelompok **Buku** (Koleksi saya, Pinjam & pinjamkan + angka), **Untukmu** (Rekomendasi, Bookmark & minat), **Komunitas** (Komunitas saya, Perpustakaan saya bila pengelola), dan Admin bila admin. Tiap item punya keterangan satu baris.
+  - Bawah: Panduan TemuBaca dan Keluar.
+  - `role="menu"`, fokus ke item pertama saat dibuka, panah atas/bawah/Home/End, Esc menutup. Lebar 288 px, maksimal lebar layar dikurangi 2 rem, dan bisa di-scroll.
+- **Diuji:**
+  - `bun run check` lulus (269 tes); unit untuk langkah, target, dan flag, serta integrasi untuk `markTourSeen`.
+  - Browser lokal dengan akun E2E (minat dan `tourSeenAt` dihapus sementara lalu dikembalikan):
+    - Lewati di `/minat` membuka tur di `/dashboard`, dan sorotan tepat di Jelajahi, Komunitas, Peta Literasi, dan avatar.
+    - Selesai menyimpan `tourSeenAt`, dan `?panduan=1` tidak membuka lagi.
+    - Menu terbagi tiga kelompok; panah bergerak; Panduan dibuka dari menu dan Esc menutup.
+    - Di 375 px, menu (x 71–359) dan kotak tur di dalam layar tanpa overflow.
+
 ## Email verifikasi masuk spam — 2026-10-28
 
 - **Pemeriksaan DNS publik:** Resend memakai `mail.finsight.space`. DKIM, SPF return-path (`send.mail`), dan MX bounce sudah ada. **DMARC belum ada** di `_dmarc.mail.finsight.space` maupun `_dmarc.finsight.space`; inilah penyebab paling mungkin, karena Gmail dan Yahoo mewajibkan DMARC. Faktor lain: nama pengirim "TemuBaca" tidak cocok dengan domain `finsight.space`, dan domainnya masih baru.

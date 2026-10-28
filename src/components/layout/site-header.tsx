@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { countLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { countLibraryActions, listManagedLibraries } from "@/lib/db/queries/libraries";
+import { hasSeenTour } from "@/lib/db/queries/users";
+import { ProductTour } from "@/features/onboarding/components/product-tour";
 import { ProfileMenu } from "@/components/navigation/profile-menu";
 import { PublicNavigation } from "@/components/navigation/public-navigation";
 
@@ -40,6 +43,8 @@ export async function SiteHeader() {
                     )}
                 </div>
             </div>
+            {/* The tour reads ?panduan itself; Suspense keeps static pages prerenderable. */}
+            {user && <Suspense fallback={null}><ProductTour seen={hasSeenTour(user.preferences)} /></Suspense>}
         </header>
     );
 }

@@ -1,8 +1,9 @@
+/** `tour`: the "Panduan TemuBaca" step that points at this link (src/features/onboarding/tour-steps.ts). */
 export const publicNavigation = [
     { href: "/", label: "Beranda" },
-    { href: "/books", label: "Jelajahi" },
-    { href: "/communities", label: "Komunitas" },
-    { href: "/map", label: "Peta Literasi" },
+    { href: "/books", label: "Jelajahi", tour: "nav-books" },
+    { href: "/communities", label: "Komunitas", tour: "nav-communities" },
+    { href: "/map", label: "Peta Literasi", tour: "nav-map" },
 ] as const;
 
 export const footerNavigation = [

@@ -153,6 +153,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 - Template email Supabase sudah dipasang pemilik repo. Alur reset kata sandi dengan email sungguhan **sudah berhasil** diuji pemilik; alur daftar belum.
 - Kata sandi baru (daftar dan atur ulang) wajib minimal 8 karakter dengan huruf, angka, dan simbol (`newPasswordRules`), lengkap dengan checklist langsung. Login tetap memakai aturan lama.
 - Setelah daftar, dan setelah login ke akun tanpa minat, pengguna diarahkan ke `/minat` (pilih ≥ 3 minat, kab/kota opsional; bisa dilewati sementara).
+- Setelah `/minat`, tur "Panduan TemuBaca" terbuka sekali (`?panduan=1`, status di `preferences.tourSeenAt`); menu akun kini berkelompok dengan keterangan dan bisa membuka tur lagi.
 - Error tampil per kolom sesuai varian error Figma. `/logout` adalah halaman konfirmasi keluar (frame `58:21897`), dan menu Keluar di dropdown membukanya.
 
 ### Portal admin (semua menu aktif)

@@ -14,6 +14,10 @@ export default function HelpPage() {
             current="/help"
             intro={<p>Ada kendala atau perlu melaporkan sesuatu? Laporan di aplikasi adalah cara tercepat agar pengelola TemuBaca menindaklanjuti. Kami berusaha membalas dalam 3 hari kerja.</p>}
         >
+            <PolicySection title="Baru memakai TemuBaca?">
+                <p>Buka menu akun (lingkaran inisialmu di kanan atas), lalu pilih “Panduan TemuBaca” untuk tur singkat: mencari buku, komunitas, Peta Literasi, dan isi menu akun.</p>
+            </PolicySection>
+
             <PolicySection title="Melaporkan konten atau pengguna">
                 <ul>
                     <li>Buka halaman buku, listing, komunitas, acara, atau merchandise yang bermasalah, lalu pilih “Laporkan”.</li>

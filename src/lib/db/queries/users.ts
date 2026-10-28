@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db } from "../client";
 import {
@@ -165,4 +165,15 @@ export async function updateUserProfile(
         .returning();
 
     return user ?? null;
+}
+/** Adds `tourSeenAt` to the profile preferences without touching the other keys; repeating it is harmless. */
+export async function markTourSeen(userId: string) {
+    await db.update(userProfiles)
+        .set({ preferences: sql`coalesce(${userProfiles.preferences}, '{}'::jsonb) || jsonb_build_object('tourSeenAt', coalesce(${userProfiles.preferences}->>'tourSeenAt', now()::text))` })
+        .where(eq(userProfiles.id, userId));
+}
+
+/** Whether the account has seen "Panduan TemuBaca" (`preferences.tourSeenAt`). */
+export function hasSeenTour(preferences: unknown) {
+    return Boolean(preferences && typeof preferences === "object" && "tourSeenAt" in preferences);
 }

@@ -6,6 +6,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { FormAlert, TextInput } from "@/components/ui/form";
 import { genres } from "@/features/books/genres";
+import { withTourFlag } from "@/features/onboarding/tour-steps";
 import { RegionSelect } from "@/features/regions/components/region-select";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,8 @@ export function InterestOnboardingForm({ next, regionCode }: { next: string; reg
         startTransition(async () => {
             const result = await saveInterestOnboarding({ subjects: selected, regionCode: region });
             if (!result.success) return setError(result.message);
-            router.replace(next);
+            // "Panduan TemuBaca" opens once after this page (it checks whether the account has seen it).
+            router.replace(withTourFlag(next));
             router.refresh();
         });
     }
@@ -89,7 +91,7 @@ export function InterestOnboardingForm({ next, regionCode }: { next: string; reg
 
             <FormAlert>{error}</FormAlert>
             <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <button type="button" onClick={() => { router.replace(next); router.refresh(); }} className="min-h-11 rounded-lg px-4 text-sm font-semibold text-muted-foreground hover:bg-muted">
+                <button type="button" onClick={() => { router.replace(withTourFlag(next)); router.refresh(); }} className="min-h-11 rounded-lg px-4 text-sm font-semibold text-muted-foreground hover:bg-muted">
                     Lewati dulu
                 </button>
                 <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
