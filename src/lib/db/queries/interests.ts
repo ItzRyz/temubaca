@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "../client";
-import { userInterests } from "../schema";
+import { userInterests, userProfiles } from "../schema";
 
 export function listUserInterests(userId: string) {
     return db.query.userInterests.findMany({
@@ -40,4 +40,15 @@ export async function removeUserInterest(userId: string, interestId: string) {
         ))
         .returning({ id: userInterests.id });
     return Boolean(removed);
+}
+
+/** Saves the interests picked on "Pilih minat" in one go; the kab/kota only when one was chosen. */
+export async function saveOnboardingInterests(userId: string, subjects: string[], regionCode: string | undefined) {
+    return db.transaction(async (tx) => {
+        await tx.insert(userInterests)
+            .values(subjects.map((subject) => ({ userId, subject })))
+            .onConflictDoNothing({ target: [userInterests.userId, userInterests.subject] });
+        if (regionCode) await tx.update(userProfiles).set({ regionCode, updatedAt: new Date() }).where(eq(userProfiles.id, userId));
+        return { saved: subjects.length };
+    });
 }

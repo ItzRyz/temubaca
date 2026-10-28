@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/env";
+import { INTERESTS_PATH } from "@/features/auth/safe-next-path";
+import { countUserInterests } from "@/lib/db/queries/interests";
 import { createClient } from "@/lib/supabase/server";
 import { REMEMBER_ME_COOKIE } from "@/lib/supabase/session-cookies";
 import {
@@ -27,7 +29,8 @@ import {
 } from "./pending-otp";
 
 type AuthActionResult<Field extends string> =
-    | { success: true; redirectTo?: string }
+    // `needsInterests`: a sign-in to an account without interests goes to "Pilih minat" first.
+    | { success: true; redirectTo?: string; needsInterests?: boolean }
     | {
           success: false;
           fieldErrors?: Partial<Record<Field, string[]>>;
@@ -87,7 +90,7 @@ export async function signUp(
         }
 
         if (signUpData.session) {
-            return { success: true, redirectTo: "/" };
+            return { success: true, redirectTo: INTERESTS_PATH };
         }
 
         await writePendingOtp(parsed.data.email, "signup");
@@ -116,7 +119,7 @@ export async function signIn(
 
     try {
         const supabase = await createClient({ rememberMe });
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
             email: parsed.data.email.trim(),
             password: parsed.data.password,
         });
@@ -142,7 +145,12 @@ export async function signIn(
             ...(rememberMe ? { maxAge: 400 * 24 * 60 * 60 } : {}),
         });
 
-        return { success: true };
+        // Asked again on every sign-in while the account has no interests (skipping saves nothing).
+        // A failed count never blocks the sign-in.
+        const needsInterests = signInData.user
+            ? await countUserInterests(signInData.user.id).then((count) => count === 0, () => false)
+            : false;
+        return { success: true, needsInterests };
     } catch {
         return {
             success: false,
@@ -265,7 +273,7 @@ export async function verifyEmailOtp(
     }
 
     await clearPendingOtp();
-    return { success: true, redirectTo: pending.purpose === "signup" ? "/" : "/update-password" };
+    return { success: true, redirectTo: pending.purpose === "signup" ? INTERESTS_PATH : "/update-password" };
 }
 
 export async function resendEmailOtp(): Promise<AuthActionResult<never> & { retryAfter?: number }> {

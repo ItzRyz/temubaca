@@ -21,7 +21,12 @@ export default async function globalSetup(config: FullConfig) {
             await page.getByLabel("Email").fill(account.email!);
             await page.locator("input[type=password]").fill(account.password!);
             await page.getByRole("button", { name: "Masuk", exact: true }).click();
-            await page.waitForURL("**/dashboard", { timeout: 60_000 });
+            // An account without interests is asked to pick some first (/minat); the suites skip it.
+            await page.waitForURL(/\/(dashboard|minat)/, { timeout: 60_000 });
+            if (new URL(page.url()).pathname === "/minat") {
+                await page.getByRole("button", { name: "Lewati dulu" }).click();
+                await page.waitForURL("**/dashboard", { timeout: 60_000 });
+            }
             await page.context().storageState({ path: storageStatePath(role) });
             await page.close();
         }

@@ -323,6 +323,26 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Pilih minat setelah daftar dan login — 2026-10-28
+
+- **Keputusan pemilik repo:** dapat dilewati sementara (tidak disimpan; ditanya lagi pada login berikutnya selama akun tanpa minat), minimal 3 minat, kab/kota opsional di halaman yang sama.
+- **Halaman `/minat`:**
+  - 17 chip genre (`genres`), minat ketik sendiri, `RegionSelect` opsional, penghitung "N dipilih · pilih N lagi", "Simpan & Lanjut", dan "Lewati dulu".
+  - Akun yang sudah punya minat langsung diteruskan ke `next`.
+  - Action `saveInterestOnboarding` (skema `interestOnboardingSchema`) menyimpan minat dan kab/kota dalam satu transaksi (`saveOnboardingInterests`). Kab/kota hanya diubah bila diisi.
+- **Pemicu:**
+  - Daftar (sesi langsung atau setelah kode OTP) diarahkan ke `/minat`.
+  - Login ke akun tanpa minat diarahkan ke `/minat?next=<tujuan>` lewat `needsInterests` dari `signIn` dan `afterSignInPath`. Hitungan yang gagal tidak menggagalkan login.
+  - `e2e/global-setup.ts` menekan "Lewati dulu" bila akun uji belum punya minat.
+- **Diuji:**
+  - Tes unit skema dan tujuan login.
+  - Tes integrasi penyimpanan dan kab/kota.
+  - `bun run check` lulus (265 tes).
+  - Browser lokal dengan akun E2E: login tanpa minat ke `/minat?next=%2Fdashboard`; tombol aktif tepat di 3 pilihan; minat ketikan sendiri ikut dihitung; Lewati ke `/dashboard`; login berikutnya ditanya lagi; akun berminat langsung ke `/dashboard`; tampilan 375 px tanpa overflow.
+  - Menyimpan lewat UI tidak bisa dicoba di lokal karena rate limit Upstash (keterbatasan lama).
+  - Membuka `/minat` saat sudah punya minat menampilkan halaman tujuan lewat redirect streaming Next, meskipun URL di Playwright tetap `/minat`.
+  - Daftar dengan email sungguhan (OTP) belum diuji.
+
 ## Akses buku di perpustakaan (TB-023) — 2026-10-28
 
 - **Keputusan pemilik repo:** info koleksi plus pengajuan akses; 15 perpustakaan dipakai sebagai data nyata; `book_accesses` sintetis dihapus. Lanjutan hari yang sama: OneSearch tidak dipakai (adaptor dan kolomnya dihapus, migrasi 0023), pengelola adalah pustakawan sungguhan, dan koleksi awal dicatat dari katalog resmi. Dicatat di DEC-13.

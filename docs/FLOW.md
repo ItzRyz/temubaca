@@ -23,6 +23,16 @@ Pengunjung → Cari/browse → Hasil (atau kosong/gagal) → Detail buku
 
 Data perpustakaan adalah informasi katalog kecuali ada integrasi stok terkonfirmasi. Cantumkan sumber dan waktu pemeriksaan.
 
+## Daftar, login, dan pilih minat (28 Okt 2026)
+
+```text
+Daftar → kode OTP email → /minat (pilih ≥ 3 minat, kab/kota opsional) → beranda
+Login → akun tanpa minat? → ya: /minat?next=<tujuan> → Simpan & Lanjut / Lewati dulu → tujuan
+                          → tidak: tujuan
+```
+
+"Lewati dulu" tidak menyimpan apa pun, jadi halaman muncul lagi pada login berikutnya selama akun belum punya minat. Minat diubah kemudian di Bookmark & Minat.
+
 ## Komunitas, acara, merchandise
 
 ```text

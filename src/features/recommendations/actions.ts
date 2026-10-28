@@ -1,14 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 
 import { requireUser } from "@/lib/auth";
-import { addUserInterest, removeUserInterest } from "@/lib/db/queries/interests";
+import { addUserInterest, removeUserInterest, saveOnboardingInterests } from "@/lib/db/queries/interests";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { uuidSchema } from "@/lib/validation/common";
 
-const subjectSchema = z.string().trim().min(2, "Minat minimal 2 karakter.").max(80, "Minat maksimal 80 karakter.");
+import { interestOnboardingSchema, interestSubjectSchema as subjectSchema } from "./onboarding";
 
 export async function addInterest(formData: FormData) {
     const user = await requireUser();
@@ -39,5 +38,23 @@ export async function deleteInterest(interestId: string) {
         return { success: true as const };
     } catch {
         return { success: false as const, message: "Minat belum dapat dihapus saat ini." };
+    }
+}
+
+/** "Pilih minat" (`/minat`): at least three interests and an optional kab/kota, saved together. */
+export async function saveInterestOnboarding(input: unknown) {
+    const user = await requireUser();
+    const parsed = interestOnboardingSchema.safeParse(input);
+    if (!parsed.success) return { success: false as const, message: parsed.error.issues[0]?.message ?? "Pilihan minat tidak valid." };
+
+    try {
+        const limit = await enforceRateLimit(`interest-write:${user.id}`, 20, 60);
+        if (!limit.success) return { success: false as const, message: "Terlalu banyak perubahan. Coba lagi sebentar lagi." };
+        await saveOnboardingInterests(user.id, parsed.data.subjects, parsed.data.regionCode);
+        revalidatePath("/recommendations");
+        revalidatePath("/bookmarks");
+        return { success: true as const };
+    } catch {
+        return { success: false as const, message: "Minat belum dapat disimpan saat ini. Coba lagi." };
     }
 }

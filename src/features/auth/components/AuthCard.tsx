@@ -10,6 +10,7 @@ import { FieldError, FormAlert } from "@/components/ui/form";
 import { useForm, useWatch } from "react-hook-form";
 
 import { signIn, signUp } from "@/features/auth/actions";
+import { afterSignInPath } from "@/features/auth/safe-next-path";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
@@ -134,7 +135,7 @@ function SignInForm({ next }: { next?: string }) {
                 if (result.message) setServerError(result.message);
                 return;
             }
-            router.replace(next ?? "/");
+            router.replace(afterSignInPath(next, Boolean(result.needsInterests)));
             router.refresh();
         } catch {
             setServerError("Tidak dapat masuk saat ini. Silakan coba lagi.");

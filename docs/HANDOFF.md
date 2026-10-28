@@ -152,6 +152,7 @@ f41a915 / c882f65 feat(auth): new passwords need letters, digits, and a symbol
 - **OTP 6 digit** untuk verifikasi daftar dan reset kata sandi (`src/features/auth/actions.ts`, `pending-otp.ts`, `OtpVerificationCard.tsx`). Email yang menunggu kode disimpan di cookie httpOnly `tb-otp-pending`, bukan di URL. Verifikasi dibatasi 10 percobaan/10 menit per email; kirim ulang setelah 60 detik. `/auth/callback` tetap ada untuk tautan lama.
 - Template email Supabase sudah dipasang pemilik repo. Alur reset kata sandi dengan email sungguhan **sudah berhasil** diuji pemilik; alur daftar belum.
 - Kata sandi baru (daftar dan atur ulang) wajib minimal 8 karakter dengan huruf, angka, dan simbol (`newPasswordRules`), lengkap dengan checklist langsung. Login tetap memakai aturan lama.
+- Setelah daftar, dan setelah login ke akun tanpa minat, pengguna diarahkan ke `/minat` (pilih ≥ 3 minat, kab/kota opsional; bisa dilewati sementara).
 - Error tampil per kolom sesuai varian error Figma. `/logout` adalah halaman konfirmasi keluar (frame `58:21897`), dan menu Keluar di dropdown membukanya.
 
 ### Portal admin (semua menu aktif)
