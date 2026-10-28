@@ -36,6 +36,7 @@ const enumOf: Partial<Record<keyof SeedRows, Record<string, readonly string[]>>>
     borrow_requests: { status: schema.borrowRequestStatusValues },
     borrowings: { status: schema.borrowingStatusValues, extensionStatus: schema.loanExtensionStatusValues },
     borrow_events: { type: schema.borrowEventTypeValues },
+    book_accesses: { status: schema.bookAccessStatusValues },
     listing_appeals: { status: schema.verificationStatusValues },
     reports: { status: schema.reportStatusValues, targetType: schema.targetTypeValues },
     verifications: { status: schema.verificationStatusValues, targetType: schema.targetTypeValues },
@@ -56,6 +57,7 @@ const references: Partial<Record<keyof SeedRows, Record<string, keyof SeedRows>>
     borrow_requests: { listingId: "book_listings", requesterId: "user_profiles", cancelledById: "user_profiles", meetingPlaceId: "places" },
     borrowings: { requestId: "borrow_requests", disputedById: "user_profiles", resolvedById: "user_profiles" },
     borrow_events: { requestId: "borrow_requests", actorId: "user_profiles" },
+    book_accesses: { requestId: "borrow_requests" },
     listing_appeals: { listingId: "book_listings", ownerId: "user_profiles", reviewerId: "user_profiles" },
     reports: { reporterId: "user_profiles", reviewerId: "user_profiles" },
     verifications: { reviewerId: "user_profiles" },
@@ -180,6 +182,8 @@ export const SQL_CHECKS: SqlCheck[] = [
     { name: "activity-after-signup", description: "Bookmark, listing, dan keanggotaan setelah akun dan objeknya dibuat", sql: `select (select count(*) from bookmarks b join user_profiles u on u.id = b."userId" join books k on k.id = b."bookId" where b."createdAt" < u."createdAt" or b."createdAt" < k."createdAt") + (select count(*) from book_listings l join user_profiles u on u.id = l."ownerId" where l."createdAt" < u."createdAt") + (select count(*) from community_memberships m join communities c on c.id = m."communityId" where m."createdAt" < c."createdAt")` },
     { name: "report-review", description: "Laporan diputus punya peninjau dan waktu; PENDING belum", sql: `select count(*) from reports where (status in ('RESOLVED','REJECTED') and ("reviewerId" is null or "reviewedAt" is null or "reviewedAt" < "createdAt")) or (status = 'PENDING' and ("reviewedAt" is not null or "reviewerId" is not null))` },
     { name: "suspension-fields", description: "Akun ditangguhkan punya alasan dan admin", sql: `select count(*) from user_profiles where "suspendedAt" is not null and ("suspendedReason" is null or "suspendedById" is null)` },
+    { name: "book-access-state", description: "Akses buku mengikuti pinjamannya: ACTIVE selama berjalan, EXPIRED setelah kembali, REVOKED dengan waktu dicabut", sql: `select count(*) from book_accesses a join borrow_requests r on r.id = a."requestId" left join borrowings b on b."requestId" = r.id where (a.status = 'ACTIVE' and not (r.status = 'APPROVED' or b.status in ('ACTIVE','OVERDUE','DISPUTED'))) or (a.status = 'EXPIRED' and b.status is distinct from 'RETURNED') or (a.status = 'REVOKED' and a."revokedAt" is null) or a."grantedAt" < r."requestedAt"` },
+    { name: "library-from-place", description: "Perpustakaan seed berasal dari tempat LIBRARY di Peta Literasi", sql: `select count(*) from libraries l where l.id::text ~ ${seed} and not exists (select 1 from places p where p.type = 'LIBRARY' and p.name = l.name)` },
     { name: "seed-not-in-future", description: "Baris seed tidak dibuat di masa depan", sql: `select (select count(*) from user_profiles where id::text ~ ${seed} and "createdAt" > now()) + (select count(*) from borrow_events where id::text ~ ${seed} and "createdAt" > now()) + (select count(*) from reports where id::text ~ ${seed} and "createdAt" > now()) + (select count(*) from events where id::text ~ ${seed} and "createdAt" > now())` },
 ];
 

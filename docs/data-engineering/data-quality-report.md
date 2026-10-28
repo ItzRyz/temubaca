@@ -1,6 +1,6 @@
 # Data quality report (seed sintetis)
 
-Dibuat oleh `bun run db:seed -- --verify --report` pada 2026-10-27T11:42:44.848Z. Seed: profil normal, seed 20261027, versi 1, jangkar 2026-10-27.
+Dibuat oleh `bun run db:seed -- --verify --report` pada 2026-10-28T05:51:14.766Z. Seed: profil normal, seed 20261027, versi 1, jangkar 2026-10-27.
 
 Interpretasi distribusi dan anomali: [seed-strategy.md](seed-strategy.md#temuan-kualitas-data).
 
@@ -32,6 +32,8 @@ Setiap query membaca seluruh baris (seed dan bukan seed) dan menghitung pelangga
 | `activity-after-signup` | Bookmark, listing, dan keanggotaan setelah akun dan objeknya dibuat | 0 |
 | `report-review` | Laporan diputus punya peninjau dan waktu; PENDING belum | 0 |
 | `suspension-fields` | Akun ditangguhkan punya alasan dan admin | 0 |
+| `book-access-state` | Akses buku mengikuti pinjamannya: ACTIVE selama berjalan, EXPIRED setelah kembali, REVOKED dengan waktu dicabut | 0 |
+| `library-from-place` | Perpustakaan seed berasal dari tempat LIBRARY di Peta Literasi | 0 |
 | `seed-not-in-future` | Baris seed tidak dibuat di masa depan | 0 |
 
 ## Distribusi
@@ -62,8 +64,8 @@ Setiap query membaca seluruh baris (seed dan bukan seed) dan menghitung pelangga
 | orders | 0 | 0 |
 | order_items | 0 | 0 |
 | recommendations | 0 | 0 |
-| book_accesses | 0 | 0 |
-| libraries | 0 | 0 |
+| book_accesses | 1076 | 1076 |
+| libraries | 15 | 15 |
 | book_sync_logs | 0 | 0 |
 | app_settings | 0 | 0 |
 
@@ -82,8 +84,8 @@ Setiap query membaca seluruh baris (seed dan bukan seed) dan menghitung pelangga
 | label | n |
 |---|---|
 | RETURNED | 686 |
-| ACTIVE | 179 |
-| OVERDUE (terhitung) | 32 |
+| ACTIVE | 175 |
+| OVERDUE (terhitung) | 36 |
 | LOST | 13 |
 | DISPUTED | 12 |
 

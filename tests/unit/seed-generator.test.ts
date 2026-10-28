@@ -33,10 +33,29 @@ describe("seed generator", () => {
 
     test("every id is a seed id and the meta row carries the anchor", () => {
         for (const list of Object.values(rows)) for (const row of list as { id: string }[]) expect(isSeedId(row.id)).toBe(true);
-        expect(rows.user_profiles[0].preferences).toEqual({ seed: { version: 1, profile: "small", seed: SEED_PROFILES.small.seed, anchor: anchor.toISOString(), reference: "test", dataset: expect.stringMatching(/^[0-9a-f]{16}$/) } });
+        expect(rows.user_profiles[0].preferences).toEqual({ seed: { version: 1, profile: "small", seed: SEED_PROFILES.small.seed, anchor: anchor.toISOString(), reference: "test", dataset: expect.stringMatching(/^[0-9a-f]{16}$/), extensions: expect.stringMatching(/^[0-9a-f]{16}$/) } });
         expect(isSeedId("5eed0000-0000-4000-8000-000000000001")).toBe(false);
         expect(isSeedId(crypto.randomUUID())).toBe(false);
         expect(seedId("books", 255)).toBe("5eed0001-0002-4000-8000-0000000000ff");
+    });
+
+    test("extension tables: libraries copy the real LIBRARY places, accesses follow each accepted loan", () => {
+        const libraries = places.filter((place) => place.type === "LIBRARY");
+        expect(rows.libraries.map((row) => row.name)).toEqual(libraries.map((place) => place.name));
+        for (const row of rows.libraries) expect([row.openingHours, row.websiteUrl]).toEqual([null, null]);
+
+        const approved = new Set(rows.borrow_events.filter((event) => event.type === "APPROVED").map((event) => event.requestId));
+        expect(rows.book_accesses.map((row) => row.requestId).sort()).toEqual([...approved].sort());
+        const requestOf = new Map(rows.borrow_requests.map((row) => [row.id, row]));
+        const borrowingOf = new Map(rows.borrowings.map((row) => [row.requestId, row]));
+        for (const access of rows.book_accesses) {
+            const request = requestOf.get(access.requestId)!;
+            const borrowing = borrowingOf.get(access.requestId);
+            const expected = request.status === "CANCELLED" || borrowing?.status === "LOST" ? "REVOKED" : borrowing?.status === "RETURNED" ? "EXPIRED" : "ACTIVE";
+            expect(access.status).toBe(expected);
+            expect(access.revokedAt != null).toBe(expected === "REVOKED");
+        }
+        expect(new Set(rows.book_accesses.map((row) => row.status))).toEqual(new Set(["ACTIVE", "EXPIRED", "REVOKED"]));
     });
 
     test("covers the lifecycle states and statuses, not one uniform value", () => {

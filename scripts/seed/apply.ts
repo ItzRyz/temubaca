@@ -21,6 +21,7 @@ const tables: Record<SeedTable, PgTable & { id: AnyPgColumn }> = {
     borrowings: schema.borrowings, borrow_events: schema.borrowEvents, listing_appeals: schema.listingAppeals,
     reports: schema.reports, verifications: schema.verifications, user_interests: schema.userInterests,
     bookmarks: schema.bookmarks, admin_audit_logs: schema.adminAuditLogs,
+    libraries: schema.libraries, book_accesses: schema.bookAccesses,
 };
 
 const notSeed = (column: { getSQL(): unknown }) => sql`${column}::text !~ ${SEED_ID_PATTERN}`;
@@ -49,6 +50,11 @@ export async function readSeedMeta(db: AnyDb): Promise<SeedMeta | null> {
     const [row] = await db.select({ preferences: schema.userProfiles.preferences }).from(schema.userProfiles).where(eq(schema.userProfiles.id, seedId("user_profiles", 0)));
     const meta = (row?.preferences as { seed?: SeedMeta } | null)?.seed;
     return meta ?? null;
+}
+
+/** Rewrites the seed's own record; used only when a seed gains the extension tables. */
+export async function writeSeedMeta(db: AnyDb, meta: SeedMeta) {
+    await db.update(schema.userProfiles).set({ preferences: { seed: meta } }).where(eq(schema.userProfiles.id, seedId("user_profiles", 0)));
 }
 
 export async function countSeedRows(db: AnyDb) {

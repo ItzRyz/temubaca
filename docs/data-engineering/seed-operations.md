@@ -33,6 +33,8 @@ Urutan wajib:
 | Halaman | `/`, `/books`, `/communities`, `/events`, `/merchandise`, `/map`, detail komunitas: 200; `/map` 32 pin komunitas + 52 pin acara; `/api/places` 200 |
 | Ukuran DB | 21 MB (kuota Free 500 MB) |
 
+**Tabel tambahan, 28 Okt 2026:** `libraries` (15) dan `book_accesses` ditambahkan ke seed yang sudah ada tanpa cleanup (lihat seed-strategy, Idempotensi). Di DB lokal: dry run menunjukkan sidik jari baris lama sama, `--apply` menulis 1.091 baris baru dan 0 diubah, 25/25 pemeriksaan SQL lulus, run ulang 0 baris baru.
+
 Dampak lanjutan: snapshot ML (`bun run ml:snapshot`) berikutnya memuat buku dan komunitas seed, sehingga rekomendasi untuk pengguna asli bisa menyarankan data sintetis.
 
 ## Persiapan
