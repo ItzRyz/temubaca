@@ -64,22 +64,16 @@ describe("libraries and holdings", () => {
         expect(audit.map((row) => row.action).sort()).toEqual(["LIBRARY_CREATED", "LIBRARY_MANAGER_ADDED"]);
     });
 
-    test("holdings from three sources merge per library, the manager's word first", async () => {
-        await libraries.setCuratedHolding(libraryId, ADMIN, BOOK, { bookId: BOOK, status: "LISTED", copiesTotal: null, copiesAvailable: null, callNumber: null });
-        await libraries.replaceOneSearchHoldings(BOOK, [{ libraryId, sourceRecordId: "onesearch-1", sourceUrl: "https://onesearch.id/Record/onesearch-1" }]);
-        await expect(libraries.upsertManagerHolding(libraryId, OTHER, { bookId: BOOK, status: "AVAILABLE", copiesTotal: 2, copiesAvailable: 1, callNumber: null })).rejects.toThrow("tidak ditemukan");
-        await libraries.upsertManagerHolding(libraryId, MANAGER, { bookId: BOOK, status: "AVAILABLE", copiesTotal: 2, copiesAvailable: 1, callNumber: "899.221 LEI" });
+    test("curated and manager holdings merge per library, the manager's word first", async () => {
+        await libraries.setCuratedHolding(libraryId, ADMIN, BOOK, { bookId: BOOK, status: "LISTED", copiesTotal: null, copiesAvailable: null, callNumber: null, sourceUrl: "https://katalog.example/record/1" });
+        await expect(libraries.upsertManagerHolding(libraryId, OTHER, { bookId: BOOK, status: "AVAILABLE", copiesTotal: 2, copiesAvailable: 1, callNumber: null, sourceUrl: null })).rejects.toThrow("tidak ditemukan");
+        await libraries.upsertManagerHolding(libraryId, MANAGER, { bookId: BOOK, status: "AVAILABLE", copiesTotal: 2, copiesAvailable: 1, callNumber: "899.221 LEI", sourceUrl: null });
 
         const rows = await libraries.listHoldingsForBook(BOOK);
-        expect(rows.map((row) => row.source).sort()).toEqual(["CURATED", "MANAGER", "ONESEARCH"]);
+        expect(rows.map((row) => row.source).sort()).toEqual(["CURATED", "MANAGER"]);
         const [merged] = mergeHoldings(rows);
-        expect([merged.source, merged.status, merged.copiesAvailable, merged.sourceUrl]).toEqual(["MANAGER", "AVAILABLE", 1, "https://onesearch.id/Record/onesearch-1"]);
-        expect(merged.sources.sort()).toEqual(["CURATED", "MANAGER", "ONESEARCH"]);
-
-        const [book] = await testDb.select({ checkedAt: schema.books.librariesCheckedAt }).from(schema.books).where(eq(schema.books.id, BOOK));
-        expect(book.checkedAt).not.toBeNull();
-        await libraries.replaceOneSearchHoldings(BOOK, []);
-        expect((await libraries.listHoldingsForBook(BOOK)).map((row) => row.source).sort()).toEqual(["CURATED", "MANAGER"]);
+        expect([merged.source, merged.status, merged.copiesAvailable, merged.sourceUrl]).toEqual(["MANAGER", "AVAILABLE", 1, "https://katalog.example/record/1"]);
+        expect(merged.sources.sort()).toEqual(["CURATED", "MANAGER"]);
     });
 });
 
@@ -130,7 +124,7 @@ describe("access requests", () => {
     });
 
     test("a hidden library disappears from public lists but keeps its data", async () => {
-        await libraries.updateLibrary(libraryId, { name: "Perpustakaan Uji", publicLocation: "Jalan Uji 1", regionCode: "31.71", catalogUrl: null, websiteUrl: null, oneSearchInstitution: null, hidden: true }, ADMIN);
+        await libraries.updateLibrary(libraryId, { name: "Perpustakaan Uji", publicLocation: "Jalan Uji 1", regionCode: "31.71", catalogUrl: null, websiteUrl: null, hidden: true }, ADMIN);
         expect(await libraries.listLibraries()).toEqual([]);
         expect(await libraries.listHoldingsForBook(BOOK)).toEqual([]);
         expect(await libraries.findLibrary(libraryId)).toBeNull();
@@ -142,7 +136,7 @@ describe("access requests", () => {
 describe("privacy and retention (DEC-11)", () => {
     test("asking for account deletion withdraws open requests; purging removes manager rights and messages", async () => {
         const deletion = await import("../../src/lib/db/queries/account-deletion");
-        await libraries.updateLibrary(libraryId, { name: "Perpustakaan Uji", publicLocation: "Jalan Uji 1", regionCode: "31.71", catalogUrl: null, websiteUrl: null, oneSearchInstitution: null, hidden: false }, ADMIN);
+        await libraries.updateLibrary(libraryId, { name: "Perpustakaan Uji", publicLocation: "Jalan Uji 1", regionCode: "31.71", catalogUrl: null, websiteUrl: null, hidden: false }, ADMIN);
         const { id: open } = await libraries.createAccessRequest(READER, { libraryId, bookId: BOOK, message: "Pesan pribadi", agreed: true });
         await deletion.requestAccountDeletion(READER);
         const [withdrawn] = await testDb.select().from(schema.bookAccesses).where(eq(schema.bookAccesses.id, open));

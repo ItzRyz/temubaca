@@ -30,7 +30,7 @@ export default function PrivacyPage() {
                 <ul>
                     <li>Pengguna lain melihat nama tampilanmu, buku yang kamu tawarkan, dan titik temu publik. Surel tidak ditampilkan kepada pengguna lain.</li>
                     <li>Detail pinjaman hanya terlihat oleh pemilik buku dan peminjamnya, serta pengelola bila ada sengketa.</li>
-                    <li>Pengajuan ke perpustakaan terlihat oleh pengelola perpustakaan itu dengan nama tampilanmu, tanpa email. Data koleksi dari Indonesia OneSearch diambil server TemuBaca tanpa menyertakan data apa pun tentangmu.</li>
+                    <li>Pengajuan ke perpustakaan terlihat oleh pengelola perpustakaan itu dengan nama tampilanmu, tanpa email.</li>
                     <li>Bukti verifikasi komunitas hanya dapat dibuka pemilik komunitas dan pengelola TemuBaca.</li>
                     <li>Pengelola TemuBaca dapat melihat data akun untuk menangani laporan, sengketa, dan penyalahgunaan. Setiap tindakan pengelola dicatat.</li>
                 </ul>

@@ -6,7 +6,7 @@ import { libraryIdParamSchema, updateLibrarySchema } from "@/lib/validation/sche
 
 type RouteContext = { params: Promise<{ libraryId: string }> };
 
-/** Edit a library's public details, its OneSearch institution name, or hide it; recorded in the audit log. */
+/** Edit a library's public details or hide it; recorded in the audit log. */
 export const PATCH = withApiHandler(async (request, context: RouteContext) => {
     const admin = await requireAdmin();
     await requireApiRateLimit({ key: createUserRateLimitKey("libraries-write", admin.id), ...RATE_LIMITS.WRITE });

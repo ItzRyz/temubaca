@@ -32,14 +32,20 @@ export const accessActionSchema = z.discriminatedUnion("action", [
     z.object({ action: z.literal("cancel") }).strict(),
 ]);
 
-/** One book in a library's collection, set by its manager or curated by an admin. */
-export const holdingInputSchema = z.object({
+const holdingFields = {
     bookId: z.uuid({ error: "Pilih buku." }),
     status: z.enum(holdingStatuses, { error: "Pilih status." }),
     copiesTotal: optionalCount,
     copiesAvailable: optionalCount,
     callNumber: optionalText(60, "Nomor panggil"),
-}).strict().refine((input) => input.copiesAvailable === null || input.copiesTotal === null || input.copiesAvailable <= input.copiesTotal, {
+    sourceUrl: optionalLink("Tautan rekaman katalog"),
+};
+
+/** An admin records a book only after finding it in the library's official catalog; the record link is the proof. */
+export const curatedHoldingSchema = z.object({ ...holdingFields, sourceUrl: linkSchema("Tautan rekaman di katalog resmi") }).strict();
+
+/** One book in a library's collection, set by its manager. */
+export const holdingInputSchema = z.object(holdingFields).strict().refine((input) => input.copiesAvailable === null || input.copiesTotal === null || input.copiesAvailable <= input.copiesTotal, {
     message: "Eksemplar tersedia tidak boleh lebih dari jumlah eksemplar.",
     path: ["copiesAvailable"],
 });
@@ -55,20 +61,17 @@ export const libraryAccessSettingsSchema = z.object({
 
 export const createLibrarySchema = z.object({ placeId: z.uuid({ error: "Pilih perpustakaan di Peta Literasi." }) }).strict();
 
-/** Admin edit of a library's public details and its OneSearch institution name. */
+/** Admin edit of a library's public details. */
 export const updateLibrarySchema = z.object({
     name: z.string().trim().min(3, "Nama minimal 3 karakter.").max(120, "Nama maksimal 120 karakter."),
     publicLocation: optionalText(200, "Alamat"),
     regionCode: regionCodeSchema.optional().nullable().transform((value) => value || null),
     catalogUrl: optionalLink("Tautan katalog"),
     websiteUrl: optionalLink("Situs web"),
-    oneSearchInstitution: optionalText(200, "Nama institusi OneSearch"),
     hidden: z.boolean(),
 }).strict();
 
 export const libraryManagerSchema = z.object({ userId: z.uuid({ error: "Pilih akun." }) }).strict();
-
-export const oneSearchSyncSchema = z.object({ bookId: z.uuid() }).strict();
 
 export type CreateAccessRequestInput = z.infer<typeof createAccessRequestSchema>;
 export type AccessActionInput = z.infer<typeof accessActionSchema>;

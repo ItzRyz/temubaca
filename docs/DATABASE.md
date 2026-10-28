@@ -39,14 +39,14 @@ Gunakan PostgreSQL relasional. Skema pada `ERD.md` adalah rancangan, bukan hasil
 ## Perpustakaan, koleksi, dan akses buku (TB-023, migrasi 0021–0022, 28 Okt 2026)
 
 - **Migrasi 0021** menghapus baris seed `libraries` dan `book_accesses` (prefiks `5eed0001-`) lalu kolom lama `book_accesses`. `book_accesses` sebelumnya terikat ke `borrow_requests` dan tidak pernah dibaca aplikasi; maknanya kini diganti dengan sengaja.
-- **`libraries`:** perpustakaan nyata, dibuat dari tempat LIBRARY di Peta Literasi (`placeId` unik). Kolom: `regionCode`, `catalogUrl`, `oneSearchInstitution` (nama institusi persis di OneSearch), `accessEnabled`, `accessRules`, `pickupDays` (1–14), dan `hiddenAt`.
+- **`libraries`:** perpustakaan nyata, dibuat dari tempat LIBRARY di Peta Literasi (`placeId` unik). Kolom: `regionCode`, `catalogUrl`, `accessEnabled`, `accessRules`, `pickupDays` (1–14), dan `hiddenAt`.
 - **`library_managers`:** akun yang ditunjuk admin, unik per perpustakaan dan akun.
-- **`library_holdings`:** "perpustakaan ini mencatat buku ini", per sumber `CURATED`/`MANAGER`/`ONESEARCH`.
+- **`library_holdings`:** "perpustakaan ini mencatat buku ini", per sumber `CURATED` (kurasi admin dari katalog resmi, dengan `sourceUrl`) atau `MANAGER`.
   - Status `LISTED`/`AVAILABLE`/`ON_LOAN`/`UNKNOWN`, jumlah eksemplar, nomor panggil, tautan rekaman, dan `checkedAt`.
   - Unik `(libraryId, bookId, source, sourceRecordId)`.
-  - Tampilannya digabung per perpustakaan (`mergeHoldings`): pengelola > OneSearch > kurasi admin.
+  - Tampilannya digabung per perpustakaan (`mergeHoldings`): pengelola > kurasi admin.
   - `AVAILABLE`/`ON_LOAN` hanya dipercaya 24 jam, `LISTED` 30 hari.
-- **`books.librariesCheckedAt`:** kapan OneSearch terakhir ditanya, ditemukan atau tidak.
+- **Migrasi 0023:** OneSearch tidak dipakai, jadi `libraries.oneSearchInstitution`, `books.librariesCheckedAt`, dan sumber `ONESEARCH` dihapus.
 - **`book_accesses`:** pengajuan pembaca ke perpustakaan, dengan `libraryId`, `bookId`, `requesterId`, `message`, `responseNote`, `respondedById`/`At`, `expiresAt` (batas ambil), dan `collectedAt`.
   - Status `PENDING`/`APPROVED`/`REJECTED`/`CANCELLED`/`COLLECTED`.
   - EXPIRED tidak disimpan, tetapi dihitung dari `expiresAt`.

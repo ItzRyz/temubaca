@@ -1,7 +1,7 @@
 /**
  * Create a TemuBaca library for every library on the Peta Literasi that is not one yet (TB-023).
  * Name, public address, and kab/kota come from the place; the source is "Peta Literasi". Opening hours,
- * website, catalog, and OneSearch institution stay empty until an admin fills them in /admin/libraries,
+ * website, and catalog stay empty until an admin fills them in /admin/libraries,
  * where managers are appointed too. Hidden places are skipped, and a place is never imported twice
  * (`libraries.placeId` is unique).
  *

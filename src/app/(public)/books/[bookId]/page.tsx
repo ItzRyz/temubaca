@@ -3,7 +3,6 @@ import { ArrowDown, ArrowRight, CheckCircle2, ChevronRight, Clock, Info, Library
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { after } from "next/server";
 import { cache } from "react";
 
 import { db } from "@/lib/db";
@@ -23,10 +22,7 @@ import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-requ
 import { genresForSubjects } from "@/features/books/genres";
 import { mergeHoldings } from "@/features/libraries/access";
 import { AccessRequestDialog } from "@/features/libraries/components/access-request-dialog";
-import { OneSearchSyncButton } from "@/features/libraries/components/admin-library-forms";
 import { HoldingBadge } from "@/features/libraries/components/holding-badge";
-import { syncOneSearchForBook } from "@/features/libraries/sync-onesearch";
-import { isOneSearchEnabled } from "@/lib/external/libraries/onesearch";
 import { listHoldingsForBook, listManagedLibraries, openAccessRequestLibraries } from "@/lib/db/queries/libraries";
 import { conditionNoteFromRules, guaranteeFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
@@ -96,8 +92,6 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
         : [false, new Map<string, { id: string; status: string }>(), new Set<string>(), []];
     const managedIds = new Set(managed.map((library) => library.id));
     const holdings = mergeHoldings(holdingRows);
-    // OneSearch is asked after the response, at most once per book per 30 days (TB-023); off until Perpusnas agrees.
-    if (isOneSearchEnabled()) after(() => syncOneSearchForBook(book.id));
     const bookGenres = genresForSubjects(book.categories);
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
     const details = [
@@ -281,7 +275,6 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                 </Link>
                             </div>
                         )}
-                        {user?.role === "ADMIN" && <div className="mt-3"><OneSearchSyncButton bookId={book.id} /></div>}
 
                         <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
                             <h3 className="flex items-center gap-2 font-heading text-base font-semibold"><UsersRound aria-hidden="true" className="size-4" /> Berbagi Buku</h3>

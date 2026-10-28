@@ -16,7 +16,7 @@ const statusOptions = {
 
 /**
  * Records a book in a library's collection. A manager may say a copy is available or on loan; admin
- * curation only says the library holds it, because an admin cannot see the shelf (DEC-13).
+ * curation only says the library holds it, with the official catalog record as proof (DEC-13).
  */
 export function HoldingForm({ endpoint, kind }: { endpoint: string; kind: "manager" | "curated" }) {
     const router = useRouter();
@@ -29,6 +29,7 @@ export function HoldingForm({ endpoint, kind }: { endpoint: string; kind: "manag
     const [copiesTotal, setCopiesTotal] = useState("");
     const [copiesAvailable, setCopiesAvailable] = useState("");
     const [callNumber, setCallNumber] = useState("");
+    const [sourceUrl, setSourceUrl] = useState("");
     const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
     async function search() {
@@ -44,12 +45,13 @@ export function HoldingForm({ endpoint, kind }: { endpoint: string; kind: "manag
         event.preventDefault();
         if (!book) return setMessage({ tone: "error", text: "Pilih buku dari hasil pencarian." });
         startTransition(async () => {
-            const result = await sendLoanRequest(endpoint, "PUT", { bookId: book.id, status, copiesTotal, copiesAvailable, callNumber });
+            const result = await sendLoanRequest(endpoint, "PUT", { bookId: book.id, status, copiesTotal, copiesAvailable, callNumber, sourceUrl });
             if (!result.ok) return setMessage({ tone: "error", text: result.message });
             setMessage({ tone: "ok", text: `${book.title} dicatat.` });
             setBook(null);
             setResults(null);
             setQuery("");
+            setSourceUrl("");
             router.refresh();
         });
     }
@@ -90,6 +92,11 @@ export function HoldingForm({ endpoint, kind }: { endpoint: string; kind: "manag
                 </Field>
                 <Field label={<>Nomor panggil <span className="font-normal text-muted-foreground">(opsional)</span></>}>
                     {(control) => <TextInput {...control} value={callNumber} maxLength={60} onChange={(event) => setCallNumber(event.target.value)} placeholder="mis. 899.221 HIR l" />}
+                </Field>
+                <Field label={kind === "curated" ? "Tautan rekaman di katalog resmi" : <>Tautan katalog <span className="font-normal text-muted-foreground">(opsional)</span></>}
+                    required={kind === "curated"} className="sm:col-span-2"
+                    hint={kind === "curated" ? "Bukti bahwa buku ini memang tercatat di katalog perpustakaan, mis. halaman rekaman JAKLITERA." : undefined}>
+                    {(control) => <TextInput {...control} type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} />}
                 </Field>
                 {kind === "manager" && (
                     <>

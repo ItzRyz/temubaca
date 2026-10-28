@@ -51,8 +51,8 @@ export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANC
 export const loanExtensionStatusValues = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 // A reader's request to borrow or read a book at a library (TB-023). EXPIRED is derived from expiresAt and never stored.
 export const bookAccessStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COLLECTED'] as const;
-// Where a library holding came from; a library's own manager outranks OneSearch, which outranks admin curation.
-export const libraryHoldingSourceValues = ['CURATED', 'MANAGER', 'ONESEARCH'] as const;
+// Where a library holding came from; a library's own manager outranks admin curation from official catalogs.
+export const libraryHoldingSourceValues = ['CURATED', 'MANAGER'] as const;
 // No open source broadcasts copy status, so LISTED ("tercatat di koleksi") is the default; AVAILABLE/ON_LOAN come from the library's manager.
 export const libraryHoldingStatusValues = ['LISTED', 'AVAILABLE', 'ON_LOAN', 'UNKNOWN'] as const;
 export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'] as const;
@@ -101,10 +101,7 @@ export const books = pgTable('books', {
     isbn: text(), title: text().notNull(), authors: text().array().notNull().default(sql`'{}'::text[]`),
     description: text(), publisher: text(), publishedAt: text(), language: text(),
     categories: text().array().notNull().default(sql`'{}'::text[]`), coverUrl: text(), metadata: jsonb(),
-    syncedAt: nowDate(),
-    // Last time Indonesia OneSearch was asked which libraries hold this book, found or not (TB-023).
-    librariesCheckedAt: nowDate(),
-    createdAt: createdAt(), updatedAt: updatedAt(),
+    syncedAt: nowDate(), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [unique('books_provider_provider_id_key').on(t.provider, t.providerId), index('books_title_idx').on(t.title), index('books_isbn_idx').on(t.isbn), enumCheck(t.provider, bookProviderValues)]).enableRLS();
 
 /** Platform settings edited in the admin portal, one JSON document per section (e.g. `catalog`). */
@@ -138,8 +135,6 @@ export const libraries = pgTable('libraries', {
     // TB-023: the library's point on the Peta Literasi, its kab/kota, and its official catalog.
     placeId: uuid().unique().references((): AnyPgColumn => places.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     regionCode: text(), catalogUrl: text(),
-    // Exact institution name on Indonesia OneSearch, used to match its records (only while ONESEARCH_ENABLED).
-    oneSearchInstitution: text(),
     // Readers can ask for access through TemuBaca only when the library opts in.
     accessEnabled: boolean().notNull().default(false), accessRules: text(), pickupDays: integer().notNull().default(3),
     hiddenAt: nowDate(),

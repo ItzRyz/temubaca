@@ -50,7 +50,7 @@ export async function listLibraries(filter: { region?: string; q?: string } = {}
 /** One library; hidden ones only for its managers and admins (`includeHidden`). */
 export async function findLibrary(libraryId: string, options: { includeHidden?: boolean } = {}) {
     const [library] = await db
-        .select({ ...libraryColumns, hiddenAt: libraries.hiddenAt, oneSearchInstitution: libraries.oneSearchInstitution })
+        .select({ ...libraryColumns, hiddenAt: libraries.hiddenAt })
         .from(libraries)
         .where(and(eq(libraries.id, libraryId), options.includeHidden ? undefined : isNull(libraries.hiddenAt)));
     return library ?? null;
@@ -223,7 +223,7 @@ export async function countLibraryActions(userId: string, now = new Date()) {
 
 // --- Holdings ---------------------------------------------------------------------------------------
 
-async function writeHolding(tx: Tx, libraryId: string, source: HoldingSource, input: HoldingInput & { sourceRecordId?: string; sourceUrl?: string | null }, actorId: string | null, now: Date) {
+async function writeHolding(tx: Tx, libraryId: string, source: HoldingSource, input: HoldingInput, actorId: string | null, now: Date) {
     const [book] = await tx.select({ id: books.id }).from(books).where(eq(books.id, input.bookId));
     if (!book) throw new NotFoundError("Buku tidak ditemukan di katalog.");
     const values = {
@@ -237,7 +237,7 @@ async function writeHolding(tx: Tx, libraryId: string, source: HoldingSource, in
         updatedAt: now,
     };
     await tx.insert(libraryHoldings)
-        .values({ libraryId, bookId: input.bookId, source, sourceRecordId: input.sourceRecordId ?? "", ...values })
+        .values({ libraryId, bookId: input.bookId, source, ...values })
         .onConflictDoUpdate({ target: [libraryHoldings.libraryId, libraryHoldings.bookId, libraryHoldings.source, libraryHoldings.sourceRecordId], set: values });
 }
 
@@ -258,7 +258,7 @@ export async function removeManagerHolding(libraryId: string, userId: string, bo
     });
 }
 
-/** Admin curation (the fallback source of DEC-13), recorded in the audit log. `input: null` removes it. */
+/** Admin curation from a library's official catalog (DEC-13), recorded in the audit log. `input: null` removes it. */
 export async function setCuratedHolding(libraryId: string, actorId: string, bookId: string, input: HoldingInput | null) {
     return db.transaction(async (tx) => {
         const now = new Date();
@@ -272,32 +272,6 @@ export async function setCuratedHolding(libraryId: string, actorId: string, book
         });
         return { bookId };
     });
-}
-
-/**
- * Replaces one book's OneSearch holdings with what OneSearch said now (`found`: library id → record),
- * and stamps the book as checked even when nothing was found, so it is not asked again for 30 days.
- */
-export async function replaceOneSearchHoldings(bookId: string, found: { libraryId: string; sourceRecordId: string; sourceUrl: string }[]) {
-    return db.transaction(async (tx) => {
-        const now = new Date();
-        await tx.delete(libraryHoldings).where(and(eq(libraryHoldings.bookId, bookId), eq(libraryHoldings.source, "ONESEARCH")));
-        if (found.length) {
-            await tx.insert(libraryHoldings).values(found.map((record) => ({
-                libraryId: record.libraryId, bookId, source: "ONESEARCH" as const, sourceRecordId: record.sourceRecordId, sourceUrl: record.sourceUrl,
-                status: "LISTED" as const, checkedAt: now, createdAt: now, updatedAt: now,
-            })));
-        }
-        await tx.update(books).set({ librariesCheckedAt: now }).where(eq(books.id, bookId));
-        return { holdings: found.length };
-    });
-}
-
-/** Libraries whose OneSearch institution name is set, keyed by that exact name. */
-export async function oneSearchInstitutions() {
-    const rows = await db.select({ id: libraries.id, institution: libraries.oneSearchInstitution }).from(libraries)
-        .where(and(sql`${libraries.oneSearchInstitution} is not null`, isNull(libraries.hiddenAt)));
-    return new Map(rows.map((row) => [row.institution!, row.id]));
 }
 
 // --- Manager settings and admin -----------------------------------------------------------------------
@@ -316,7 +290,6 @@ export async function listLibrariesForAdmin() {
         .select({
             ...libraryColumns,
             hiddenAt: libraries.hiddenAt,
-            oneSearchInstitution: libraries.oneSearchInstitution,
             holdings: sql<number>`(select count(*)::int from ${libraryHoldings} where ${libraryHoldings.libraryId} = ${libraries.id})`,
             openRequests: sql<number>`(select count(*)::int from ${bookAccesses} where ${bookAccesses.libraryId} = ${libraries.id} and ${bookAccesses.status} in ('PENDING', 'APPROVED'))`,
         })

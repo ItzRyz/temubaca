@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { accessActionBlocker, accessState, holdingLabel, mergeHoldings, needsOneSearchRefresh, pickupDeadline } from "../../src/features/libraries/access";
+import { accessActionBlocker, accessState, holdingLabel, mergeHoldings, pickupDeadline } from "../../src/features/libraries/access";
 import { accessActionSchema, holdingInputSchema } from "../../src/lib/validation/schemas/library.schema";
 
 const now = new Date("2026-10-28T10:00:00Z");
@@ -42,22 +42,16 @@ describe("holdings (DEC-13)", () => {
         expect(holdingLabel({ status: "LISTED", copiesAvailable: null, checkedAt: new Date(now.getTime() - 31 * 24 * hour) }, now)).toEqual({ tone: "listed", text: "Tercatat di koleksi", stale: true });
     });
 
-    test("merging keeps one row per library: manager over OneSearch over curation, latest check", () => {
+    test("merging keeps one row per library: manager over curation, latest check", () => {
         const at = (hours: number) => new Date(now.getTime() - hours * hour);
         const merged = mergeHoldings([
-            { libraryId: "a", source: "CURATED", checkedAt: at(1), sourceUrl: null },
-            { libraryId: "a", source: "ONESEARCH", checkedAt: at(5), sourceUrl: "https://onesearch.id/Record/1" },
+            { libraryId: "a", source: "CURATED", checkedAt: at(1), sourceUrl: "https://katalog.example/record/1" },
+            { libraryId: "a", source: "MANAGER", checkedAt: at(5), sourceUrl: null },
             { libraryId: "b", source: "CURATED", checkedAt: at(2), sourceUrl: null },
         ]);
         expect(merged.map((row) => [row.libraryId, row.source, row.checkedAt.getTime(), row.sourceUrl])).toEqual([
-            ["a", "ONESEARCH", at(1).getTime(), "https://onesearch.id/Record/1"],
+            ["a", "MANAGER", at(1).getTime(), "https://katalog.example/record/1"],
             ["b", "CURATED", at(2).getTime(), null],
         ]);
-    });
-
-    test("OneSearch is asked again only after 30 days", () => {
-        expect(needsOneSearchRefresh(null, now)).toBe(true);
-        expect(needsOneSearchRefresh(new Date(now.getTime() - 29 * 24 * hour), now)).toBe(false);
-        expect(needsOneSearchRefresh(new Date(now.getTime() - 31 * 24 * hour), now)).toBe(true);
     });
 });

@@ -1,4 +1,3 @@
-import { Info } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -8,7 +7,6 @@ import { HoldingForm } from "@/features/libraries/components/holding-form";
 import { RemoveHoldingButton } from "@/features/libraries/components/remove-holding-button";
 import { regionByCode } from "@/features/regions/regions";
 import { listHoldingsForLibrary, listLibrariesForAdmin, listLibraryPlacesWithoutLibrary } from "@/lib/db/queries/libraries";
-import { isOneSearchEnabled } from "@/lib/external/libraries/onesearch";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Perpustakaan" };
@@ -16,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** TB-023 / DEC-13: libraries, their managers, curated holdings, and the OneSearch switch. */
+/** TB-023 / DEC-13: libraries, their managers, and holdings curated from official catalogs. */
 export default async function AdminLibrariesPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const [libraries, places] = await Promise.all([listLibrariesForAdmin(), listLibraryPlacesWithoutLibrary()]);
@@ -29,16 +27,9 @@ export default async function AdminLibrariesPage({ searchParams }: PageProps) {
             <header>
                 <h1 className="font-heading text-[28px] leading-tight font-semibold text-primary sm:text-[34px]">Perpustakaan</h1>
                 <p className="mt-2 max-w-3xl text-base text-muted-foreground">
-                    Perpustakaan yang tampil di TemuBaca, pengelolanya, dan koleksi yang dicatat admin. Koleksi juga datang dari pengelola perpustakaan dan, bila diaktifkan, Indonesia OneSearch. Setiap perubahan tercatat di jejak audit.
+                    Perpustakaan yang tampil di TemuBaca, pengelolanya, dan koleksi yang dicatat admin dari katalog resmi perpustakaan. Koleksi juga dicatat oleh pengelola perpustakaan. Setiap perubahan tercatat di jejak audit.
                 </p>
             </header>
-            <p className="mt-4 flex gap-2 rounded-lg bg-[#f1f0ea] px-4 py-3 text-sm text-muted-foreground">
-                <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-                {isOneSearchEnabled()
-                    ? "OneSearch aktif: halaman buku mengecek OneSearch paling sering sekali per 30 hari per buku, untuk perpustakaan yang nama institusinya diisi."
-                    : "OneSearch belum aktif (ONESEARCH_ENABLED). Aktifkan hanya setelah ada izin tertulis Perpusnas."}
-            </p>
-
             <section aria-labelledby="create-title" className="mt-6 rounded-xl border border-border bg-card p-6">
                 <h2 id="create-title" className="font-heading text-xl font-semibold">Tambah dari Peta Literasi</h2>
                 <div className="mt-3"><CreateLibraryForm places={places} /></div>
@@ -80,7 +71,7 @@ export default async function AdminLibrariesPage({ searchParams }: PageProps) {
                         </div>
                         <div>
                             <h3 className="font-heading text-base font-semibold">Koleksi dicatat admin</h3>
-                            <p className="mt-1 text-xs text-muted-foreground">Hanya &quot;tercatat di koleksi&quot;: admin tidak melihat rak, jadi status eksemplar dicatat pengelola.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Catat hanya buku yang terverifikasi di katalog resmi perpustakaan, dan hanya sebagai &quot;tercatat di koleksi&quot;: admin tidak melihat rak, jadi status eksemplar dicatat pengelola.</p>
                             <div className="mt-3"><HoldingForm endpoint={`/api/admin/libraries/${selected.id}/holdings`} kind="curated" /></div>
                             <ul className="mt-4 flex list-none flex-col gap-2 p-0">
                                 {curated.map((holding) => (

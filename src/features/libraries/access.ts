@@ -1,9 +1,9 @@
 /**
  * Library holdings and access requests (TB-023, DEC-13, owner's decision 28 Okt 2026). No server-only imports.
  *
- * - A holding says "this library holds this book" and comes from the library's manager, Indonesia OneSearch,
- *   or admin curation, in that order of trust. No open source broadcasts copy status, so only a manager may
- *   say a copy is available or on loan, and that claim goes stale after 24 hours.
+ * - A holding says "this library holds this book" and comes from the library's manager or from admin
+ *   curation of the library's official catalog, in that order of trust. No open source broadcasts copy
+ *   status, so only a manager may say a copy is available or on loan, and that claim goes stale after 24 hours.
  * - A reader asks a library that opted in; its manager approves (with a pick-up deadline), rejects with a
  *   reason, or marks the book collected. The reader may cancel until collection. Past the deadline an
  *   approved request reads as expired; that state is never stored.
@@ -54,19 +54,18 @@ export function pickupDeadline(approvedAt: Date, pickupDays: number) {
     return new Date(approvedAt.getTime() + pickupDays * 24 * 60 * 60 * 1000);
 }
 
-export const holdingSources = ["CURATED", "MANAGER", "ONESEARCH"] as const;
+export const holdingSources = ["CURATED", "MANAGER"] as const;
 export type HoldingSource = (typeof holdingSources)[number];
 export const holdingStatuses = ["LISTED", "AVAILABLE", "ON_LOAN", "UNKNOWN"] as const;
 export type HoldingStatus = (typeof holdingStatuses)[number];
 
 export const holdingSourceLabels: Record<HoldingSource, string> = {
     MANAGER: "Pengelola perpustakaan",
-    ONESEARCH: "Indonesia OneSearch",
-    CURATED: "Dicatat admin TemuBaca",
+    CURATED: "Katalog resmi, dicatat admin TemuBaca",
 };
 
 /** Higher wins when one library has the same book from several sources. */
-const SOURCE_PRIORITY: Record<HoldingSource, number> = { MANAGER: 3, ONESEARCH: 2, CURATED: 1 };
+const SOURCE_PRIORITY: Record<HoldingSource, number> = { MANAGER: 2, CURATED: 1 };
 /** "Tercatat di koleksi" is re-checked after 30 days; a copy status is trusted for 24 hours. */
 export const LISTED_FRESH_DAYS = 30;
 export const COPY_STATUS_FRESH_HOURS = 24;
@@ -99,9 +98,4 @@ export function mergeHoldings<T extends { libraryId: string; source: string; che
             sources: [...new Set(rows.map((row) => row.source as HoldingSource))],
         };
     });
-}
-
-/** OneSearch is asked again for a book when it was never asked or its last answer is older than 30 days. */
-export function needsOneSearchRefresh(lastCheckedAt: Date | null, now = new Date()) {
-    return !lastCheckedAt || now.getTime() - lastCheckedAt.getTime() > LISTED_FRESH_DAYS * 24 * 60 * 60 * 1000;
 }

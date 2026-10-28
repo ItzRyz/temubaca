@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw, UserMinus, UserPlus } from "lucide-react";
+import { UserMinus, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 
@@ -42,15 +42,15 @@ export function CreateLibraryForm({ places }: { places: { id: string; name: stri
     );
 }
 
-type EditableLibrary = { id: string; name: string; publicLocation: string | null; regionCode: string | null; catalogUrl: string | null; websiteUrl: string | null; oneSearchInstitution: string | null; hiddenAt: Date | null };
+type EditableLibrary = { id: string; name: string; publicLocation: string | null; regionCode: string | null; catalogUrl: string | null; websiteUrl: string | null; hiddenAt: Date | null };
 
-/** Admin edit of a library's details, OneSearch institution name, and visibility. */
+/** Admin edit of a library's details and visibility. */
 export function LibraryEditForm({ library }: { library: EditableLibrary }) {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
     const [values, setValues] = useState({
         name: library.name, publicLocation: library.publicLocation ?? "", regionCode: library.regionCode ?? "", catalogUrl: library.catalogUrl ?? "",
-        websiteUrl: library.websiteUrl ?? "", oneSearchInstitution: library.oneSearchInstitution ?? "", hidden: Boolean(library.hiddenAt),
+        websiteUrl: library.websiteUrl ?? "", hidden: Boolean(library.hiddenAt),
     });
     const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
     const set = (key: keyof typeof values) => (event: { target: { value: string } }) => setValues((current) => ({ ...current, [key]: event.target.value }));
@@ -71,9 +71,6 @@ export function LibraryEditForm({ library }: { library: EditableLibrary }) {
             <Field label="Kode kab/kota" hint="Format NN.NN, mis. 31.71.">{(control) => <TextInput {...control} value={values.regionCode} maxLength={5} onChange={set("regionCode")} />}</Field>
             <Field label="Tautan katalog resmi">{(control) => <TextInput {...control} type="url" value={values.catalogUrl} onChange={set("catalogUrl")} />}</Field>
             <Field label="Situs web">{(control) => <TextInput {...control} type="url" value={values.websiteUrl} onChange={set("websiteUrl")} />}</Field>
-            <Field label="Nama institusi di OneSearch" hint="Persis seperti kolom Institusi atau Gedung di halaman rekaman onesearch.id.">
-                {(control) => <TextInput {...control} value={values.oneSearchInstitution} maxLength={200} onChange={set("oneSearchInstitution")} />}
-            </Field>
             <label className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm sm:col-span-2">
                 <span>Sembunyikan dari pembaca</span>
                 <Switch checked={values.hidden} onCheckedChange={(hidden) => setValues((current) => ({ ...current, hidden }))} aria-label="Sembunyikan dari pembaca" />
@@ -137,26 +134,6 @@ export function LibraryManagersForm({ libraryId, managers }: { libraryId: string
                 </ul>
             ) : <p className="text-sm text-muted-foreground">Akun tidak ditemukan.</p>)}
             <FormAlert>{error}</FormAlert>
-        </div>
-    );
-}
-
-/** Ask OneSearch now for one book; refused with a clear message while the integration is off. */
-export function OneSearchSyncButton({ bookId }: { bookId: string }) {
-    const router = useRouter();
-    const [pending, startTransition] = useTransition();
-    const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
-    return (
-        <div className="flex flex-col items-start gap-2">
-            <button type="button" disabled={pending} className="flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted disabled:opacity-60"
-                onClick={() => startTransition(async () => {
-                    const result = await sendLoanRequest("/api/admin/libraries/sync", "POST", { bookId });
-                    setMessage(result.ok ? { tone: "success", text: "OneSearch sudah dicek." } : { tone: "error", text: result.message });
-                    if (result.ok) router.refresh();
-                })}>
-                <RefreshCw aria-hidden="true" className="size-4" /> {pending ? "Mengecek..." : "Cek OneSearch"}
-            </button>
-            <FormAlert tone={message?.tone}>{message?.text}</FormAlert>
         </div>
     );
 }

@@ -183,7 +183,7 @@ DEC-02, DEC-04, DEC-05, dan DEC-11 sudah diputuskan pada 18 Okt 2026; rinciannya
 - **DEC-06** (sebagian): aturan atribusi, cache, dan kuota provider katalog di production.
 - **DEC-07** (peta/lokasi) sudah diputuskan 23 dan 25 Okt 2026 (`DECISIONS.md`); yang masih terbuka hanya target latensi rute dan penggantian provider tile bila trafik naik.
 - **DEC-08, DEC-09, DEC-10**: layanan ML rekomendasi, target pengguna/wilayah/bahasa, serta tanggal rilis dan metrik.
-- **DEC-13** (ketersediaan perpustakaan): TB-023 selesai 28 Okt 2026 dengan kurasi admin dan pengelola perpustakaan. OneSearch menunggu izin tertulis Perpusnas (`ONESEARCH_ENABLED`).
+- **DEC-13** (ketersediaan perpustakaan): TB-023 selesai 28 Okt 2026 dengan kurasi admin dari katalog resmi dan pengelola perpustakaan (pustakawan sungguhan). OneSearch tidak dipakai.
 - **Sisa DEC-11:** kanal dukungan, SLA laporan, durasi backup production.
 
 ## 6. Langkah berikutnya (rekomendasi)

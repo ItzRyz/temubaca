@@ -189,14 +189,11 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
   - TB-023 tetap tertahan sampai sumber data pertama tersedia. Sampai saat itu, bagian perpustakaan tetap ditandai belum tersedia.
 - **Akses buku di perpustakaan (diputuskan pemilik repo, 28 Okt 2026):**
   - **Fitur:** pembaca melihat perpustakaan yang mencatat sebuah buku dan **mengajukan akses** (pinjam atau baca di tempat) ke perpustakaan yang menerima pengajuan lewat TemuBaca. Pengelola perpustakaan bisa menerima (dengan batas ambil 1–14 hari), menolak dengan alasan, atau menandai sudah diambil. Pembaca dapat membatalkan sampai buku diambil, dan blokir pinjam akibat sengketa ikut berlaku.
-  - **Sumber koleksi, ketiganya:**
-    - Kurasi admin: hanya "tercatat di koleksi".
+  - **Sumber koleksi:**
+    - Kurasi admin dari **katalog resmi perpustakaan**: wajib dengan tautan rekaman sebagai bukti, dan hanya berstatus "tercatat di koleksi".
     - Pengelola perpustakaan yang ditunjuk admin: boleh menyatakan "tersedia"/"sedang dipinjam" dan jumlah eksemplar, berlaku 24 jam.
-    - Indonesia OneSearch: rekaman per ISBN-13, dipetakan lewat nama institusi atau gedung, status "tercatat".
-  - **OneSearch:** adapter dibuat, tetapi **mati secara bawaan** (`ONESEARCH_ENABLED`) sampai ada izin tertulis Perpusnas, sesuai riset.
-    - Satu halaman pencarian dan paling banyak 8 halaman rekaman per buku, berurutan.
-    - User-Agent mengidentifikasi TemuBaca; tanpa data pengguna.
-    - Paling sering sekali per 30 hari per buku, dipicu saat halaman buku dibuka (`after()`) atau oleh admin.
+  - **Indonesia OneSearch tidak dipakai** (keputusan pemilik repo, 28 Okt 2026). Adaptor yang sempat dibuat dihapus bersama kolomnya (migrasi 0023). OPAC Perpusnas juga menolak klien otomatis (403).
+  - **Pengelola:** pustakawan sungguhan, yang mendaftar akun lalu ditunjuk admin. Akun admin tidak dipakai sebagai pengelola sementara.
   - **Wording:** "Tercatat di koleksi · dicek N hari lalu", bukan "Tersedia", kecuali dari pengelola.
   - **Data:** 15 perpustakaan Peta Literasi menjadi data nyata lewat `bun run libraries:import`, bukan seed. `book_accesses` sintetis dihapus. Koleksi dan pengajuan tidak di-seed, karena akan menjadi klaim palsu tentang perpustakaan nyata.
   - **Opsi yang dipertimbangkan:** info koleksi saja, atau tautan baca digital (iPusnas/Open Library).
