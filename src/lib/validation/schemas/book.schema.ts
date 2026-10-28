@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { MAX_MEETING_POINTS } from "@/features/book-listings/listing-draft";
+import { GUARANTEE_MAX_LENGTH, isMoneyGuarantee, MAX_MEETING_POINTS } from "@/features/book-listings/listing-draft";
+import { guaranteeFromRules } from "@/features/borrowing/lifecycle";
 import {
     bookConditionValues,
     bookProviderValues,
@@ -74,6 +75,17 @@ const meetingPlaceIdsSchema =
         .array(z.uuid())
         .max(MAX_MEETING_POINTS);
 
+/** Free-text listing rules; a "Jaminan:" line must not ask for money (DEC-02). */
+const borrowingRulesSchema =
+    z
+        .string()
+        .trim()
+        .max(5_000)
+        .refine((rules) => {
+            const guarantee = guaranteeFromRules(rules);
+            return !guarantee || (guarantee.length <= GUARANTEE_MAX_LENGTH && !isMoneyGuarantee(guarantee));
+        }, { message: `Jaminan harus bukan uang, mis. kartu pelajar yang ditunjukkan saat serah terima, maksimal ${GUARANTEE_MAX_LENGTH} karakter.` });
+
 export const createBookListingSchema =
     z
         .object({
@@ -100,10 +112,7 @@ export const createBookListingSchema =
                     .optional(),
 
             borrowingRules:
-                z
-                    .string()
-                    .trim()
-                    .max(5_000)
+                borrowingRulesSchema
                     .optional(),
         })
         .strict();
@@ -131,10 +140,7 @@ export const updateBookListingSchema =
                     .optional(),
 
             borrowingRules:
-                z
-                    .string()
-                    .trim()
-                    .max(5_000)
+                borrowingRulesSchema
                     .nullable()
                     .optional(),
         })

@@ -273,10 +273,12 @@ export async function exportUserData(userId: string) {
             loanDays: borrowRequests.loanDays,
             meetingPoint: borrowRequests.meetingPoint,
             note: borrowRequests.note,
+            guarantee: borrowRequests.guarantee,
             requestedAt: borrowRequests.requestedAt,
             handedOverAt: borrowings.handedOverAt,
             dueAt: borrowings.dueAt,
             returnedAt: borrowings.returnedAt,
+            disputeConsequence: sql<string | null>`case when ${borrowings.consequenceUserId} = ${userId} then ${borrowings.consequence} end`,
         })
             .from(borrowRequests)
             .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))

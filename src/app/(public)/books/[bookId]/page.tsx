@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { ArrowDown, ArrowRight, CheckCircle2, ChevronRight, Clock, Info, Library, MapPin, PlusCircle, UserRound, UsersRound } from "lucide-react";
+import { ArrowDown, ArrowRight, CheckCircle2, ChevronRight, Clock, Info, Library, MapPin, PlusCircle, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,7 +20,7 @@ import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-request-dialog";
 import { genresForSubjects } from "@/features/books/genres";
-import { conditionNoteFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
+import { conditionNoteFromRules, guaranteeFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
 
 type BookPageProps = {
@@ -267,6 +267,9 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                 {listing.borrowingRules && (
                                                     <li className="flex items-start gap-1.5"><Clock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> <span className="line-clamp-2">{listing.borrowingRules}</span></li>
                                                 )}
+                                                {guaranteeFromRules(listing.borrowingRules) && (
+                                                    <li className="flex items-start gap-1.5"><ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" /> Jaminan non-uang: {guaranteeFromRules(listing.borrowingRules)}</li>
+                                                )}
                                             </ul>
                                             <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                                                 <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -287,6 +290,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                         bookMeta={[authors, book.publisher].filter(Boolean).join(" • ")}
                                                         ownerName={listing.ownerUser.displayName}
                                                         conditionNote={conditionNoteFromRules(listing.borrowingRules)}
+                                                        guarantee={guaranteeFromRules(listing.borrowingRules)}
                                                         meetingPoints={meetingPointsOf(listing.publicLocation)}
                                                         loanChoices={loanDayChoices(maxLoanDaysFromRules(listing.borrowingRules))}
                                                         triggerClassName={borrowButtonClass}

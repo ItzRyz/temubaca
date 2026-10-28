@@ -64,29 +64,34 @@ export async function countUsers() {
     return { total: row?.total ?? 0, suspended: row?.suspended ?? 0, pendingDeletion: row?.pendingDeletion ?? 0, deleted: row?.deleted ?? 0 };
 }
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 /** Suspend or reinstate an account and record it in the admin audit log, atomically. */
 export async function setUserSuspension(input: { targetId: string; actorId: string; suspended: boolean; reason?: string }) {
-    return db.transaction(async (tx) => {
-        const [target] = await tx.select({ id: userProfiles.id, suspendedAt: userProfiles.suspendedAt, role: userProfiles.role })
-            .from(userProfiles).where(eq(userProfiles.id, input.targetId)).for("update");
-        if (!target) return { status: "not_found" as const };
-        if (Boolean(target.suspendedAt) === input.suspended) return { status: "unchanged" as const, role: target.role };
+    return db.transaction((tx) => setUserSuspensionIn(tx, input));
+}
 
-        const now = new Date();
-        await tx.update(userProfiles).set(input.suspended
-            ? { suspendedAt: now, suspendedReason: input.reason ?? null, suspendedById: input.actorId, updatedAt: now }
-            : { suspendedAt: null, suspendedReason: null, suspendedById: null, updatedAt: now })
-            .where(eq(userProfiles.id, target.id));
-        await tx.insert(adminAuditLogs).values({
-            actorId: input.actorId,
-            action: input.suspended ? "USER_SUSPENDED" : "USER_REINSTATED",
-            targetType: "USER",
-            targetId: target.id,
-            note: input.reason || null,
-            createdAt: now,
-        });
-        return { status: "updated" as const, role: target.role };
+/** `setUserSuspension` inside a caller's transaction, e.g. a dispute decision that suspends a party. */
+export async function setUserSuspensionIn(tx: Tx, input: { targetId: string; actorId: string; suspended: boolean; reason?: string }) {
+    const [target] = await tx.select({ id: userProfiles.id, suspendedAt: userProfiles.suspendedAt, role: userProfiles.role })
+        .from(userProfiles).where(eq(userProfiles.id, input.targetId)).for("update");
+    if (!target) return { status: "not_found" as const };
+    if (Boolean(target.suspendedAt) === input.suspended) return { status: "unchanged" as const, role: target.role };
+
+    const now = new Date();
+    await tx.update(userProfiles).set(input.suspended
+        ? { suspendedAt: now, suspendedReason: input.reason ?? null, suspendedById: input.actorId, updatedAt: now }
+        : { suspendedAt: null, suspendedReason: null, suspendedById: null, updatedAt: now })
+        .where(eq(userProfiles.id, target.id));
+    await tx.insert(adminAuditLogs).values({
+        actorId: input.actorId,
+        action: input.suspended ? "USER_SUSPENDED" : "USER_REINSTATED",
+        targetType: "USER",
+        targetId: target.id,
+        note: input.reason || null,
+        createdAt: now,
     });
+    return { status: "updated" as const, role: target.role };
 }
 
 export async function setUserRole(input: { targetId: string; actorId: string; role: Role; note?: string }) {

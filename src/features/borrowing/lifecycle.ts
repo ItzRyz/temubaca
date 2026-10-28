@@ -9,6 +9,10 @@ import { loanDayOptions } from "@/features/book-listings/listing-draft";
  * - the due date counts from handover; overdue loans get reminders, never fines;
  * - damage, loss, or a missing return becomes a dispute that an admin settles;
  * - the reader may ask once, before the due date, for up to 14 more days; the owner accepts or declines.
+ *
+ * Disputes (owner's decision, 28 Okt 2026): a target of 72 hours for the admin's decision; either party
+ * may add details while it is open, and an admin question marks the asked party as needing action;
+ * the decision may carry a consequence for one party. An owner may ask for a non-money guarantee.
  */
 
 export type LoanRole = "owner" | "requester";
@@ -26,7 +30,7 @@ export type LoanState =
 
 export type LoanAction =
     | "approve" | "reject" | "cancel" | "confirm_handover" | "confirm_return" | "remind" | "report_problem"
-    | "request_extension" | "approve_extension" | "reject_extension";
+    | "request_extension" | "approve_extension" | "reject_extension" | "add_dispute_info";
 
 export type LoanSnapshot = {
     requestStatus: string;
@@ -39,12 +43,18 @@ export type LoanSnapshot = {
     lastReminderAt: Date | null;
     /** null until the reader asks for an extension; one request per loan. */
     extensionStatus: string | null;
+    /** Set while an admin waits for that party's answer in a dispute. */
+    ownerReplyRequestedAt: Date | null;
+    requesterReplyRequestedAt: Date | null;
 };
 
 export const REMINDER_COOLDOWN_HOURS = 24;
 export const DEFAULT_LOAN_DAYS = 14;
 export const EXTENSION_MAX_DAYS = 14;
 export const extensionDayOptions = [7, 14] as const;
+/** Target for an admin decision on a dispute, counted from the report. */
+export const DISPUTE_REVIEW_HOURS = 72;
+export const borrowBlockDayOptions = [30, 90, 180] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const rejectionReasons = [
@@ -64,6 +74,19 @@ export const problemReasons = [
     { value: "Buku tidak dikembalikan", description: "Tenggat sudah lewat dan buku belum diserahkan kembali." },
     { value: "Lainnya", description: "Masalah lain yang perlu ditinjau pengelola." },
 ] as const;
+
+export type DisputeConsequence = "NONE" | "WARNING" | "BORROW_BLOCK" | "SUSPENSION";
+
+export const disputeConsequenceLabels: Record<DisputeConsequence, string> = {
+    NONE: "Tanpa sanksi",
+    WARNING: "Peringatan",
+    BORROW_BLOCK: "Tidak dapat meminjam sementara",
+    SUSPENSION: "Akun ditangguhkan",
+};
+
+export function disputeDeadline(disputedAt: Date) {
+    return new Date(disputedAt.getTime() + DISPUTE_REVIEW_HOURS * 60 * 60 * 1000);
+}
 
 export function loanState(loan: LoanSnapshot, now = new Date()): LoanState {
     switch (loan.requestStatus) {
@@ -124,6 +147,8 @@ export function actionBlocker(loan: LoanSnapshot, role: LoanRole, action: LoanAc
             if (state !== "ACTIVE") return "Perpanjangan hanya dapat diajukan sebelum tenggat.";
             if (loan.extensionStatus) return "Perpanjangan hanya dapat diajukan satu kali.";
             return loan.ownerReturnAt || loan.requesterReturnAt ? "Pengembalian sudah dikonfirmasi." : null;
+        case "add_dispute_info":
+            return state === "DISPUTED" ? null : "Keterangan hanya dapat ditambahkan selama sengketa ditinjau.";
         case "approve_extension":
         case "reject_extension":
             if (!ownSide) return "Hanya pemilik buku yang dapat menanggapi perpanjangan.";
@@ -134,7 +159,7 @@ export function actionBlocker(loan: LoanSnapshot, role: LoanRole, action: LoanAc
 
 const allActions: LoanAction[] = [
     "approve", "reject", "cancel", "confirm_handover", "confirm_return", "remind", "report_problem",
-    "request_extension", "approve_extension", "reject_extension",
+    "request_extension", "approve_extension", "reject_extension", "add_dispute_info",
 ];
 
 export function allowedActions(loan: LoanSnapshot, role: LoanRole, now = new Date()) {
@@ -158,6 +183,11 @@ export function loanDayChoices(maxDays: number) {
 /** Meeting points are stored joined with " & " in `publicLocation`. */
 export function meetingPointsOf(publicLocation: string | null | undefined) {
     return (publicLocation ?? "").split(" & ").map((point) => point.trim()).filter(Boolean);
+}
+
+/** The "Jaminan:" line the Tambah Buku dialog writes into the listing rules. */
+export function guaranteeFromRules(rules: string | null | undefined) {
+    return rules?.match(/Jaminan:\s*(.+)/i)?.[1]?.trim() || null;
 }
 
 /** The "Catatan kondisi:" line the Tambah Buku dialog writes into the listing rules. */
@@ -185,7 +215,7 @@ export function loanGroup(loan: LoanSnapshot, role: LoanRole, now = new Date()):
         case "ACTIVE":
             return theirs && !mine.returned ? "action" : "ongoing";
         case "DISPUTED":
-            return "ongoing";
+            return (role === "owner" ? loan.ownerReplyRequestedAt : loan.requesterReplyRequestedAt) ? "action" : "ongoing";
         default:
             return "history";
     }
@@ -207,4 +237,6 @@ export const loanEventLabels: Record<string, string> = {
     EXTENSION_REQUESTED: "Perpanjangan diajukan",
     EXTENSION_APPROVED: "Perpanjangan diterima",
     EXTENSION_REJECTED: "Perpanjangan ditolak",
+    DISPUTE_INFO_REQUESTED: "Pengelola meminta keterangan",
+    DISPUTE_INFO_ADDED: "Keterangan ditambahkan",
 };

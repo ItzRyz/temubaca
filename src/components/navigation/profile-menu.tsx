@@ -7,11 +7,13 @@ import { useEffect, useId, useRef, useState } from "react";
 
 type MenuLink = { href: string; label: string; icon: LucideIcon };
 
+const LOANS_HREF = "/my-listings?tab=peminjaman";
+
 const memberLinks: MenuLink[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/profile", label: "Profil", icon: UserRound },
     { href: "/my-listings", label: "Buku Saya", icon: BookOpen },
-    { href: "/my-listings?tab=peminjaman", label: "Minta & Pinjam", icon: ArrowLeftRight },
+    { href: LOANS_HREF, label: "Minta & Pinjam", icon: ArrowLeftRight },
     { href: "/communities/mine", label: "Komunitas Saya", icon: UsersRound },
     { href: "/bookmarks", label: "Bookmark & Minat", icon: Bookmark },
     { href: "/recommendations", label: "Rekomendasi", icon: Sparkles },
@@ -23,8 +25,11 @@ const adminLinks: MenuLink[] = [
 
 const itemClass = "flex h-10 w-full items-center gap-2.5 rounded px-3 text-left text-sm font-medium text-foreground hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
 
-/** Avatar button with the account menu (Figma "Profile Dropdown" 135:862). */
-export function ProfileMenu({ initials, displayName, isAdmin }: { initials: string; displayName: string; isAdmin: boolean }) {
+/**
+ * Avatar button with the account menu (Figma "Profile Dropdown" 135:862). A dot on the avatar and a
+ * count on "Minta & Pinjam" show loans waiting for this user ("Perlu Tindakan").
+ */
+export function ProfileMenu({ initials, displayName, isAdmin, attention }: { initials: string; displayName: string; isAdmin: boolean; attention: number }) {
     const [open, setOpen] = useState(false);
     const menuId = useId();
     const rootRef = useRef<HTMLDivElement>(null);
@@ -67,11 +72,12 @@ export function ProfileMenu({ initials, displayName, isAdmin }: { initials: stri
                 aria-haspopup="true"
                 aria-expanded={open}
                 aria-controls={menuId}
-                aria-label={`Menu akun ${displayName}`}
+                aria-label={`Menu akun ${displayName}${attention ? `, ${attention} pinjaman perlu tindakan` : ""}`}
                 onClick={() => setOpen((value) => !value)}
-                className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="relative flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
                 {initials}
+                {attention > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-destructive ring-2 ring-background" />}
             </button>
             {open && (
                 <div id={menuId} className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border bg-card p-1 shadow-[0_6px_20px_rgba(31,41,36,0.08)]">
@@ -81,6 +87,11 @@ export function ProfileMenu({ initials, displayName, isAdmin }: { initials: stri
                             <li key={href}>
                                 <Link href={href} aria-current={pathname === href ? "page" : undefined} className={itemClass}>
                                     <Icon aria-hidden="true" className="size-4" /> {label}
+                                    {href === LOANS_HREF && attention > 0 && (
+                                        <span className="ml-auto rounded-full bg-destructive px-1.5 text-xs font-semibold text-white tabular-nums">
+                                            {attention}<span className="sr-only"> perlu tindakan</span>
+                                        </span>
+                                    )}
                                 </Link>
                             </li>
                         ))}

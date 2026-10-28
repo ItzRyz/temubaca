@@ -5,7 +5,7 @@ import {
     borrowingStatusValues,
     bookAccessStatusValues,
 } from "@/lib/db/schema";
-import { EXTENSION_MAX_DAYS, problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
+import { borrowBlockDayOptions, EXTENSION_MAX_DAYS, problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
 
 import {
     requestIdParamSchema,
@@ -72,17 +72,46 @@ export const borrowingActionSchema = z.discriminatedUnion("action", [
             note: optionalText(200, "Pesan maksimal 200 karakter."),
         })
         .strict(),
+    z
+        .object({
+            action: z.literal("add_dispute_info"),
+            details: z.string().trim().min(10, "Tulis keterangan minimal 10 karakter.").max(1_000, "Keterangan maksimal 1.000 karakter."),
+        })
+        .strict(),
     z.object({ action: z.literal("approve_extension") }).strict(),
     z.object({ action: z.literal("reject_extension"), note: optionalText(200, "Catatan maksimal 200 karakter.") }).strict(),
 ]);
+
+const disputePartySchema = z.enum(["OWNER", "REQUESTER"], { error: "Pilih pihak yang dikenai konsekuensi." });
 
 export const resolveBorrowingDisputeSchema = z
     .object({
         outcome: z.enum(["RETURNED", "LOST"], { error: "Pilih hasil sengketa." }),
         note: z.string().trim().min(5, "Tulis alasan keputusan minimal 5 karakter.").max(500, "Alasan maksimal 500 karakter."),
+        // Chosen per case by the admin (28 Okt 2026); NONE when nobody is at fault.
+        consequence: z.discriminatedUnion("type", [
+            z.object({ type: z.literal("NONE") }).strict(),
+            z.object({ type: z.literal("WARNING"), party: disputePartySchema }).strict(),
+            z.object({
+                type: z.literal("BORROW_BLOCK"),
+                party: disputePartySchema,
+                days: z.coerce.number().refine((days) => (borrowBlockDayOptions as readonly number[]).includes(days), "Pilih lama pembatasan."),
+            }).strict(),
+            z.object({ type: z.literal("SUSPENSION"), party: disputePartySchema }).strict(),
+        ], { error: "Pilih konsekuensi." }).default({ type: "NONE" }),
+    })
+    .strict();
+
+/** An admin question to one or both parties of an open dispute. */
+export const askDisputePartySchema = z
+    .object({
+        party: z.enum(["OWNER", "REQUESTER", "BOTH"], { error: "Pilih pihak yang ditanya." }),
+        question: z.string().trim().min(10, "Tulis pertanyaan minimal 10 karakter.").max(500, "Pertanyaan maksimal 500 karakter."),
     })
     .strict();
 
 export type CreateBorrowRequestInput = z.infer<typeof createBorrowRequestSchema>;
 export type BorrowRequestActionInput = z.infer<typeof borrowRequestActionSchema>;
 export type BorrowingActionInput = z.infer<typeof borrowingActionSchema>;
+export type ResolveBorrowingDisputeInput = z.infer<typeof resolveBorrowingDisputeSchema>;
+export type AskDisputePartyInput = z.infer<typeof askDisputePartySchema>;

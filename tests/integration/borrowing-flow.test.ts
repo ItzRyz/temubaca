@@ -6,6 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 
+import { loanGroup } from "../../src/features/borrowing/lifecycle";
 import * as schema from "../../src/lib/db/schema";
 
 // The DEC-02 lifecycle against an in-memory Postgres with every migration applied.
@@ -140,9 +141,9 @@ describe("cancellation and disputes", () => {
         await expect(borrowing.actOnBorrowing(loan.borrowingId!, READER, { action: "confirm_return" })).rejects.toThrow("sedang dipinjam");
         expect(await borrowing.countOpenBorrowingDisputes()).toBe(1);
 
-        await borrowing.resolveBorrowingDispute(loan.borrowingId!, ADMIN, { outcome: "LOST", note: "Kedua pihak sepakat buku tidak dapat dipakai." });
+        await borrowing.resolveBorrowingDispute(loan.borrowingId!, ADMIN, { outcome: "LOST", note: "Kedua pihak sepakat buku tidak dapat dipakai.", consequence: { type: "WARNING", party: "REQUESTER" } });
         expect(await listingAvailability(SECOND_LISTING)).toBe("UNAVAILABLE");
-        await expect(borrowing.resolveBorrowingDispute(loan.borrowingId!, ADMIN, { outcome: "RETURNED", note: "Ulang" })).rejects.toThrow("sudah diputuskan");
+        await expect(borrowing.resolveBorrowingDispute(loan.borrowingId!, ADMIN, { outcome: "RETURNED", note: "Ulang", consequence: { type: "NONE" } })).rejects.toThrow("sudah diputuskan");
 
         const [dispute] = await borrowing.listBorrowingDisputes();
         expect(dispute.status).toBe("LOST");
@@ -212,6 +213,68 @@ describe("admin overview", () => {
                 disputed: count("DISPUTED"),
                 extensionPending: loans.filter((loan) => loan.extension?.status === "PENDING" && (loan.state === "ACTIVE" || loan.state === "OVERDUE")).length,
             });
+            for (const userId of [OWNER, READER, OTHER_READER]) {
+                const mine = await borrowing.listLoansForUser(userId, now);
+                expect(await borrowing.countLoansNeedingAction(userId, now)).toBe(mine.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length);
+            }
         }
+    });
+});
+
+describe("dispute follow-up and consequences", () => {
+    const FOURTH_LISTING = id(203), FIFTH_LISTING = id(204);
+    const disputeOn = async (listingId: string, requesterId: string) => {
+        const { id: requestId } = await ask(requesterId, { listingId, loanDays: 7 });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "approve" });
+        await borrowing.actOnBorrowRequest(requestId, OWNER, { action: "confirm_handover" });
+        await borrowing.actOnBorrowRequest(requestId, requesterId, { action: "confirm_handover" });
+        const [loan] = (await borrowing.listLoansForUser(requesterId)).filter((item) => item.requestId === requestId);
+        await borrowing.actOnBorrowing(loan.borrowingId!, OWNER, { action: "report_problem", reason: "Buku tidak dikembalikan", details: "Sudah dua minggu tidak ada kabar." });
+        return loan.borrowingId!;
+    };
+    const loanOf = async (userId: string, borrowingId: string) =>
+        (await borrowing.listLoansForUser(userId)).find((item) => item.borrowingId === borrowingId)!;
+
+    beforeAll(async () => {
+        await testDb.insert(schema.bookListings).values([
+            { id: FOURTH_LISTING, ownerId: OWNER, bookId: BOOK, condition: "GOOD", publicLocation: "Taman Suropati", borrowingRules: "Lama pinjam: 7 hari.\nJaminan: Tunjukkan kartu pelajar" },
+            { id: FIFTH_LISTING, ownerId: OWNER, bookId: BOOK, condition: "GOOD", publicLocation: "Taman Suropati", borrowingRules: "Lama pinjam: 7 hari." },
+        ]);
+    });
+
+    test("an admin question needs the asked party's answer; the request keeps the guarantee", async () => {
+        const borrowingId = await disputeOn(FOURTH_LISTING, STRANGER);
+        const loan = await loanOf(STRANGER, borrowingId);
+        const [request] = await testDb.select({ guarantee: schema.borrowRequests.guarantee }).from(schema.borrowRequests).where(eq(schema.borrowRequests.id, loan.requestId));
+        expect(request.guarantee).toBe("Tunjukkan kartu pelajar");
+
+        await borrowing.askDisputeParty(borrowingId, ADMIN, { party: "REQUESTER", question: "Kapan Anda terakhir memegang buku ini?" });
+        expect(loanGroup((await loanOf(STRANGER, borrowingId)).snapshot, "requester")).toBe("action");
+        expect(loanGroup((await loanOf(OWNER, borrowingId)).snapshot, "owner")).toBe("ongoing");
+        expect(await borrowing.countLoansNeedingAction(STRANGER)).toBeGreaterThan(0);
+
+        await borrowing.actOnBorrowing(borrowingId, STRANGER, { action: "add_dispute_info", details: "Terakhir saya bawa di KRL hari Senin." });
+        const answered = await loanOf(STRANGER, borrowingId);
+        expect(loanGroup(answered.snapshot, "requester")).toBe("ongoing");
+        expect(answered.events.map((event) => event.type)).toEqual(expect.arrayContaining(["DISPUTE_INFO_REQUESTED", "DISPUTE_INFO_ADDED"]));
+
+        await borrowing.resolveBorrowingDispute(borrowingId, ADMIN, { outcome: "LOST", note: "Peminjam tidak mengembalikan buku.", consequence: { type: "BORROW_BLOCK", party: "REQUESTER", days: 30 } });
+        await expect(ask(STRANGER, { listingId: FIFTH_LISTING, loanDays: 7 })).rejects.toThrow("belum dapat mengajukan pinjam");
+        await expect(borrowing.actOnBorrowing(borrowingId, STRANGER, { action: "add_dispute_info", details: "Saya keberatan dengan keputusan." })).rejects.toThrow("selama sengketa");
+    });
+
+    test("a suspension applies to the chosen party, never to an admin", async () => {
+        const borrowingId = await disputeOn(FIFTH_LISTING, OTHER_READER);
+        await testDb.update(schema.userProfiles).set({ role: "ADMIN" }).where(eq(schema.userProfiles.id, OTHER_READER));
+        await expect(borrowing.resolveBorrowingDispute(borrowingId, ADMIN, { outcome: "RETURNED", note: "Buku sudah kembali.", consequence: { type: "SUSPENSION", party: "REQUESTER" } })).rejects.toThrow("admin");
+        await testDb.update(schema.userProfiles).set({ role: "MEMBER" }).where(eq(schema.userProfiles.id, OTHER_READER));
+
+        await borrowing.resolveBorrowingDispute(borrowingId, ADMIN, { outcome: "RETURNED", note: "Buku kembali setelah ditegur.", consequence: { type: "SUSPENSION", party: "REQUESTER" } });
+        const profile = await testDb.query.userProfiles.findFirst({ where: eq(schema.userProfiles.id, OTHER_READER) });
+        expect(profile?.suspendedAt).not.toBeNull();
+        const audit = await testDb.select().from(schema.adminAuditLogs).where(eq(schema.adminAuditLogs.targetId, OTHER_READER));
+        expect(audit.map((row) => row.action)).toContain("USER_SUSPENDED");
+        const [row] = await testDb.select().from(schema.borrowings).where(eq(schema.borrowings.id, borrowingId));
+        expect([row.consequence, row.consequenceUserId]).toEqual(["SUSPENSION", OTHER_READER]);
     });
 });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
+import { countLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { ProfileMenu } from "@/components/navigation/profile-menu";
 import { PublicNavigation } from "@/components/navigation/public-navigation";
 
@@ -12,6 +13,7 @@ function initialsOf(name: string) {
 
 export async function SiteHeader() {
     const user = await getCurrentUser();
+    const attention = user ? await countLoansNeedingAction(user.id) : 0;
 
     return (
         <header className="sticky top-0 z-40 bg-background/95 shadow-[0_1px_4px_rgba(0,0,0,0.04)] backdrop-blur-[6px]">
@@ -22,7 +24,7 @@ export async function SiteHeader() {
                 <PublicNavigation className="order-last col-span-2 -mx-3 mt-2 md:order-none md:mx-0 md:mt-0" />
                 <div className="flex items-center justify-end gap-4">
                     {user ? (
-                        <ProfileMenu initials={initialsOf(user.displayName)} displayName={user.displayName} isAdmin={user.role === "ADMIN"} />
+                        <ProfileMenu initials={initialsOf(user.displayName)} displayName={user.displayName} isAdmin={user.role === "ADMIN"} attention={attention} />
                     ) : (
                         <Link
                             href="/login"

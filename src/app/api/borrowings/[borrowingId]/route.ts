@@ -5,7 +5,7 @@ import { borrowingActionSchema, borrowingIdSchema } from "@/lib/validation/schem
 
 type RouteContext = { params: Promise<{ borrowingId: string }> };
 
-/** Confirm a return, send an overdue reminder, or report a problem (opens a dispute). */
+/** Confirm a return, send an overdue reminder, report a problem (opens a dispute), or add details to an open dispute. */
 export const PATCH = withApiHandler(async (request, context: RouteContext) => {
     const user = await requireApiUser();
     await requireApiRateLimit({ key: createUserRateLimitKey("borrow-write", user.id), ...RATE_LIMITS.WRITE });

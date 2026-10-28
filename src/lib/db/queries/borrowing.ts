@@ -7,17 +7,21 @@ import {
     actionBlocker,
     AUTO_REJECTION_REASON,
     dueDateFrom,
+    guaranteeFromRules,
     loanDayChoices,
+    loanGroup,
     loanState,
     maxLoanDaysFromRules,
     meetingPointsOf,
+    type DisputeConsequence,
     type LoanAction,
     type LoanRole,
     type LoanSnapshot,
     type LoanState,
 } from "@/features/borrowing/lifecycle";
+import { accountActionBlocker } from "@/features/admin-users/account-rules";
 import { ConflictError, ForbiddenError, NotFoundError } from "@/lib/api/errors";
-import type { BorrowingActionInput, BorrowRequestActionInput, CreateBorrowRequestInput } from "@/lib/validation/schemas/borrowing.schema";
+import type { AskDisputePartyInput, BorrowingActionInput, BorrowRequestActionInput, CreateBorrowRequestInput, ResolveBorrowingDisputeInput } from "@/lib/validation/schemas/borrowing.schema";
 
 import { db } from "../client";
 import {
@@ -30,11 +34,14 @@ import {
     borrowRequests,
     userProfiles,
 } from "../schema";
+import { setUserSuspensionIn } from "./admin-users";
 import { meetingPlaceNames } from "./places";
 
 const requesterProfile = alias(userProfiles, "requester_profile");
 const ownerProfile = alias(userProfiles, "owner_profile");
 const reporterProfile = alias(userProfiles, "reporter_profile");
+
+const blockDate = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta" });
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type EventType = (typeof borrowEvents.$inferInsert)["type"];
@@ -56,6 +63,10 @@ function assertAllowed(loan: LoanSnapshot, role: LoanRole, action: LoanAction, n
 
 export async function createBorrowRequest(requesterId: string, input: CreateBorrowRequestInput) {
     return db.transaction(async (tx) => {
+        const [requester] = await tx.select({ borrowBlockedUntil: userProfiles.borrowBlockedUntil }).from(userProfiles).where(eq(userProfiles.id, requesterId));
+        if (requester?.borrowBlockedUntil && requester.borrowBlockedUntil > new Date()) {
+            throw new ForbiddenError(`Anda belum dapat mengajukan pinjam sampai ${blockDate.format(requester.borrowBlockedUntil)} karena keputusan sengketa sebelumnya.`);
+        }
         const [listing] = await tx
             .select({
                 id: bookListings.id,
@@ -100,6 +111,7 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                     meetingPlaceId,
                     loanDays: input.loanDays,
                     preferredTime: input.preferredTime ?? null,
+                    guarantee: guaranteeFromRules(listing.borrowingRules),
                 })
                 .returning({ id: borrowRequests.id });
             await logEvent(tx, request.id, requesterId, "REQUESTED");
@@ -148,6 +160,8 @@ function snapshotOf(request: typeof borrowRequests.$inferSelect, borrowing: type
         requesterReturnAt: borrowing?.requesterReturnAt ?? null,
         lastReminderAt: borrowing?.lastReminderAt ?? null,
         extensionStatus: borrowing?.extensionStatus ?? null,
+        ownerReplyRequestedAt: borrowing?.ownerReplyRequestedAt ?? null,
+        requesterReplyRequestedAt: borrowing?.requesterReplyRequestedAt ?? null,
     };
 }
 
@@ -251,6 +265,15 @@ export async function actOnBorrowing(borrowingId: string, userId: string, input:
                 await logEvent(tx, request.id, userId, "DISPUTE_OPENED", input.reason);
                 return { status: "DISPUTED" as const };
             }
+            case "add_dispute_info": {
+                // Answering clears the admin's question to this party.
+                await tx
+                    .update(borrowings)
+                    .set(role === "owner" ? { ownerReplyRequestedAt: null, updatedAt: now } : { requesterReplyRequestedAt: null, updatedAt: now })
+                    .where(eq(borrowings.id, borrowing.id));
+                await logEvent(tx, request.id, userId, "DISPUTE_INFO_ADDED", input.details);
+                return { status: "DISPUTED" as const };
+            }
             case "request_extension": {
                 await tx
                     .update(borrowings)
@@ -282,17 +305,61 @@ export async function actOnBorrowing(borrowingId: string, userId: string, input:
     });
 }
 
-export async function resolveBorrowingDispute(borrowingId: string, adminId: string, input: { outcome: "RETURNED" | "LOST"; note: string }) {
+/** An admin asks one or both parties of an open dispute; the asked party sees it under "Perlu Tindakan". */
+export async function askDisputeParty(borrowingId: string, adminId: string, input: AskDisputePartyInput) {
     return db.transaction(async (tx) => {
         const now = new Date();
         const [row] = await tx
-            .select({ borrowing: borrowings, listingId: borrowRequests.listingId })
+            .select({ borrowing: borrowings })
+            .from(borrowings)
+            .where(eq(borrowings.id, borrowingId))
+            .for("update");
+        if (!row) throw new NotFoundError("Pinjaman tidak ditemukan.");
+        if (row.borrowing.status !== "DISPUTED") throw new ConflictError("Sengketa ini sudah diputuskan.");
+        await tx
+            .update(borrowings)
+            .set({
+                ...(input.party !== "REQUESTER" ? { ownerReplyRequestedAt: now } : {}),
+                ...(input.party !== "OWNER" ? { requesterReplyRequestedAt: now } : {}),
+                updatedAt: now,
+            })
+            .where(eq(borrowings.id, borrowingId));
+        const to = { OWNER: "Untuk pemilik", REQUESTER: "Untuk peminjam", BOTH: "Untuk kedua pihak" }[input.party];
+        await logEvent(tx, row.borrowing.requestId, adminId, "DISPUTE_INFO_REQUESTED", `${to}: ${input.question}`);
+        return { status: "DISPUTED" as const };
+    });
+}
+
+export async function resolveBorrowingDispute(borrowingId: string, adminId: string, input: ResolveBorrowingDisputeInput) {
+    return db.transaction(async (tx) => {
+        const now = new Date();
+        const [row] = await tx
+            .select({ borrowing: borrowings, listingId: borrowRequests.listingId, ownerId: bookListings.ownerId, requesterId: borrowRequests.requesterId })
             .from(borrowings)
             .innerJoin(borrowRequests, eq(borrowRequests.id, borrowings.requestId))
+            .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
             .where(eq(borrowings.id, borrowingId))
             .for("update", { of: borrowings });
         if (!row) throw new NotFoundError("Pinjaman tidak ditemukan.");
         if (row.borrowing.status !== "DISPUTED") throw new ConflictError("Sengketa ini sudah diputuskan.");
+
+        const { consequence } = input;
+        const partyId = consequence.type === "NONE" ? null : consequence.party === "OWNER" ? row.ownerId : row.requesterId;
+        const days = consequence.type === "BORROW_BLOCK" ? consequence.days : null;
+        if (partyId && consequence.type === "SUSPENSION") {
+            const [party] = await tx.select({ role: userProfiles.role }).from(userProfiles).where(eq(userProfiles.id, partyId));
+            const blocker = accountActionBlocker("suspend", { actorId: adminId, targetId: partyId, targetRole: party?.role ?? "MEMBER" });
+            if (blocker === "self") throw new ConflictError("Anda tidak dapat menangguhkan akun sendiri.");
+            if (blocker === "admin_target") throw new ConflictError("Pihak ini admin. Turunkan perannya dulu, atau pilih konsekuensi lain.");
+            await setUserSuspensionIn(tx, { targetId: partyId, actorId: adminId, suspended: true, reason: `Keputusan sengketa pinjam: ${input.note}` });
+        }
+        if (partyId && days) {
+            // A longer block already in place is kept.
+            const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+            await tx.update(userProfiles)
+                .set({ borrowBlockedUntil: sql`greatest(${userProfiles.borrowBlockedUntil}, ${until.toISOString()}::timestamptz)`, updatedAt: now })
+                .where(eq(userProfiles.id, partyId));
+        }
 
         await tx
             .update(borrowings)
@@ -302,6 +369,11 @@ export async function resolveBorrowingDispute(borrowingId: string, adminId: stri
                 resolvedAt: now,
                 resolvedById: adminId,
                 resolutionNote: input.note,
+                ownerReplyRequestedAt: null,
+                requesterReplyRequestedAt: null,
+                consequence: consequence.type,
+                consequenceUserId: partyId,
+                consequenceDays: days,
                 updatedAt: now,
             })
             .where(eq(borrowings.id, borrowingId));
@@ -317,7 +389,7 @@ export async function resolveBorrowingDispute(borrowingId: string, adminId: stri
             targetType: "BORROWING",
             targetId: borrowingId,
             note: input.note,
-            metadata: { outcome: input.outcome },
+            metadata: { outcome: input.outcome, consequence: consequence.type, consequenceUserId: partyId, consequenceDays: days },
         });
         return { status: input.outcome };
     });
@@ -350,6 +422,12 @@ export type LoanItem = {
     disputedAt: Date | null;
     resolutionNote: string | null;
     extension: { status: string; days: number | null; note: string | null; responseNote: string | null } | null;
+    /** The owner's non-money guarantee agreed with the request. */
+    guarantee: string | null;
+    /** The admin's open question to this user in a dispute, until they answer. */
+    disputeQuestion: string | null;
+    /** What the dispute decision applied, when it applied anything. */
+    consequence: { type: DisputeConsequence; days: number | null; appliesToYou: boolean } | null;
     cancelledByOther: boolean;
     /** Oldest first; `by` is relative to the reader of the list. */
     events: { id: string; type: string; note: string | null; createdAt: Date; by: "you" | "other" | "system" | "admin" }[];
@@ -389,6 +467,8 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
     return rows.map(({ request, borrowing, listingId, ownerId, book, requesterName, ownerName, meetingPlace }) => {
         const role: LoanRole = ownerId === userId ? "owner" : "requester";
         const snapshot = snapshotOf(request, borrowing);
+        const events = eventsByRequest.get(request.id) ?? [];
+        const asked = role === "owner" ? snapshot.ownerReplyRequestedAt : snapshot.requesterReplyRequestedAt;
         return {
             requestId: request.id,
             borrowingId: borrowing?.id ?? null,
@@ -417,8 +497,14 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             extension: borrowing?.extensionStatus
                 ? { status: borrowing.extensionStatus, days: borrowing.extensionDays, note: borrowing.extensionNote, responseNote: borrowing.extensionResponseNote }
                 : null,
+            guarantee: request.guarantee,
+            // The stored note starts with "Untuk <pihak>: " for the shared history; the asked party needs only the question.
+            disputeQuestion: asked ? events.findLast((event) => event.type === "DISPUTE_INFO_REQUESTED")?.note?.replace(/^Untuk [^:]+:\s*/, "") ?? null : null,
+            consequence: borrowing?.consequence && borrowing.consequence !== "NONE"
+                ? { type: borrowing.consequence, days: borrowing.consequenceDays, appliesToYou: borrowing.consequenceUserId === userId }
+                : null,
             cancelledByOther: request.status === "CANCELLED" && request.cancelledById !== null && request.cancelledById !== userId,
-            events: (eventsByRequest.get(request.id) ?? []).map((event) => ({
+            events: events.map((event) => ({
                 id: event.id,
                 type: event.type,
                 note: event.note,
@@ -430,6 +516,24 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             })),
         };
     });
+}
+
+/**
+ * How many of the user's loans are under "Perlu Tindakan" (`loanGroup`), for the dot on the account menu.
+ * Reads only the snapshot columns; the rule itself stays in `loanGroup`.
+ */
+export async function countLoansNeedingAction(userId: string, now = new Date()) {
+    const rows = await db
+        .select({ request: borrowRequests, borrowing: borrowings, ownerId: bookListings.ownerId })
+        .from(borrowRequests)
+        .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
+        .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
+        .where(and(
+            or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)),
+            or(inArray(borrowRequests.status, ["PENDING", "APPROVED"]), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"])),
+        ));
+    return rows.filter(({ request, borrowing, ownerId }) =>
+        loanGroup(snapshotOf(request, borrowing), ownerId === userId ? "owner" : "requester", now) === "action").length;
 }
 
 /** The reader's open (waiting or accepted) requests among the given listings, for the book detail page. */
@@ -454,6 +558,11 @@ export async function listBorrowingDisputes(limit = 50) {
             disputedAt: borrowings.disputedAt,
             resolvedAt: borrowings.resolvedAt,
             resolutionNote: borrowings.resolutionNote,
+            consequence: borrowings.consequence,
+            consequenceDays: borrowings.consequenceDays,
+            consequenceToOwner: sql<boolean>`${borrowings.consequenceUserId} = ${bookListings.ownerId}`,
+            ownerReplyRequestedAt: borrowings.ownerReplyRequestedAt,
+            requesterReplyRequestedAt: borrowings.requesterReplyRequestedAt,
             handedOverAt: borrowings.handedOverAt,
             dueAt: borrowings.dueAt,
             meetingPoint: borrowRequests.meetingPoint,

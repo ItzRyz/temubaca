@@ -2,8 +2,8 @@ import { Info } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { loanDayOptions } from "@/features/book-listings/listing-draft";
-import { EXTENSION_MAX_DAYS, problemReasons, rejectionReasons, REMINDER_COOLDOWN_HOURS } from "@/features/borrowing/lifecycle";
+import { GUARANTEE_MAX_LENGTH, loanDayOptions } from "@/features/book-listings/listing-draft";
+import { borrowBlockDayOptions, DISPUTE_REVIEW_HOURS, EXTENSION_MAX_DAYS, problemReasons, rejectionReasons, REMINDER_COOLDOWN_HOURS } from "@/features/borrowing/lifecycle";
 import { EVIDENCE_MAX_BYTES, MAX_PENDING_APPLICATIONS } from "@/features/community-management/rules";
 import { CatalogSettingsForm } from "@/features/settings/components/catalog-settings-form";
 import { RunRetentionButton } from "@/features/account-deletion/components/retention-panel";
@@ -210,7 +210,9 @@ async function BorrowingSection() {
         ["Serah terima & pengembalian", "Masing-masing butuh konfirmasi kedua pihak. Pinjaman baru berjalan, atau selesai, setelah dua konfirmasi."],
         ["Perpanjangan", `Satu kali, diajukan peminjam sebelum tenggat, paling lama ${EXTENSION_MAX_DAYS} hari dari tenggat lama. Pemilik menerima atau menolak.`],
         ["Keterlambatan", `Ditampilkan “Terlambat N hari”. Pemilik dapat mengirim pengingat di aplikasi, sekali per ${REMINDER_COOLDOWN_HOURS} jam. Tanpa denda dan tanpa ganti rugi uang di platform.`],
-        ["Sengketa", `Salah satu pihak melaporkan masalah (${problemReasons.map((reason) => reason.value).join(", ")}). Pinjaman terkunci sampai admin memutuskan Dikembalikan atau Hilang; keputusan tercatat di riwayat pinjaman dan jejak audit.`],
+        ["Jaminan", `Opsional dari pemilik, bukan uang, maksimal ${GUARANTEE_MAX_LENGTH} karakter, cukup ditunjukkan saat serah terima. Disalin ke permintaan saat diajukan.`],
+        ["Sengketa", `Salah satu pihak melaporkan masalah (${problemReasons.map((reason) => reason.value).join(", ")}). Pinjaman terkunci sampai admin memutuskan Dikembalikan atau Hilang, dengan target ${DISPUTE_REVIEW_HOURS} jam. Selama ditinjau, kedua pihak dapat menambah keterangan dan admin dapat bertanya ke salah satu atau kedua pihak. Keputusan tercatat di riwayat pinjaman dan jejak audit.`],
+        ["Konsekuensi", `Dipilih admin per kasus untuk salah satu pihak: tanpa sanksi, peringatan, tidak dapat meminjam ${borrowBlockDayOptions.join("/")} hari, atau penangguhan akun.`],
     ];
     const status = [
         ["Menunggu tanggapan pemilik", open.pending],
@@ -223,7 +225,7 @@ async function BorrowingSection() {
     return (
         <section aria-labelledby="borrowing-title" className="rounded-xl border border-border bg-card p-6">
             <h2 id="borrowing-title" className="font-heading text-xl font-semibold">Aturan Pinjam</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Kebijakan DEC-02 (18 Okt 2026). Ditetapkan di kode dan tidak dapat diubah dari sini.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Kebijakan DEC-02 (18 Okt 2026; sengketa dan jaminan 28 Okt 2026). Ditetapkan di kode dan tidak dapat diubah dari sini.</p>
             <dl className="mt-4 divide-y divide-border rounded-lg border border-border text-sm">
                 {rules.map(([term, detail]) => (
                     <div key={term} className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr]">

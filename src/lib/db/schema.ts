@@ -43,7 +43,9 @@ export const listingAvailabilityValues = ['AVAILABLE', 'UNAVAILABLE', 'RESERVED'
 export const borrowRequestStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'] as const;
 // OVERDUE is derived from dueAt at read time and never stored; DISPUTED waits for an admin decision (DEC-02).
 export const borrowingStatusValues = ['ACTIVE', 'OVERDUE', 'RETURNED', 'LOST', 'CANCELLED', 'DISPUTED'] as const;
-export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED', 'EXTENSION_REQUESTED', 'EXTENSION_APPROVED', 'EXTENSION_REJECTED'] as const;
+/** What an admin applies to one party when settling a dispute (28 Okt 2026). */
+export const disputeConsequenceValues = ['NONE', 'WARNING', 'BORROW_BLOCK', 'SUSPENSION'] as const;
+export const borrowEventTypeValues = ['REQUESTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'HANDOVER_CONFIRMED', 'BORROWING_STARTED', 'RETURN_CONFIRMED', 'RETURNED', 'REMINDER_SENT', 'DISPUTE_OPENED', 'DISPUTE_RESOLVED', 'EXTENSION_REQUESTED', 'EXTENSION_APPROVED', 'EXTENSION_REJECTED', 'DISPUTE_INFO_REQUESTED', 'DISPUTE_INFO_ADDED'] as const;
 // One extension per loan (DEC-02): the borrower asks before the due date, the owner answers.
 export const loanExtensionStatusValues = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 export const bookAccessStatusValues = ['ACTIVE', 'REVOKED', 'EXPIRED'] as const;
@@ -76,6 +78,8 @@ export const userProfiles = pgTable('user_profiles', {
     deletionRequestedAt: nowDate(), deletionScheduledFor: nowDate(), deletedAt: nowDate(), authDeletedAt: nowDate(),
     // Optional Kemendagri kab/kota code (R-11) for community recommendations; never shown to others.
     regionCode: text(),
+    // Set by a dispute decision; new borrow requests are refused until then.
+    borrowBlockedUntil: nowDate(),
     createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
 }, t => [check('user_profiles_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`)]).enableRLS();
 
@@ -134,6 +138,8 @@ export const borrowRequests = pgTable('borrow_requests', {
     // The Peta Literasi place behind `meetingPoint`, when the owner picked it from the map (TB-027).
     meetingPlaceId: uuid().references(() => places.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     rejectionReason: text(), responseNote: text(),
+    // The owner's non-money guarantee at the time of the request, copied from the listing rules.
+    guarantee: text(),
     // Handover needs both parties (DEC-02); the borrowing starts once both timestamps are set.
     ownerHandoverAt: nowDate(), requesterHandoverAt: nowDate(),
     cancelledById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
@@ -195,8 +201,16 @@ export const borrowings = pgTable('borrowings', {
     disputedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     resolvedAt: nowDate(), resolutionNote: text(),
     resolvedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    // An admin question to a party during a dispute; cleared when that party answers.
+    ownerReplyRequestedAt: nowDate(), requesterReplyRequestedAt: nowDate(),
+    consequence: enumText(disputeConsequenceValues), consequenceDays: integer(),
+    consequenceUserId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues), enumCheck(t.extensionStatus, loanExtensionStatusValues), check('borrowings_extension_days_check', sql`${t.extensionDays} between 1 and 14`)]).enableRLS();
+}, t => [
+    index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues), enumCheck(t.extensionStatus, loanExtensionStatusValues), enumCheck(t.consequence, disputeConsequenceValues),
+    check('borrowings_extension_days_check', sql`${t.extensionDays} between 1 and 14`),
+    check('borrowings_consequence_days_check', sql`${t.consequenceDays} between 1 and 365`),
+]).enableRLS();
 
 export const communities = pgTable('communities', {
     id: id(), ownerId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'restrict', onUpdate: 'cascade' }), name: text().notNull(),

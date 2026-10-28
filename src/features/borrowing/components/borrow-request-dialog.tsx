@@ -13,12 +13,14 @@ import { dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } 
 const NOTE_MAX = 200;
 
 /** Figma "Ajukan Pinjam - Modal" (299:2608) on a shared copy in Detail Buku. */
-export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName, conditionNote, meetingPoints, loanChoices, triggerClassName }: {
+export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName, conditionNote, guarantee, meetingPoints, loanChoices, triggerClassName }: {
     listingId: string;
     bookTitle: string;
     bookMeta: string;
     ownerName: string;
     conditionNote: string | null;
+    /** The owner's non-money guarantee, shown at handover (28 Okt 2026). */
+    guarantee: string | null;
     meetingPoints: string[];
     loanChoices: number[];
     triggerClassName: string;
@@ -166,8 +168,16 @@ export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName,
                             Pemilik akan melihat nama tampilan Anda. Alamat rumah tidak pernah dibagikan.
                         </p>
 
+                        {guarantee && (
+                            <p className="rounded-lg border border-border px-3 py-2.5 text-sm">
+                                <span className="block text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Jaminan dari pemilik</span>
+                                {guarantee}
+                                <span className="mt-1 block text-xs text-muted-foreground">Cukup ditunjukkan saat serah terima. Jaminan tidak pernah berupa uang, dan Anda tidak perlu menyerahkan foto atau salinan identitas.</span>
+                            </p>
+                        )}
+
                         <ChoiceOption type="checkbox" checked={agreed} onChange={(event) => { setAgreed(event.target.checked); setError(""); }} className="items-start px-0">
-                            <span>Saya bersedia mengembalikan buku tepat waktu dan bertemu di tempat publik.</span>
+                            <span>Saya bersedia mengembalikan buku tepat waktu dan bertemu di tempat publik{guarantee ? ", serta memenuhi jaminan pemilik" : ""}.</span>
                         </ChoiceOption>
                         <FormAlert>{error}</FormAlert>
                     </form>

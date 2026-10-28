@@ -3,14 +3,19 @@ import { describe, expect, test } from "bun:test";
 import {
     actionBlocker,
     allowedActions,
+    DISPUTE_REVIEW_HOURS,
+    disputeDeadline,
     dueDateFrom,
+    guaranteeFromRules,
     loanDayChoices,
+    loanGroup,
     loanState,
     maxLoanDaysFromRules,
     meetingPointsOf,
     overdueDays,
     type LoanSnapshot,
 } from "../../src/features/borrowing/lifecycle";
+import { composeListingDetails, isMoneyGuarantee } from "../../src/features/book-listings/listing-draft";
 import { borrowRequestActionSchema, createBorrowRequestSchema } from "../../src/lib/validation/schemas/borrowing.schema";
 
 const now = new Date("2026-10-18T10:00:00Z");
@@ -25,6 +30,8 @@ const base: LoanSnapshot = {
     requesterReturnAt: null,
     lastReminderAt: null,
     extensionStatus: null,
+    ownerReplyRequestedAt: null,
+    requesterReplyRequestedAt: null,
 };
 const active = { ...base, requestStatus: "COMPLETED", borrowingStatus: "ACTIVE", dueAt: new Date(now.getTime() + 3 * day) };
 const overdue = { ...active, dueAt: new Date(now.getTime() - 2 * day - 1000) };
@@ -69,10 +76,34 @@ describe("who may do what (DEC-02)", () => {
         expect(actionBlocker({ ...overdue, lastReminderAt: new Date(now.getTime() - 25 * 3_600_000) }, "owner", "remind", now)).toBeNull();
     });
 
-    test("disputed and finished loans allow nothing", () => {
-        expect(allowedActions({ ...active, borrowingStatus: "DISPUTED" }, "owner", now)).toEqual([]);
+    test("a disputed loan only takes more details; finished loans allow nothing", () => {
+        expect(allowedActions({ ...active, borrowingStatus: "DISPUTED" }, "owner", now)).toEqual(["add_dispute_info"]);
+        expect(allowedActions({ ...active, borrowingStatus: "DISPUTED" }, "requester", now)).toEqual(["add_dispute_info"]);
         expect(allowedActions({ ...active, borrowingStatus: "RETURNED" }, "requester", now)).toEqual([]);
         expect(allowedActions({ ...base, requestStatus: "REJECTED" }, "requester", now)).toEqual([]);
+    });
+});
+
+describe("disputes and guarantees (28 Okt 2026)", () => {
+    test("an admin question puts the dispute under Perlu Tindakan for the asked party only", () => {
+        const disputed = { ...active, borrowingStatus: "DISPUTED" };
+        expect(loanGroup(disputed, "owner", now)).toBe("ongoing");
+        const asked = { ...disputed, requesterReplyRequestedAt: now };
+        expect(loanGroup(asked, "requester", now)).toBe("action");
+        expect(loanGroup(asked, "owner", now)).toBe("ongoing");
+    });
+
+    test("the decision target is 72 hours after the report", () => {
+        expect(disputeDeadline(now).getTime() - now.getTime()).toBe(DISPUTE_REVIEW_HOURS * 3_600_000);
+        expect(DISPUTE_REVIEW_HOURS).toBe(72);
+    });
+
+    test("the guarantee line round-trips through the listing rules and may not be money", () => {
+        const { borrowingRules } = composeListingDetails({ meetingPoints: ["Taman Suropati"], loanDays: 14, guarantee: "  Tunjukkan   kartu pelajar " });
+        expect(guaranteeFromRules(borrowingRules)).toBe("Tunjukkan kartu pelajar");
+        expect(guaranteeFromRules("Lama pinjam: 7 hari.")).toBeNull();
+        for (const money of ["Rp 50.000", "uang jaminan", "deposit 100rb", "transfer dulu", "50k", "dua juta"]) expect(isMoneyGuarantee(money)).toBe(true);
+        for (const fine of ["Tunjukkan kartu pelajar", "Kartu anggota perpustakaan", "Kenalan lewat komunitas"]) expect(isMoneyGuarantee(fine)).toBe(false);
     });
 });
 

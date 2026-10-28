@@ -6,7 +6,7 @@ import { borrowingIdSchema, resolveBorrowingDisputeSchema } from "@/lib/validati
 
 type RouteContext = { params: Promise<{ borrowingId: string }> };
 
-/** Settle a loan dispute as returned or lost; recorded in the loan history and `admin_audit_logs`. */
+/** Settle a loan dispute as returned or lost, with an optional consequence for one party; recorded in the loan history and `admin_audit_logs`. */
 export const PATCH = withApiHandler(async (request, context: RouteContext) => {
     const admin = await requireAdmin();
     await requireApiRateLimit({ key: createUserRateLimitKey("moderation-write", admin.id), ...RATE_LIMITS.WRITE });

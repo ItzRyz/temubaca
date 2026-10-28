@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, Hourglass, Inbox, MapPin, Search, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, Hourglass, Inbox, MapPin, Search, ShieldCheck, XCircle } from "lucide-react";
 import Link from "next/link";
 
 import { googleMapsUrl } from "@/features/places/places";
@@ -6,7 +6,7 @@ import type { LoanItem } from "@/lib/db/queries/borrowing";
 import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
 
-import { allowedActions, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
+import { allowedActions, disputeConsequenceLabels, disputeDeadline, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
 
 /** States in which the two still meet, to hand the book over or return it (TB-027). */
 const MEETING_STATES: LoanState[] = ["AWAITING_HANDOVER", "ACTIVE", "OVERDUE", "DISPUTED"];
@@ -133,9 +133,17 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                         <p className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">Permintaan Anda sudah terkirim. Statusnya berubah di sini saat pemilik menanggapi.</p>
                     )}
                     {loan.state === "DISPUTED" && (
-                        <p className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">
-                            Ditinjau pengelola TemuBaca ({loan.disputeReason}). Pinjaman terkunci sampai sengketa diputuskan.
-                        </p>
+                        <div className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">
+                            <p>Ditinjau pengelola TemuBaca ({loan.disputeReason}). Pinjaman terkunci sampai sengketa diputuskan.</p>
+                            {loan.disputedAt && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Target keputusan: {dateTimeFormatter.format(disputeDeadline(loan.disputedAt))}. Anda dapat menambah keterangan atau bukti kapan saja selama ditinjau.
+                                </p>
+                            )}
+                            {loan.disputeQuestion && (
+                                <p className="mt-2 rounded-md bg-[#fbecc4] px-2.5 py-2 text-[#5c3d00]"><span className="font-semibold">Pengelola menunggu jawaban Anda:</span> {loan.disputeQuestion}</p>
+                            )}
+                        </div>
                     )}
                     {loan.state === "OVERDUE" && loan.role === "requester" && loan.snapshot.lastReminderAt && (
                         <p className="mt-3 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
@@ -158,6 +166,12 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                     {(loan.state === "LOST" || loan.state === "RETURNED") && loan.resolutionNote && (
                         <p className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm">Keputusan pengelola: {loan.resolutionNote}</p>
                     )}
+                    {loan.consequence && (
+                        <p className={cn("mt-2 rounded-lg px-3 py-2.5 text-sm", loan.consequence.appliesToYou ? "bg-destructive/10 text-destructive" : "bg-[#f1efe6]")}>
+                            {loan.consequence.appliesToYou ? "Konsekuensi untuk Anda" : `Konsekuensi untuk ${loan.role === "owner" ? "peminjam" : "pemilik"}`}: {disputeConsequenceLabels[loan.consequence.type]}
+                            {loan.consequence.type === "BORROW_BLOCK" && loan.consequence.days ? ` selama ${loan.consequence.days} hari` : ""}.
+                        </p>
+                    )}
 
                     {loan.events.length > 0 && (
                         <details className="mt-3 text-xs">
@@ -176,6 +190,7 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
 
                     <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-3.5" /> {loan.meetingPoint ? `Titik temu: ${loan.meetingPoint}` : "Titik temu disepakati bersama"}</span>
+                        {loan.guarantee && <span className="flex items-center gap-1"><ShieldCheck aria-hidden="true" className="size-3.5" /> Jaminan non-uang: {loan.guarantee}</span>}
                         {loan.meetingPlace && MEETING_STATES.includes(loan.state) && (
                             <span className="flex items-center gap-3">
                                 <Link href={`/map?tempat=${loan.meetingPlace.id}`} className="font-semibold text-primary hover:underline">Lihat di Peta Literasi</Link>
@@ -204,6 +219,7 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                     hint={confirmationHint(loan)}
                     dueAt={loan.dueAt}
                     extensionDays={loan.extension?.days ?? null}
+                    disputeQuestion={loan.disputeQuestion}
                 />
             </div>
         </li>

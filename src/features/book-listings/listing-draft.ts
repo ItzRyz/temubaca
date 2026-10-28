@@ -19,14 +19,23 @@ export function addMeetingPoint(points: string[], value: string) {
 
 /**
  * Listings store one public location and free-text rules, so the dialog's structured fields are
- * folded into them: meeting points joined with " & ", the loan period and condition note as lines.
+ * folded into them: meeting points joined with " & ", the loan period, condition note, and guarantee as lines.
  */
-export function composeListingDetails(input: { meetingPoints: string[]; loanDays: number; conditionNote?: string }) {
+export function composeListingDetails(input: { meetingPoints: string[]; loanDays: number; conditionNote?: string; guarantee?: string }) {
     const lines = [`Lama pinjam: ${input.loanDays} hari.`];
     const note = input.conditionNote?.trim();
     if (note) lines.push(`Catatan kondisi: ${note}`);
+    const guarantee = input.guarantee?.trim().replace(/\s+/g, " ");
+    if (guarantee) lines.push(`Jaminan: ${guarantee}`);
     return {
         publicLocation: input.meetingPoints.join(" & ") || undefined,
         borrowingRules: lines.join("\n"),
     };
+}
+
+export const GUARANTEE_MAX_LENGTH = 120;
+
+/** DEC-02 keeps money off the platform, so a guarantee may not be cash, a deposit, or a transfer. */
+export function isMoneyGuarantee(value: string) {
+    return /\b(rp\.?|rupiah|uang|tunai|transfer|deposit|dp|ribu|juta|\d{2,}\s*(k|rb))\b/i.test(value);
 }

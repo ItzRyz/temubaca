@@ -2,8 +2,8 @@ import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ResolveDisputePanel } from "@/features/borrowing/components/resolve-dispute-panel";
-import { loanEventLabels as eventText } from "@/features/borrowing/lifecycle";
+import { AskDisputePanel, ResolveDisputePanel } from "@/features/borrowing/components/resolve-dispute-panel";
+import { disputeConsequenceLabels, DISPUTE_REVIEW_HOURS, disputeDeadline, loanEventLabels as eventText, type DisputeConsequence } from "@/features/borrowing/lifecycle";
 import { listBorrowEvents, listBorrowingDisputes } from "@/lib/db/queries/borrowing";
 import { cn } from "@/lib/utils";
 
@@ -24,13 +24,14 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
     const open = disputes.filter((item) => item.status === "DISPUTED");
     const resolved = disputes.filter((item) => item.status !== "DISPUTED");
     const visible = view === "open" ? open : resolved;
+    const now = new Date();
     const histories = new Map(await Promise.all(visible.map(async (item) => [item.requestId, await listBorrowEvents(item.requestId)] as const)));
 
     return (
         <main className="mx-auto w-full max-w-[1100px] px-4 py-8 sm:px-6">
             <h1 className="font-heading text-[28px] font-semibold text-primary">Sengketa Pinjam</h1>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                Masalah yang dilaporkan pemilik atau peminjam: buku rusak, hilang, atau tidak dikembalikan. Pinjaman terkunci sampai Anda memutuskan.
+                Masalah yang dilaporkan pemilik atau peminjam: buku rusak, hilang, atau tidak dikembalikan. Pinjaman terkunci sampai Anda memutuskan. Target keputusan {DISPUTE_REVIEW_HOURS} jam sejak dilaporkan; kedua pihak melihat target ini.
             </p>
 
             <nav aria-label="Status sengketa" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
@@ -61,6 +62,16 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
                                             <span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-2 py-0.5 font-semibold text-destructive"><XCircle aria-hidden="true" className="size-3.5" /> Dinyatakan hilang</span>
                                         )}
                                         Dilaporkan {item.disputedAt ? dateTime.format(item.disputedAt) : "-"} oleh {item.reporterName ?? "akun terhapus"} ({item.reportedByOwner ? "pemilik" : "peminjam"})
+                                        {item.status === "DISPUTED" && item.disputedAt && (disputeDeadline(item.disputedAt) < now ? (
+                                            <span className="rounded bg-destructive/10 px-2 py-0.5 font-semibold text-destructive">Lewat target {dateTime.format(disputeDeadline(item.disputedAt))}</span>
+                                        ) : (
+                                            <span>• Target {dateTime.format(disputeDeadline(item.disputedAt))}</span>
+                                        ))}
+                                        {item.status === "DISPUTED" && (item.ownerReplyRequestedAt || item.requesterReplyRequestedAt) && (
+                                            <span className="rounded bg-[#dfe6f5] px-2 py-0.5 font-semibold text-[#24365c]">
+                                                Menunggu jawaban {[item.ownerReplyRequestedAt && "pemilik", item.requesterReplyRequestedAt && "peminjam"].filter(Boolean).join(" & ")}
+                                            </span>
+                                        )}
                                     </p>
                                     <h2 className="mt-1.5 font-heading text-lg font-semibold">
                                         <Link href={`/books/${item.book.id}`} className="hover:underline">{item.book.title}</Link>
@@ -75,8 +86,14 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
                             {item.status !== "DISPUTED" && item.resolutionNote && (
                                 <p className="mt-3 text-sm"><span className="font-semibold">Keputusan {item.resolvedAt ? dateTime.format(item.resolvedAt) : ""}:</span> {item.resolutionNote}</p>
                             )}
+                            {item.status !== "DISPUTED" && item.consequence && item.consequence !== "NONE" && (
+                                <p className="mt-1 text-sm">
+                                    <span className="font-semibold">Konsekuensi:</span> {disputeConsequenceLabels[item.consequence as DisputeConsequence]}
+                                    {item.consequenceDays ? ` ${item.consequenceDays} hari` : ""} untuk {item.consequenceToOwner ? "pemilik" : "peminjam"}
+                                </p>
+                            )}
 
-                            <details className="mt-3 text-sm">
+                            <details className="mt-3 text-sm" open={(histories.get(item.requestId) ?? []).some((event) => event.type.startsWith("DISPUTE_INFO"))}>
                                 <summary className="cursor-pointer font-semibold text-primary">Riwayat pinjaman</summary>
                                 <ol className="mt-2 flex list-none flex-col gap-1.5 border-l border-border p-0 pl-4 text-xs text-muted-foreground">
                                     {(histories.get(item.requestId) ?? []).map((event) => (
@@ -88,7 +105,12 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
                                 </ol>
                             </details>
 
-                            {item.status === "DISPUTED" && <div className="mt-4"><ResolveDisputePanel borrowingId={item.borrowingId} /></div>}
+                            {item.status === "DISPUTED" && (
+                                <div className="mt-4 flex flex-col gap-3">
+                                    <AskDisputePanel borrowingId={item.borrowingId} />
+                                    <ResolveDisputePanel borrowingId={item.borrowingId} />
+                                </div>
+                            )}
                         </li>
                     ))}
                 </ul>

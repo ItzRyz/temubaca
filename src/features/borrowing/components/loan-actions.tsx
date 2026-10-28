@@ -10,14 +10,14 @@ import { sendLoanRequest } from "../client";
 import type { LoanAction, LoanRole } from "../lifecycle";
 import { RejectExtensionDialog, RequestExtensionDialog } from "./extension-dialogs";
 import { RejectRequestDialog } from "./reject-request-dialog";
-import { ReportProblemDialog } from "./report-problem-dialog";
+import { AddDisputeInfoDialog, ReportProblemDialog } from "./report-problem-dialog";
 
 const primary = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60";
 const outline = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-60";
 const danger = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-destructive bg-card px-4 text-sm font-semibold text-destructive hover:bg-destructive/5 disabled:opacity-60";
 
 /** Buttons for one loan card; the server re-checks every action against the DEC-02 rules. */
-export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, otherName, summary, hint, dueAt = null, extensionDays = null }: {
+export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, otherName, summary, hint, dueAt = null, extensionDays = null, disputeQuestion = null }: {
     role: LoanRole;
     requestId: string;
     borrowingId: string | null;
@@ -28,6 +28,7 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
     hint?: string;
     dueAt?: Date | null;
     extensionDays?: number | null;
+    disputeQuestion?: string | null;
 }) {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
@@ -88,6 +89,9 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
             )}
             {can("report_problem") && borrowingId && (
                 <ReportProblemDialog borrowingId={borrowingId} bookTitle={bookTitle} summary={summary} triggerClassName={outline} />
+            )}
+            {can("add_dispute_info") && borrowingId && (
+                <AddDisputeInfoDialog borrowingId={borrowingId} bookTitle={bookTitle} summary={summary} question={disputeQuestion} triggerClassName={disputeQuestion ? primary : outline} />
             )}
             {can("cancel") && (confirmingCancel ? (
                 <div role="group" aria-label="Konfirmasi pembatalan" className="rounded-lg border border-destructive/40 p-2 text-xs">

@@ -9,7 +9,7 @@ import { ChoiceOption, Field, FormAlert, Select, Switch, TextInput } from "@/com
 import { regionByCode } from "@/features/regions/regions";
 import { cn } from "@/lib/utils";
 
-import { addMeetingPoint, composeListingDetails, conditionChoices, loanDayOptions, MAX_MEETING_POINTS } from "../listing-draft";
+import { addMeetingPoint, composeListingDetails, conditionChoices, GUARANTEE_MAX_LENGTH, isMoneyGuarantee, loanDayOptions, MAX_MEETING_POINTS } from "../listing-draft";
 
 type LocalBook = { id: string; title: string; authors: string[]; publishedAt: string | null; publisher: string | null };
 type ExternalBook = { provider: "OPEN_LIBRARY" | "GOOGLE_BOOKS"; providerId: string; title: string; authors: string[]; publishedAt?: string; publisher?: string; localBookId: string | null };
@@ -48,6 +48,7 @@ export function AddBookDialog() {
 
     const [condition, setCondition] = useState<(typeof conditionChoices)[number]["value"]>("LIKE_NEW");
     const [conditionNote, setConditionNote] = useState("");
+    const [guarantee, setGuarantee] = useState("");
     const [pointDraft, setPointDraft] = useState("");
     const [meetingPoints, setMeetingPoints] = useState<string[]>([]);
     // Meeting point name -> Peta Literasi place id, for points picked from the map (TB-027).
@@ -192,11 +193,15 @@ export function AddBookDialog() {
             setError("Tambahkan minimal satu titik temu publik.");
             return;
         }
+        if (isMoneyGuarantee(guarantee)) {
+            setError("Jaminan tidak boleh berupa uang. Pakai jaminan yang cukup ditunjukkan, mis. kartu pelajar.");
+            return;
+        }
         setPending(true);
         setError(null);
         try {
             const bookId = await resolveBookId();
-            const details = composeListingDetails({ meetingPoints, loanDays, conditionNote });
+            const details = composeListingDetails({ meetingPoints, loanDays, conditionNote, guarantee });
             const meetingPlaceIds = meetingPoints.flatMap((point) => (mapPlaces[point] ? [mapPlaces[point]] : []));
             const result = await postJson("/api/book-listings", { bookId, condition, availability: offered ? "AVAILABLE" : "UNAVAILABLE", ...details, meetingPlaceIds });
             if (!result.ok) {
@@ -400,6 +405,9 @@ export function AddBookDialog() {
                                         </div>
                                     </div>
                                 </div>
+                                <Field label="Jaminan non-uang (opsional)" hint="Syarat yang cukup ditunjukkan saat serah terima, mis. kartu pelajar atau kartu anggota perpustakaan. Bukan uang, dan jangan minta foto atau salinan identitas.">
+                                    {(control) => <TextInput {...control} value={guarantee} onChange={(event) => setGuarantee(event.target.value)} maxLength={GUARANTEE_MAX_LENGTH} placeholder="mis. Tunjukkan kartu pelajar saat serah terima" />}
+                                </Field>
                                 <p className="text-xs text-muted-foreground">Matikan penawaran untuk menyimpan buku sebagai arsip pribadi. Buku tidak muncul pada hasil pencarian publik.</p>
                             </section>
                         )}

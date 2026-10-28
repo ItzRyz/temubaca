@@ -141,6 +141,13 @@
       "when": 1793033126549,
       "tag": "0019_community_logo",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793143394606,
+      "tag": "0020_dispute_followup",
+      "breakpoints": true
     }
   ]
 }

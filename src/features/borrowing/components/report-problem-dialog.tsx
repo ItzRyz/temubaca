@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, Info, MessageSquarePlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 
@@ -8,9 +8,10 @@ import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
 import { problemReasons } from "../lifecycle";
-import { dialogDangerButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
+import { dialogDangerButton, dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
 
 const DETAILS_MAX = 500;
+const INFO_MAX = 1_000;
 
 /** "Laporkan Masalah" on an active loan: opens a dispute that an admin settles (DEC-02). */
 export function ReportProblemDialog({ borrowingId, bookTitle, summary, triggerClassName }: {
@@ -84,6 +85,74 @@ export function ReportProblemDialog({ borrowingId, bookTitle, summary, triggerCl
                         <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
                         Pinjaman terkunci selama ditinjau. Pengelola memutuskan buku dinyatakan dikembalikan atau hilang; tidak ada ganti rugi uang di TemuBaca.
                     </p>
+                    <FormAlert>{error}</FormAlert>
+                </form>
+            </LoanDialog>
+        </>
+    );
+}
+
+/** "Tambah Keterangan" while a dispute is reviewed: answers the admin's question or adds new details. */
+export function AddDisputeInfoDialog({ borrowingId, bookTitle, summary, question, triggerClassName }: {
+    borrowingId: string;
+    bookTitle: string;
+    summary: string;
+    /** The admin's open question to this party, if any. */
+    question: string | null;
+    triggerClassName: string;
+}) {
+    const dialogRef = useRef<HTMLDialogElement>(null);
+    const router = useRouter();
+    const [pending, startTransition] = useTransition();
+    const [details, setDetails] = useState("");
+    const [error, setError] = useState("");
+
+    function submit(event: FormEvent) {
+        event.preventDefault();
+        if (details.trim().length < 10) return setError("Tulis keterangan minimal 10 karakter.");
+        setError("");
+        startTransition(async () => {
+            const result = await sendLoanRequest(`/api/borrowings/${borrowingId}`, "PATCH", { action: "add_dispute_info", details });
+            if (!result.ok) return setError(result.message);
+            setDetails("");
+            dialogRef.current?.close();
+            router.refresh();
+        });
+    }
+
+    return (
+        <>
+            <button type="button" onClick={() => dialogRef.current?.showModal()} className={triggerClassName}>
+                <MessageSquarePlus aria-hidden="true" className="size-4" /> {question ? "Jawab Pengelola" : "Tambah Keterangan"}
+            </button>
+            <LoanDialog
+                ref={dialogRef}
+                title={question ? "Jawab Pengelola" : "Tambah Keterangan"}
+                subtitle="Keterangan Anda terlihat oleh pengelola dan pihak lain di riwayat pinjaman."
+                onClose={() => dialogRef.current?.close()}
+                footerNote="Tercatat di riwayat peminjaman."
+                actions={(
+                    <>
+                        <button type="button" onClick={() => dialogRef.current?.close()} className={dialogSecondaryButton}>Batal</button>
+                        <button type="submit" form={`dispute-info-${borrowingId}`} disabled={pending} className={dialogPrimaryButton}>
+                            {pending ? "Mengirim..." : "Kirim Keterangan"}
+                        </button>
+                    </>
+                )}
+            >
+                <form id={`dispute-info-${borrowingId}`} onSubmit={submit} noValidate className="flex flex-col gap-5">
+                    <LoanBookCard title={bookTitle}>
+                        <p className="text-xs text-muted-foreground">{summary}</p>
+                    </LoanBookCard>
+                    {question && (
+                        <p className="rounded-lg bg-[#fbecc4] px-3 py-2.5 text-sm text-[#5c3d00]">
+                            <span className="block text-[11px] font-semibold tracking-[0.06em] uppercase">Pertanyaan pengelola</span>
+                            {question}
+                        </p>
+                    )}
+                    <Field label="Keterangan" required hint={`Kronologi, waktu, atau bukti yang bisa dicek (mis. tautan foto). Jangan cantumkan alamat atau nomor telepon. ${details.length} / ${INFO_MAX}`}>
+                        {(control) => <TextArea {...control} value={details} maxLength={INFO_MAX} onChange={(event) => setDetails(event.target.value)} />}
+                    </Field>
                     <FormAlert>{error}</FormAlert>
                 </form>
             </LoanDialog>
