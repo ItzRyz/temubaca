@@ -357,7 +357,7 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
   - Amba, Ayat-Ayat Api, Ayat-Ayat Cinta, Cantik Itu Luka, Hujan, dan Hujan Bulan Juni tidak cocok ISBN-nya.
   - Pengambilan berhenti dua kali karena JAKLITERA menjawab 429, padahal jedanya 8 detik. Sisa judul tidak dipaksakan dan bisa dicatat admin satu per satu di `/admin/libraries`.
   - OPAC Perpusnas menolak klien otomatis (403) dan tidak dicoba diakali.
-- **Production:** commit `e5d218b` ter-deploy. Migrasi 0023 (hapus kolom OneSearch) **belum** diterapkan ke production karena izin alat ditolak. Kode yang berjalan tidak lagi membaca kolom itu, jadi kolom sisa tidak berdampak. Terapkan dengan `bun scripts/migrate-dev.ts --cloud --apply` (ekspor `DATABASE_SSL_CA` dulu).
+- **Production:** commit `e5d218b` ter-deploy. Migrasi 0023 (hapus kolom OneSearch) diterapkan ke production setelah deploy, lewat `scripts/migrate-dev.ts --cloud --apply` (24 migrasi tercatat). `/libraries`, `/admin/libraries`, `/books`, dan halaman Laskar Pelangi menjawab 200.
 - **Belum:** pustakawan sungguhan mendaftar lalu ditunjuk sebagai pengelola, pengaktifan pengajuan, dan uji alur lengkap dengan akun asli di production.
 
 ## Notifikasi akun dan tindak lanjut sengketa — 2026-10-28
