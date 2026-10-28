@@ -323,6 +323,18 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Koleksi perpustakaan dari katalog JAKLITERA — 2026-10-29
+
+- **Pengecekan:** 275 buku ber-ISBN dicek ke katalog JAKLITERA (`libraries:jaklitera --collect`, jeda 10 detik, mundur saat 429). 39 cocok ISBN-nya.
+- **Ditulis ke production** atas persetujuan pemilik repo: 40 catatan koleksi `CURATED` di 4 perpustakaan, yaitu Cikini, PDS HB Jassin, Nyi Ageng Serang, dan Gandaria Tengah.
+  - Status "Tercatat di koleksi", dengan tautan rekaman katalog, nomor panggil, dan jumlah eksemplar "menurut katalog".
+  - Tiga catatan manual sebelumnya di Cikini diperbarui, tidak digandakan.
+- **Tidak ditulis:**
+  - Tanjung Duren (5 rekaman): belum ada di Peta Literasi.
+  - Petojo Enclek (2 rekaman): belum terbukti sama dengan perpustakaan di peta.
+- **Hasil pengecekan** disimpan di luar repo (`~/temubaca-data/`), karena repo publik.
+- **Di situs:** `/books?availability=perpustakaan` menampilkan 36 buku.
+
 ## Filter Jelajahi sebagai dropdown — 2026-10-29
 
 - **Permintaan pemilik repo:** filter `/books` tidak lagi di panel kiri, melainkan dropdown di atas hasil, langsung diterapkan saat dipilih.
