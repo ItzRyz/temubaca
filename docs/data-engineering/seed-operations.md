@@ -33,7 +33,7 @@ Urutan wajib:
 | Halaman | `/`, `/books`, `/communities`, `/events`, `/merchandise`, `/map`, detail komunitas: 200; `/map` 32 pin komunitas + 52 pin acara; `/api/places` 200 |
 | Ukuran DB | 21 MB (kuota Free 500 MB) |
 
-**Tabel tambahan, 28 Okt 2026:** `libraries` (15) dan `book_accesses` ditambahkan ke seed yang sudah ada tanpa cleanup (lihat seed-strategy, Idempotensi). Di DB lokal: dry run menunjukkan sidik jari baris lama sama, `--apply` menulis 1.091 baris baru dan 0 diubah, 25/25 pemeriksaan SQL lulus, run ulang 0 baris baru.
+**Tabel tambahan, 28 Okt 2026:** `libraries` (15) dan `book_accesses` ditambahkan ke seed yang sudah ada tanpa cleanup (lihat seed-strategy, Idempotensi). Di DB lokal: dry run menunjukkan sidik jari baris lama sama, `--apply` menulis 1.091 baris baru dan 0 diubah, 25/25 pemeriksaan SQL lulus, run ulang 0 baris baru. **Production, 28 Okt 2026:** dry run pertama ditolak karena pengguna asli menambah 2 buku setelah seed dibuat, sehingga sidik jari referensi berubah. Seeder kini membangun ulang dari referensi saat seed dibuat: data asli yang ditambahkan setelahnya diabaikan, asalkan ada batas waktu yang menghasilkan sidik jari tersimpan persis (`referenceAsSeeded`). Hasil: dataset lama terbukti identik, `--apply` menulis 1.027 baris baru (15 `libraries`, 1.012 `book_accesses`) dalam 21,7 s, 0 diubah, 25/25 pemeriksaan lulus, dan run ulang 0 baris baru. Data asli tidak tersentuh (6 akun, 332 buku, 6 listing); ukuran DB 22 MB. Migrasi 0020 diterapkan sebelumnya pada hari yang sama.
 
 Dampak lanjutan: snapshot ML (`bun run ml:snapshot`) berikutnya memuat buku dan komunitas seed, sehingga rekomendasi untuk pengguna asli bisa menyarankan data sintetis.
 

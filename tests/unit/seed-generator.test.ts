@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 
+import { referenceAsSeeded, referenceFingerprint } from "../../scripts/seed/apply";
 import { SEED_PROFILES } from "../../scripts/seed/config";
 import { countRows, generateSeed, type RefPlace } from "../../scripts/seed/generate";
 import { isSeedId, seedId } from "../../scripts/seed/ids";
@@ -113,5 +114,29 @@ describe("seed generator", () => {
         expect(counts.user_profiles).toBe(SEED_PROFILES.small.users);
         expect(counts.books).toBe(SEED_PROFILES.small.books);
         expect(counts.book_listings).toBe(SEED_PROFILES.small.listings);
+    });
+});
+
+describe("reference as seeded", () => {
+    const at = (day: number) => new Date(Date.UTC(2026, 9, day));
+    const reference = {
+        places: places.map((place) => ({ ...place, createdAt: at(1) })),
+        books: [
+            { id: "00000000-0000-4000-8000-0000000000b1", title: "Lama", categories: [], createdAt: at(2) },
+            { id: "00000000-0000-4000-8000-0000000000b2", title: "Lama juga", categories: [], createdAt: at(3) },
+        ],
+    };
+    const stored = referenceFingerprint(reference);
+
+    test("rows added after the seed are left out, so the stored fingerprint is met exactly", () => {
+        const grown = { ...reference, books: [...reference.books, { id: "00000000-0000-4000-8000-0000000000b3", title: "Baru", categories: [], createdAt: at(28) }] };
+        expect(referenceFingerprint(grown)).not.toBe(stored);
+        const rebuilt = referenceAsSeeded(grown, stored);
+        expect(rebuilt?.books.map((book) => book.title)).toEqual(["Lama", "Lama juga"]);
+        expect(referenceFingerprint(rebuilt!)).toBe(stored);
+    });
+
+    test("a removed reference row cannot be recovered", () => {
+        expect(referenceAsSeeded({ ...reference, books: reference.books.slice(1) }, stored)).toBeNull();
     });
 });

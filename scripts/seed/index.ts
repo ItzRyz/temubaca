@@ -22,7 +22,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../src/lib/db/schema";
 import { scriptDatabaseUrl, scriptPool, useCloud } from "../load-env";
 
-import { applyRows, countSeedRows, deleteSeedRows, findCleanupBlockers, readReference, readSeedMeta, referenceFingerprint, writeSeedMeta } from "./apply";
+import { applyRows, countSeedRows, deleteSeedRows, findCleanupBlockers, readReference, readSeedMeta, referenceAsSeeded, referenceFingerprint, writeSeedMeta } from "./apply";
 import { SEED_VERSION, seedProfile } from "./config";
 import { countRows, generateSeed } from "./generate";
 import { SEED_EXTENSION_TABLES, SEED_TABLES } from "./ids";
@@ -74,8 +74,12 @@ async function main() {
         if (mode === "cleanup") return await cleanup(db, apply);
 
         const stored = await readSeedMeta(db);
-        const reference = await readReference(db);
+        const current = await readReference(db);
+        // Real books or places added after the seed are left out, so the seed is rebuilt from what it was made with.
+        const asSeeded = stored && stored.reference !== referenceFingerprint(current) ? referenceAsSeeded(current, stored.reference) : null;
+        const reference = asSeeded ?? current;
         const fingerprint = referenceFingerprint(reference);
+        if (asSeeded) console.log(`Referensi bertambah sejak seed dibuat (${current.places.length - asSeeded.places.length} tempat, ${current.books.length - asSeeded.books.length} buku asli baru); seed dibangun dari referensi saat itu.`);
         if (stored && (stored.profile !== profile.name || stored.seed !== profile.seed || stored.version !== SEED_VERSION)) {
             throw new Error(`DB sudah berisi seed lain (profil ${stored.profile}, seed ${stored.seed}, versi ${stored.version}). Jalankan --cleanup --apply dulu.`);
         }

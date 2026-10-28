@@ -27,16 +27,30 @@ const tables: Record<SeedTable, PgTable & { id: AnyPgColumn }> = {
 const notSeed = (column: { getSQL(): unknown }) => sql`${column}::text !~ ${SEED_ID_PATTERN}`;
 
 /** Real (non-seed) rows the dataset builds on: curated map places and catalog books. */
-export async function readReference(db: AnyDb): Promise<{ places: RefPlace[]; books: RefBook[] }> {
+export async function readReference(db: AnyDb): Promise<{ places: (RefPlace & { createdAt: Date })[]; books: RefBook[] }> {
     const places = await db
-        .select({ id: schema.places.id, type: schema.places.type, name: schema.places.name, addressPublic: schema.places.addressPublic, regionCode: schema.places.regionCode, latitude: schema.places.latitude, longitude: schema.places.longitude })
+        .select({ id: schema.places.id, type: schema.places.type, name: schema.places.name, addressPublic: schema.places.addressPublic, regionCode: schema.places.regionCode, latitude: schema.places.latitude, longitude: schema.places.longitude, createdAt: schema.places.createdAt })
         .from(schema.places)
         .where(and(inArray(schema.places.type, ["LIBRARY", "MEETING_POINT"]), isNull(schema.places.hiddenAt), notSeed(schema.places.id)));
     const books = await db
         .select({ id: schema.books.id, title: schema.books.title, categories: schema.books.categories, createdAt: schema.books.createdAt })
         .from(schema.books)
         .where(notSeed(schema.books.id));
-    return { places: places.map((place) => ({ ...place, latitude: Number(place.latitude), longitude: Number(place.longitude) })), books };
+    return { places: places.map(({ createdAt, ...place }) => ({ ...place, latitude: Number(place.latitude), longitude: Number(place.longitude), createdAt })), books };
+}
+
+/**
+ * The reference a stored seed was built from, when real rows were added after it (the catalog keeps
+ * growing): the rows created up to some moment whose fingerprint is exactly the stored one. Null when
+ * no such moment exists, e.g. a reference place was hidden or removed.
+ */
+export function referenceAsSeeded<T extends { places: (RefPlace & { createdAt: Date })[]; books: RefBook[] }>(reference: T, stored: string): T | null {
+    const times = [...new Set([...reference.places, ...reference.books].map((row) => row.createdAt.getTime()))].sort((a, b) => b - a);
+    for (const cutoff of times) {
+        const subset = { ...reference, places: reference.places.filter((row) => row.createdAt.getTime() <= cutoff), books: reference.books.filter((row) => row.createdAt.getTime() <= cutoff) };
+        if (referenceFingerprint(subset) === stored) return subset;
+    }
+    return null;
 }
 
 /** Fingerprint of the reference rows: a re-run must see the same ones to rebuild the same dataset. */
