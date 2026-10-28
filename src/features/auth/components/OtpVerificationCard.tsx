@@ -152,7 +152,7 @@ export function OtpVerificationCard({ email, purpose, initialResendIn }: OtpVeri
                 <span className="flex size-10 items-center justify-center rounded-full bg-[#e7efe8] text-primary">
                     <Mail aria-hidden="true" className="size-4" />
                 </span>
-                <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">Cek Kotak Masuk Kamu</h2>
+                <h2 className="mt-3 font-heading text-xl leading-[30px] font-semibold text-[#1f2924]">Cek Kotak Masuk/Spam Kamu</h2>
                 <p className="mt-1 text-xs leading-[18px] text-muted-foreground">
                     Kami telah mengirimkan {OTP_LENGTH} digit kode ke <span className="font-semibold break-all text-primary">{email}</span>.
                     <br />
