@@ -9,6 +9,7 @@ import { Field, FormAlert, TextArea } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 import { decisionRequiresNote, type CommunityReviewDecision } from "../community-review";
+import { notify } from "@/lib/toast";
 
 const decisionUi: Record<CommunityReviewDecision, { label: string; icon: LucideIcon; tone: "primary" | "danger" }> = {
     APPROVE: { label: "Setujui Verifikasi", icon: Check, tone: "primary" },
@@ -55,7 +56,7 @@ export function CommunityDecisionPanel({ communityId, decisions, nextHref = revi
                 setMessage({ tone: "error", text: payload.error?.message ?? "Keputusan belum dapat disimpan." });
                 return;
             }
-            setMessage({ tone: "ok", text: "Keputusan disimpan dan dicatat di jejak audit." });
+            notify.success("Keputusan disimpan dan dicatat di jejak audit.");
             setNote("");
             // The community now belongs to another status filter; follow it so the result stays visible.
             const nextStatus = payload.data?.status;

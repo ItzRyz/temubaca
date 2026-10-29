@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils";
+import { notify } from "@/lib/toast";
 
 type SyncResponse = {
     success?: boolean;
@@ -42,7 +43,7 @@ export function CatalogSyncButton({ bookId, label = "Sinkronkan Ulang", variant 
                 setMessage({ tone: "error", text: note ?? "Sinkronisasi gagal." });
             } else {
                 const changed = changedFields.length ? `Diperbarui: ${changedFields.map((field) => fieldLabels[field] ?? field).join(", ")}.` : "Tidak ada perubahan data.";
-                setMessage({ tone: "ok", text: note ? `${changed} ${note}` : changed });
+                notify.success(note ? `${changed} ${note}` : changed);
             }
             router.refresh();
         } catch {

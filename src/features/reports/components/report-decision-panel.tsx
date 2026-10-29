@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 
 import { Field, FormAlert, TextArea } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 type Decision = "REVIEWING" | "REJECTED" | "RESOLVED";
 
@@ -49,7 +50,7 @@ export function ReportDecisionPanel({ reportIds, initialOutcome, itemKey }: { re
                 setMessage({ tone: "error", text: payload.error?.message ?? "Keputusan belum dapat disimpan." });
                 return;
             }
-            setMessage({ tone: "ok", text: `Keputusan diterapkan ke ${payload.data?.updated ?? reportIds.length} laporan.` });
+            notify.success(`Keputusan diterapkan ke ${payload.data?.updated ?? reportIds.length} laporan.`);
             // Closed reports move to another status filter; follow them so the result stays visible.
             router.replace(`/moderation/reports?view=${viewForDecision[decision]}&item=${encodeURIComponent(itemKey)}`, { scroll: false });
         } catch {

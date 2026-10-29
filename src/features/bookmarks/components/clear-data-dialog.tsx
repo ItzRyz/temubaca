@@ -7,6 +7,7 @@ import { useId, useRef, useState, useTransition } from "react";
 import { FormAlert } from "@/components/ui/form";
 
 import { clearMyBookmarksAndInterests } from "../actions";
+import { notify } from "@/lib/toast";
 
 /** Confirmation dialog from Figma 209:1097; the account and the reader's own listings are untouched. */
 export function ClearDataDialog({ bookmarkCount, interestCount }: { bookmarkCount: number; interestCount: number }) {
@@ -33,6 +34,7 @@ export function ClearDataDialog({ bookmarkCount, interestCount }: { bookmarkCoun
             }
             dialogRef.current?.close();
             setDone(`${result.bookmarks} bookmark dan ${result.interests} minat telah dihapus.`);
+            notify.success("Bookmark dan minat dihapus.");
             router.refresh();
         });
     }

@@ -130,6 +130,19 @@
   }
   html {
     @apply font-sans;
+    /* In-page jumps (e.g. "Lihat Cara Membaca") land below the sticky header, which wraps to two rows on phones. */
+    scroll-padding-top: 8.5rem;
+  }
+  @media (min-width: 48rem) {
+    html {
+      scroll-padding-top: 6rem;
+    }
+  }
+  /* Smooth in-page scrolling (29 Okt 2026); route changes jump, via data-scroll-behavior on <html>. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading

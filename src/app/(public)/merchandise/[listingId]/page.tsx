@@ -7,7 +7,7 @@ import { cache } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { findPublicMerchandise, listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { uuidSchema } from "@/lib/validation/common";
-import { colorFor, initialsOf } from "@/features/communities/components/community-card";
+import { CommunityAvatar } from "@/features/communities/components/community-card";
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
 import { MerchandiseGallery } from "@/features/merchandise/components/merchandise-gallery";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
@@ -94,20 +94,26 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
 
                 <div className="flex flex-col gap-6">
                     <section className="rounded-2xl border border-border bg-card p-5">
-                        <Link href={communityHref} className="flex items-center gap-3 hover:underline">
-                            <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg font-heading text-sm text-white ${colorFor(listing.communityId)}`}>
-                                {initialsOf(listing.communityName)}
-                            </span>
-                            <span>
-                                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                                    {listing.communityName}
-                                    <BadgeCheck aria-label="Terverifikasi" className="size-4 text-primary" />
+                        <div className="flex items-start justify-between gap-3">
+                            <Link href={communityHref} className="flex min-w-0 items-center gap-3 hover:underline">
+                                <CommunityAvatar community={{ id: listing.communityId, name: listing.communityName, logoPath: listing.communityLogoPath }} className="size-10 shrink-0 rounded-lg text-sm" />
+                                <span>
+                                    <span className="flex items-center gap-1.5 text-sm font-semibold">
+                                        {listing.communityName}
+                                        <BadgeCheck aria-label="Terverifikasi" className="size-4 text-primary" />
+                                    </span>
+                                    {listing.communityLocation && (
+                                        <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="size-3" /> {listing.communityLocation}</span>
+                                    )}
                                 </span>
-                                {listing.communityLocation && (
-                                    <span className="flex items-center gap-1 text-xs text-muted-foreground"><MapPin aria-hidden="true" className="size-3" /> {listing.communityLocation}</span>
-                                )}
-                            </span>
-                        </Link>
+                            </Link>
+                            {/* Share and report as icons at the top of the card (owner's request 29 Okt 2026). */}
+                            <div className="flex shrink-0 items-center gap-1">
+                                <ShareButton title={listing.title} iconOnly className="flex size-10 items-center justify-center rounded-lg border border-border text-foreground/80 hover:bg-muted" />
+                                <ReportForm targetType="MERCHANDISE_LISTING" targetId={listing.id} targetName={listing.title} isAuthenticated={user !== null} iconOnly
+                                    triggerClassName="flex size-10 items-center justify-center rounded-lg border border-border text-foreground/80 hover:bg-muted hover:text-destructive" />
+                            </div>
+                        </div>
                         <p className={`mt-4 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${availabilityBadge[listing.availability]}`}>
                             {merchandiseAvailabilityLabels[listing.availability]}
                         </p>
@@ -127,10 +133,6 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                                 <p className="mt-1 text-[11px] text-muted-foreground">Tanyakan ketersediaan varian ke komunitas.</p>
                             </div>
                         )}
-                        <div className="mt-4 flex items-center justify-between">
-                            <ShareButton title={listing.title} className="h-9 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" />
-                        </div>
-                        <ReportForm targetType="MERCHANDISE_LISTING" targetId={listing.id} targetName={listing.title} isAuthenticated={user !== null} />
                     </section>
 
                     <section aria-labelledby="how-to-get-title" className="rounded-2xl border border-border bg-card p-5">
@@ -159,7 +161,7 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
                                 <ul className="mt-4 flex list-none flex-col gap-2 p-0">
                                     {contacts.map((contact) => (
                                         <li key={contact.kind}>
-                                            <a href={contact.href} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer nofollow"
+                                            <a href={contact.href} target="_blank" rel="noopener noreferrer nofollow"
                                                 className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border px-3 text-sm hover:bg-muted">
                                                 <span className="font-semibold">{contact.label}</span> <span className="truncate text-muted-foreground">{contact.value}</span>
                                             </a>

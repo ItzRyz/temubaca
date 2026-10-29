@@ -25,7 +25,8 @@ export async function cleanE2eData() {
                 [users, listings],
             )).rows.map((row) => row.id as string);
             await client.query(`delete from borrow_events where "requestId" = any($1::uuid[])`, [requests]);
-            await client.query(`delete from book_accesses where "requestId" = any($1::uuid[])`, [requests]);
+            // Library access requests (TB-023) belong to the reader, not to a borrow request.
+            await client.query(`delete from book_accesses where "requesterId" = any($1::uuid[])`, [users]);
             await client.query(`delete from borrowings where "requestId" = any($1::uuid[])`, [requests]);
             await client.query(`delete from borrow_requests where id = any($1::uuid[])`, [requests]);
             await client.query(`delete from listing_appeals where "listingId" = any($1::uuid[])`, [listings]);

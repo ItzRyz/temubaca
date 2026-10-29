@@ -7,6 +7,7 @@ import { useId, useState, type ReactNode } from "react";
 import { FormAlert, Select, Switch } from "@/components/ui/form";
 
 import { staleDayOptions, type CatalogSettings } from "../catalog-settings";
+import { notify } from "@/lib/toast";
 
 function Row({ label, description, labelId, children }: { label: string; description: string; labelId: string; children: ReactNode }) {
     return (
@@ -50,7 +51,7 @@ export function CatalogSettingsForm({ initial }: { initial: CatalogSettings }) {
                 setMessage({ tone: "error", text: payload?.error?.message ?? "Pengaturan belum dapat disimpan." });
                 return;
             }
-            setMessage({ tone: "ok", text: "Pengaturan disimpan dan tercatat di jejak audit." });
+            notify.success("Pengaturan disimpan dan tercatat di jejak audit.");
             router.refresh();
         } catch {
             setMessage({ tone: "error", text: "Koneksi terputus. Coba lagi." });

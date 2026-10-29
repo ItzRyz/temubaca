@@ -10,6 +10,7 @@ import { sendLoanRequest } from "@/features/borrowing/client";
 import { dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "@/features/borrowing/components/loan-dialog";
 
 import { ACCESS_MESSAGE_MAX } from "../access";
+import { notify } from "@/lib/toast";
 
 /** "Ajukan Akses" on a library that holds the book and accepts requests through TemuBaca (TB-023). */
 export function AccessRequestDialog({ libraryId, libraryName, bookId, bookTitle, accessRules, pickupDays, triggerClassName }: {
@@ -40,7 +41,10 @@ export function AccessRequestDialog({ libraryId, libraryName, bookId, bookTitle,
         setError("");
         startTransition(async () => {
             const result = await sendLoanRequest("/api/book-accesses", "POST", { libraryId, bookId, message, agreed: true });
-            if (result.ok) setSent(true);
+            if (result.ok) {
+                setSent(true);
+                notify.success("Pengajuan dikirim ke perpustakaan.");
+            }
             else setError(result.message);
         });
     }

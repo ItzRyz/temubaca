@@ -4,6 +4,7 @@ import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { notify } from "@/lib/toast";
 
 /** Add a provider record to TemuBaca, then open its book page so the reader can list a copy. */
 export function ImportBookButton({ provider, providerId, title, isAuthenticated, returnTo }: {
@@ -39,6 +40,7 @@ export function ImportBookButton({ provider, providerId, title, isAuthenticated,
                 setError(response.status === 429 ? "Terlalu banyak penambahan. Tunggu sebentar." : payload?.error?.message ?? "Buku belum dapat ditambahkan.");
                 return;
             }
+            notify.success("Buku ditambahkan ke katalog.");
             router.push(`/books/${payload.data.bookId}`);
         } catch {
             setError("Koneksi terputus. Coba lagi.");

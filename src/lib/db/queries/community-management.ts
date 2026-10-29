@@ -51,7 +51,7 @@ export async function listManagedCommunities(userId: string) {
         .from(communityMemberships)
         .where(and(eq(communityMemberships.userId, userId), eq(communityMemberships.role, "MANAGER"), eq(communityMemberships.status, "ACTIVE")));
     const rows = await db
-        .select({ id: communities.id, name: communities.name, status: communities.status, ownerId: communities.ownerId, publicLocation: communities.publicLocation, createdAt: communities.createdAt })
+        .select({ id: communities.id, name: communities.name, logoPath: communities.logoPath, status: communities.status, ownerId: communities.ownerId, publicLocation: communities.publicLocation, createdAt: communities.createdAt })
         .from(communities)
         .where(or(eq(communities.ownerId, userId), inArray(communities.id, managed)))
         .orderBy(desc(communities.createdAt));
@@ -99,7 +99,13 @@ export async function createCommunityApplication(ownerId: string, input: Communi
 export async function updateCommunityProfile(communityId: string, input: CommunityProfileInput) {
     const [community] = await db
         .update(communities)
-        .set({ ...input, updatedAt: new Date() })
+        .set({
+            ...input,
+            // A new Instagram account drops the cached follower count of the old one.
+            instagramFollowers: sql`case when ${communities.instagramHandle} is not distinct from ${input.instagramHandle} then ${communities.instagramFollowers} end`,
+            instagramCheckedAt: sql`case when ${communities.instagramHandle} is not distinct from ${input.instagramHandle} then ${communities.instagramCheckedAt} end`,
+            updatedAt: new Date(),
+        })
         .where(and(eq(communities.id, communityId), ne(communities.status, "SUSPENDED")))
         .returning({ id: communities.id });
     if (!community) throw new ConflictError("Profil komunitas yang ditangguhkan tidak dapat diubah.");
@@ -112,17 +118,18 @@ export async function updateCommunityProfile(communityId: string, input: Communi
  * Sets or clears the community logo (TB-030) and removes the replaced file. Returns the new path.
  * A suspended community's profile is frozen, like the rest of its profile.
  */
-export async function setCommunityLogo(communityId: string, logoPath: string | null) {
+/** Sets or clears the logo or the banner (29 Okt 2026); the replaced file is removed from storage. */
+export async function setCommunityImage(communityId: string, field: "logoPath" | "bannerPath", path: string | null) {
     const previous = await db.transaction(async (tx) => {
-        const [community] = await tx.select({ status: communities.status, logoPath: communities.logoPath })
+        const [community] = await tx.select({ status: communities.status, current: communities[field] })
             .from(communities).where(eq(communities.id, communityId)).for("update");
         if (!community) throw new NotFoundError("Komunitas tidak ditemukan.");
         if (community.status === "SUSPENDED") throw new ConflictError("Profil komunitas yang ditangguhkan tidak dapat diubah.");
-        await tx.update(communities).set({ logoPath, updatedAt: new Date() }).where(eq(communities.id, communityId));
-        return community.logoPath;
+        await tx.update(communities).set({ [field]: path, updatedAt: new Date() }).where(eq(communities.id, communityId));
+        return community.current;
     });
-    if (previous && previous !== logoPath) await removeCommunityImages([previous]);
-    return logoPath;
+    if (previous && previous !== path) await removeCommunityImages([previous]);
+    return path;
 }
 
 /** Re-verification of a VERIFIED community, or a new attempt after rejection (back to PENDING). */

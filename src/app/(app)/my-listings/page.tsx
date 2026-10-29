@@ -17,7 +17,7 @@ import { listLoansForUser } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
 import { AppealDialog } from "@/features/listing-appeals/components/appeal-dialog";
 import { timeAgo } from "@/lib/format/relative-time";
-import { listUserBookListings } from "@/lib/db/queries/books";
+import { listingsNeedAttention, listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
 import { primaryGenreLabel } from "@/features/books/genres";
 
@@ -81,10 +81,11 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     const loanFilter = loanFilters.find((value) => value === params.filter) ?? "all";
     const now = new Date();
 
-    const [listings, loans, accessRequests] = await Promise.all([
+    const [listings, loans, accessRequests, collectionNeedsAttention] = await Promise.all([
         listUserBookListings(user.id),
         listLoansForUser(user.id, now),
         tab === "peminjaman" && loanView === "perpustakaan" ? listAccessRequestsForUser(user.id) : Promise.resolve([]),
+        listingsNeedAttention(user.id),
     ]);
     const appeals = await latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id));
     const loansNeedingAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length;
@@ -162,17 +163,14 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
 
             <nav aria-label="Bagian Buku Saya" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
                 <Link href="/my-listings" aria-current={tab === "koleksi" ? "page" : undefined}
-                    className={cn("rounded-lg px-4 py-2 text-sm", tab === "koleksi" ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    className={cn("flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm", tab === "koleksi" ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     Koleksi
+                    {collectionNeedsAttention && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
                 </Link>
                 <Link href="/my-listings?tab=peminjaman" aria-current={tab === "peminjaman" ? "page" : undefined}
                     className={cn("flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm", tab === "peminjaman" ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     Peminjaman
-                    {loansNeedingAction > 0 && (
-                        <span className="rounded-full bg-[#fbecc4] px-1.5 text-[11px] font-semibold text-[#5c3d00]">
-                            {loansNeedingAction}<span className="sr-only"> perlu tindakan</span>
-                        </span>
-                    )}
+                    {loansNeedingAction > 0 && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
                 </Link>
             </nav>
 

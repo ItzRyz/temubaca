@@ -9,6 +9,7 @@ import { RegionSelect } from "@/features/regions/components/region-select";
 
 import { CURATED_PLACE_TYPES, placeTypeLabels } from "../places";
 import { PointPicker } from "./point-picker";
+import { notify } from "@/lib/toast";
 
 export type CuratedPlaceValues = {
     type: (typeof CURATED_PLACE_TYPES)[number];
@@ -43,11 +44,11 @@ export function CuratedPlaceForm({ placeId, initial }: { placeId?: string; initi
         }
         setErrors({});
         if (placeId) {
-            setMessage({ tone: "success", text: "Tempat diperbarui dan tercatat di jejak audit." });
+            notify.success("Tempat diperbarui dan tercatat di jejak audit.");
             router.refresh();
         } else {
             setValues(emptyCuratedPlace);
-            setMessage({ tone: "success", text: "Tempat ditambahkan ke Peta Literasi." });
+            notify.success("Tempat ditambahkan ke Peta Literasi.");
             router.refresh();
         }
     }

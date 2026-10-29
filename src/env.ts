@@ -32,6 +32,16 @@ const serverSchema = z.object({
         .string()
         .optional(),
 
+    // Instagram Business Discovery (29 Okt 2026): follower counts of community accounts. Both unset: counts are not shown.
+    INSTAGRAM_BUSINESS_ACCOUNT_ID: z
+        .string()
+        .regex(/^[0-9]+$/)
+        .optional(),
+
+    INSTAGRAM_ACCESS_TOKEN: z
+        .string()
+        .optional(),
+
     OPEN_LIBRARY_BASE_URL: z
         .url()
         .default("https://openlibrary.org"),
@@ -107,6 +117,12 @@ const serverEnv = serverSchema.safeParse({
 
     GOOGLE_BOOKS_API_KEY:
         process.env.GOOGLE_BOOKS_API_KEY,
+
+    INSTAGRAM_BUSINESS_ACCOUNT_ID:
+        process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID,
+
+    INSTAGRAM_ACCESS_TOKEN:
+        process.env.INSTAGRAM_ACCESS_TOKEN,
 
     OPEN_LIBRARY_BASE_URL:
         process.env.OPEN_LIBRARY_BASE_URL,

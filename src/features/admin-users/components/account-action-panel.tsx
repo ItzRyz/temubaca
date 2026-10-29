@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Field, FormAlert, TextArea } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 type Props = {
     userId: string;
@@ -44,7 +45,7 @@ export function AccountActionPanel({ userId, role, suspended, isSelf }: Props) {
                 return;
             }
             setNote("");
-            setMessage({ tone: "ok", text: success });
+            notify.success(success);
             router.refresh();
         } catch {
             setMessage({ tone: "error", text: "Koneksi terputus. Coba lagi." });

@@ -5,8 +5,13 @@ import {
     count,
     desc,
     eq,
+    exists,
+    gte,
     ilike,
+    isNotNull,
     isNull,
+    ne,
+    notExists,
     or,
     sql,
     type AnyColumn,
@@ -31,6 +36,7 @@ import {
     borrowRequests,
     libraries,
     libraryHoldings,
+    listingAppeals,
 } from "../schema";
 
 /** Public listings exclude owners an admin has suspended or who asked to delete their account (DEC-11). */
@@ -364,6 +370,28 @@ export async function listUserBookListings(userId: string) {
         },
         orderBy: (table, { desc }) => [desc(table.createdAt)],
     });
+}
+
+/**
+ * Whether "Koleksi saya" waits for its owner (owner's decision 29 Okt 2026): a listing a moderator hid
+ * that has no appeal since, an offered listing with no public meeting point, or a new borrow request.
+ */
+export async function listingsNeedAttention(ownerId: string) {
+    const appealedSinceHidden = db.select({ one: sql`1` }).from(listingAppeals)
+        .where(and(eq(listingAppeals.listingId, bookListings.id), gte(listingAppeals.createdAt, bookListings.hiddenAt)));
+    const pendingRequest = db.select({ one: sql`1` }).from(borrowRequests)
+        .where(and(eq(borrowRequests.listingId, bookListings.id), eq(borrowRequests.status, "PENDING")));
+    const [row] = await db.select({ id: bookListings.id }).from(bookListings)
+        .where(and(
+            eq(bookListings.ownerId, ownerId),
+            or(
+                and(isNotNull(bookListings.hiddenAt), notExists(appealedSinceHidden)),
+                and(isNull(bookListings.hiddenAt), ne(bookListings.availability, "UNAVAILABLE"), sql`coalesce(trim(${bookListings.publicLocation}), '') = ''`),
+                exists(pendingRequest),
+            ),
+        ))
+        .limit(1);
+    return Boolean(row);
 }
 
 export async function countUserBookListings(userId: string) {

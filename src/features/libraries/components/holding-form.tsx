@@ -6,6 +6,7 @@ import { useId, useState, useTransition, type FormEvent } from "react";
 
 import { Field, FormAlert, Select, TextInput } from "@/components/ui/form";
 import { sendLoanRequest } from "@/features/borrowing/client";
+import { notify } from "@/lib/toast";
 
 type FoundBook = { id: string; title: string; authors: string[] };
 
@@ -47,7 +48,8 @@ export function HoldingForm({ endpoint, kind }: { endpoint: string; kind: "manag
         startTransition(async () => {
             const result = await sendLoanRequest(endpoint, "PUT", { bookId: book.id, status, copiesTotal, copiesAvailable, callNumber, sourceUrl });
             if (!result.ok) return setMessage({ tone: "error", text: result.message });
-            setMessage({ tone: "ok", text: `${book.title} dicatat.` });
+            notify.success(`${book.title} dicatat.`);
+            setMessage(null);
             setBook(null);
             setResults(null);
             setQuery("");

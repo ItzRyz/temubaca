@@ -7,6 +7,7 @@ import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 import { reportReasonsFor, type ReportTargetType } from "../report-reasons";
+import { notify } from "@/lib/toast";
 
 const targetLabels: Record<ReportTargetType, string> = {
     BOOK: "Buku",
@@ -30,7 +31,7 @@ function initialsOf(name: string) {
  * Report dialog (Figma "Laporan" 25:6948 and 213:*): reasons per content type, a card naming what is
  * reported, and distinct sending, sent, failed, and rate-limited states.
  */
-export function ReportForm({ targetType, targetId, isAuthenticated, label = "Laporkan konten", targetName, targetMeta, triggerClassName }: {
+export function ReportForm({ targetType, targetId, isAuthenticated, label = "Laporkan konten", targetName, targetMeta, triggerClassName, iconOnly = false }: {
     targetType: ReportTargetType;
     targetId: string;
     isAuthenticated: boolean;
@@ -38,6 +39,8 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
     label?: string;
     /** Replaces the default text-link trigger styling. */
     triggerClassName?: string;
+    /** Shows only the flag icon; `label` becomes its accessible name and tooltip. */
+    iconOnly?: boolean;
     /** Shown on the target card, e.g. the book title. */
     targetName?: string;
     /** Second line on the target card, e.g. the author or the event date. */
@@ -98,6 +101,7 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
                 return;
             }
             setStatus("success");
+            notify.success("Laporan terkirim. Terima kasih.");
         } catch {
             setStatus("failed");
         }
@@ -108,9 +112,11 @@ export function ReportForm({ targetType, targetId, isAuthenticated, label = "Lap
             <button
                 type="button"
                 onClick={open}
+                aria-label={iconOnly ? label : undefined}
+                title={iconOnly ? label : undefined}
                 className={triggerClassName ?? "mt-4 flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 hover:text-destructive hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"}
             >
-                <Flag aria-hidden="true" className="size-3.5" /> {label}
+                <Flag aria-hidden="true" className={iconOnly ? "size-4" : "size-3.5"} /> {iconOnly ? null : label}
             </button>
             <dialog
                 ref={dialogRef}

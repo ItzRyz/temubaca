@@ -12,6 +12,7 @@ import { RegionSelect } from "@/features/regions/components/region-select";
 import { fieldErrorsOf, sendCommunityRequest, type FieldErrors } from "../client";
 import { CountedLabel, ErrorSummary, EvidenceFilePicker, FormSection } from "./form-parts";
 import { InterestTags } from "./interest-tags";
+import { notify } from "@/lib/toast";
 
 export type ProfileValues = {
     name: string;
@@ -131,6 +132,7 @@ export function ApplyCommunityForm() {
                 setMessage(result.message);
                 return;
             }
+            notify.success("Komunitas dibuat dan diajukan untuk verifikasi.");
             router.push(`/communities/${result.data.id}/manage?baru=1`);
         });
     }
@@ -179,7 +181,7 @@ export function CommunityProfileForm({ communityId, initial }: { communityId: st
                 setMessage({ tone: "error", text: result.message });
                 return;
             }
-            setMessage({ tone: "success", text: "Profil komunitas tersimpan." });
+            notify.success("Profil komunitas tersimpan.");
             router.refresh();
         });
     }
@@ -225,7 +227,7 @@ export function VerificationRequestForm({ communityId, mode }: { communityId: st
             setEvidenceUrl("");
             setNote("");
             setFile(null);
-            setMessage({ tone: "success", text: mode === "renew" ? "Pengajuan terkirim. Status verifikasi tidak berubah selama ditinjau." : "Pengajuan ulang terkirim dan menunggu ditinjau." });
+            notify.success(mode === "renew" ? "Pengajuan terkirim. Status verifikasi tidak berubah selama ditinjau." : "Pengajuan ulang terkirim dan menunggu ditinjau.");
             router.refresh();
         });
     }

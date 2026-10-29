@@ -30,6 +30,9 @@ export async function findPublicCommunityProfile(communityId: string) {
             id: communities.id,
             name: communities.name,
             logoPath: communities.logoPath,
+            bannerPath: communities.bannerPath,
+            instagramFollowers: communities.instagramFollowers,
+            instagramCheckedAt: communities.instagramCheckedAt,
             description: communities.description,
             publicLocation: communities.publicLocation,
             regionCode: communities.regionCode,
@@ -38,11 +41,6 @@ export async function findPublicCommunityProfile(communityId: string) {
             instagramHandle: communities.instagramHandle,
             whatsappNumber: communities.whatsappNumber,
             createdAt: communities.createdAt,
-            activeMemberCount: sql<number>`(
-                select count(*)::int from ${communityMemberships}
-                where "community_memberships"."communityId" = "communities"."id"
-                and "community_memberships"."status" = 'ACTIVE'
-            )`,
         })
         .from(communities)
         .where(and(eq(communities.id, communityId), eq(communities.status, "VERIFIED")))
@@ -98,15 +96,12 @@ export async function listCommunities(
             id: communities.id,
             name: communities.name,
             logoPath: communities.logoPath,
+            instagramHandle: communities.instagramHandle,
+            instagramFollowers: communities.instagramFollowers,
             description: communities.description,
             publicLocation: communities.publicLocation,
             status: communities.status,
             createdAt: communities.createdAt,
-            activeMemberCount: sql<number>`(
-                select count(*)::int from ${communityMemberships}
-                where "community_memberships"."communityId" = "communities"."id"
-                and "community_memberships"."status" = 'ACTIVE'
-            )`,
             upcomingEventCount: sql<number>`(
                 select count(*)::int from ${events}
                 where "events"."communityId" = "communities"."id"
@@ -466,15 +461,12 @@ export async function listRecommendableCommunities(userId: string, ids?: string[
             id: communities.id,
             name: communities.name,
             logoPath: communities.logoPath,
+            instagramHandle: communities.instagramHandle,
+            instagramFollowers: communities.instagramFollowers,
             description: communities.description,
             publicLocation: communities.publicLocation,
             regionCode: communities.regionCode,
             interests: communities.interests,
-            activeMemberCount: sql<number>`(
-                select count(*)::int from ${communityMemberships}
-                where "community_memberships"."communityId" = "communities"."id"
-                and "community_memberships"."status" = 'ACTIVE'
-            )`,
             upcomingEventCount: sql<number>`(
                 select count(*)::int from ${events}
                 where "events"."communityId" = "communities"."id"
@@ -498,4 +490,12 @@ export async function listRecommendableCommunities(userId: string, ids?: string[
         ))
         .orderBy(asc(communities.id))
         .limit(500);
+}
+
+/** Stores a fresh follower count (null when unknown) with the time it was checked. */
+export async function saveInstagramFollowers(communityId: string, handle: string, followers: number | null) {
+    // Only for the handle that was asked; a handle changed meanwhile keeps its own (cleared) cache.
+    await db.update(communities)
+        .set({ instagramFollowers: followers, instagramCheckedAt: new Date() })
+        .where(and(eq(communities.id, communityId), eq(communities.instagramHandle, handle)));
 }

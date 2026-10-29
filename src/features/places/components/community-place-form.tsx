@@ -9,6 +9,7 @@ import { sendCommunityRequest, type FieldErrors } from "@/features/community-man
 import { RegionSelect } from "@/features/regions/components/region-select";
 
 import { PointPicker } from "./point-picker";
+import { notify } from "@/lib/toast";
 
 type Saved = { addressPublic: string | null; latitude: number; longitude: number; regionCode: string | null; hidden: boolean } | null;
 
@@ -46,7 +47,7 @@ function PinForm({ id, url, title, intro, saved, withRegion, savedText }: {
             return;
         }
         setErrors({});
-        setMessage({ tone: "success", text: savedText });
+        notify.success(savedText);
         router.refresh();
     }
 
@@ -60,7 +61,7 @@ function PinForm({ id, url, title, intro, saved, withRegion, savedText }: {
             return;
         }
         setValues(empty);
-        setMessage({ tone: "success", text: "Titik dihapus dari peta." });
+        notify.success("Titik dihapus dari peta.");
         router.refresh();
     }
 

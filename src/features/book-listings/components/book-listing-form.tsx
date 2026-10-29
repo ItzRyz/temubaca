@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Field, FormAlert, Select, TextArea, TextInput } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 type BookListingFormProps = {
     bookId: string;
@@ -31,7 +32,6 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
     const [borrowingRules, setBorrowingRules] = useState("");
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [saved, setSaved] = useState(false);
 
     if (!isAuthenticated) {
         return (
@@ -45,7 +45,6 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
         event.preventDefault();
         setPending(true);
         setError(null);
-        setSaved(false);
 
         try {
             const response = await fetch("/api/book-listings", {
@@ -66,7 +65,7 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
                 return;
             }
 
-            setSaved(true);
+            notify.success("Listing buku berhasil dibuat.");
             setOpen(false);
             router.refresh();
         } catch {
@@ -86,7 +85,6 @@ export function BookListingForm({ bookId, isAuthenticated, className = "mt-8", t
             >
                 {open ? "Tutup formulir" : "Tawarkan salinan buku ini"}
             </button>
-            <FormAlert tone="success" className="mt-2 w-fit bg-card">{saved ? "Listing buku berhasil dibuat." : null}</FormAlert>
             <FormAlert className="mt-2 w-fit bg-card">{error}</FormAlert>
             {open && (
                 <form onSubmit={handleSubmit} className="mt-4 grid max-w-2xl gap-4 rounded-2xl border border-border/70 bg-card p-5 text-foreground">

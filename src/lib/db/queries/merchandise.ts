@@ -64,6 +64,7 @@ export async function findPublicMerchandise(listingId: string) {
             photoPaths: merchandiseListings.photoPaths,
             communityId: communities.id,
             communityName: communities.name,
+            communityLogoPath: communities.logoPath,
             communityLocation: communities.publicLocation,
             contactEmail: communities.contactEmail,
             instagramHandle: communities.instagramHandle,

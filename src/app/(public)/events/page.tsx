@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { countUpcomingPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { getCurrentUser } from "@/lib/auth";
+import { EventImage } from "@/features/communities/components/event-image";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { publicEventQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
 
@@ -60,14 +61,17 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                 <ul className="mt-10 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2">
                     {events.map((event) => (
                         <li key={event.id}>
-                            <article className="h-full rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
-                                <p className="text-sm font-medium text-primary">{eventDateFormatter.format(event.startsAt!)}</p>
-                                <h2 className="mt-2 font-heading text-xl font-semibold"><Link href={`/events/${event.id}`} className="hover:underline">{event.title}</Link></h2>
-                                <p className="mt-1 text-sm text-muted-foreground">{event.communityName}</p>
-                                {event.publicLocation && <p className="mt-4 text-sm">{event.publicLocation}</p>}
-                                {event.description && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{event.description}</p>}
-                                {event.endsAt && <p className="mt-4 text-xs text-muted-foreground">Selesai: {eventDateFormatter.format(event.endsAt)}</p>}
-                                <ReportForm targetType="EVENT" targetId={event.id} targetName={event.title} isAuthenticated={user !== null} />
+                            <article className="h-full overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                                {event.imagePath && <EventImage path={event.imagePath} />}
+                                <div className="p-6">
+                                    <p className="text-sm font-medium text-primary">{eventDateFormatter.format(event.startsAt!)}</p>
+                                    <h2 className="mt-2 font-heading text-xl font-semibold"><Link href={`/events/${event.id}`} className="hover:underline">{event.title}</Link></h2>
+                                    <p className="mt-1 text-sm text-muted-foreground">{event.communityName}</p>
+                                    {event.publicLocation && <p className="mt-4 text-sm">{event.publicLocation}</p>}
+                                    {event.description && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-muted-foreground">{event.description}</p>}
+                                    {event.endsAt && <p className="mt-4 text-xs text-muted-foreground">Selesai: {eventDateFormatter.format(event.endsAt)}</p>}
+                                    <ReportForm targetType="EVENT" targetId={event.id} targetName={event.title} isAuthenticated={user !== null} />
+                                </div>
                             </article>
                         </li>
                     ))}

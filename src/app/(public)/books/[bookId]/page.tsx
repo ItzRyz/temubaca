@@ -216,7 +216,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                         </p>
                     </section>
 
-                    <section id="cara-membaca" aria-labelledby="access-title" className="scroll-mt-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <section id="cara-membaca" aria-labelledby="access-title" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
                         <h2 id="access-title" className="font-heading text-xl font-semibold">Cara Membaca di Sekitar Anda</h2>
                         <p className="mt-4 flex items-start gap-2 rounded-lg border border-border bg-[#faf7f0] px-3 py-2.5 text-xs leading-5 text-muted-foreground">
                             <Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
@@ -388,7 +388,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                         )}
                     </section>
 
-                    <section id="punya-salinan" aria-labelledby="share-copy-title" className="scroll-mt-6 rounded-2xl bg-primary p-6 text-primary-foreground">
+                    <section id="punya-salinan" aria-labelledby="share-copy-title" className="rounded-2xl bg-primary p-6 text-primary-foreground">
                         <h2 id="share-copy-title" className="font-heading text-xl font-semibold">Punya salinan di rumah?</h2>
                         <p className="mt-2 max-w-xl text-sm leading-6 text-primary-foreground/80">
                             Bantu pembaca di sekitar Anda. Alamat rumah tidak pernah ditampilkan; serah terima dilakukan di titik temu publik.

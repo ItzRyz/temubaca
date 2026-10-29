@@ -18,6 +18,7 @@ export async function listUpcomingPublicEvents(options?: {
         .select({
             id: events.id,
             title: events.title,
+            imagePath: events.imagePath,
             description: events.description,
             startsAt: events.startsAt,
             endsAt: events.endsAt,
@@ -69,6 +70,7 @@ export async function findPublicEvent(eventId: string) {
         .select({
             id: events.id,
             title: events.title,
+            imagePath: events.imagePath,
             description: events.description,
             startsAt: events.startsAt,
             endsAt: events.endsAt,
@@ -93,7 +95,7 @@ export async function findPublicEvent(eventId: string) {
 /** PUBLISHED events of a VERIFIED community that already started, newest first ("Acara Sebelumnya"). */
 export async function listPastPublicEvents(communityId: string, limit = 6, now = new Date()) {
     return db
-        .select({ id: events.id, title: events.title, startsAt: events.startsAt, publicLocation: events.publicLocation })
+        .select({ id: events.id, title: events.title, imagePath: events.imagePath, startsAt: events.startsAt, publicLocation: events.publicLocation })
         .from(events)
         .innerJoin(communities, eq(events.communityId, communities.id))
         .where(and(

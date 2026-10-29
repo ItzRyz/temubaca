@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { notify } from "@/lib/toast";
 
 type BookmarkButtonProps = {
     bookId: string;
@@ -19,7 +20,6 @@ export function BookmarkButton({
 }: BookmarkButtonProps) {
     const [bookmarked, setBookmarked] = useState(initiallyBookmarked);
     const [pending, setPending] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     if (!isAuthenticated) {
         return (
@@ -34,7 +34,6 @@ export function BookmarkButton({
 
     async function toggleBookmark() {
         setPending(true);
-        setError(null);
 
         try {
             const response = await fetch(`/api/bookmarks/${bookId}`, {
@@ -42,7 +41,7 @@ export function BookmarkButton({
             });
 
             if (!response.ok) {
-                setError(
+                notify.error(
                     response.status === 429
                         ? "Terlalu banyak perubahan. Coba lagi sebentar."
                         : "Bookmark belum dapat diperbarui. Coba lagi.",
@@ -51,8 +50,9 @@ export function BookmarkButton({
             }
 
             setBookmarked(!bookmarked);
+            notify.success(bookmarked ? "Buku dihapus dari bookmark." : "Buku disimpan ke bookmark.");
         } catch {
-            setError("Koneksi terputus. Periksa internet lalu coba lagi.");
+            notify.error("Koneksi terputus. Periksa internet lalu coba lagi.");
         } finally {
             setPending(false);
         }
@@ -69,7 +69,6 @@ export function BookmarkButton({
             >
                 {pending ? "Menyimpan…" : bookmarked ? "Tersimpan" : "Simpan buku"}
             </button>
-            {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
         </div>
     );
 }

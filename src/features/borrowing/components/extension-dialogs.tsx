@@ -7,8 +7,9 @@ import { useRef, useState, useTransition, type FormEvent } from "react";
 import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
-import { extensionDayOptions } from "../lifecycle";
+import { extensionDayOptions, loanActionDone, type LoanAction } from "../lifecycle";
 import { dialogDangerButton, dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
+import { notify } from "@/lib/toast";
 
 const NOTE_MAX = 200;
 const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
@@ -20,12 +21,13 @@ function useLoanSubmit(borrowingId: string) {
     const [pending, startTransition] = useTransition();
     const [error, setError] = useState("");
 
-    function send(body: Record<string, unknown>) {
+    function send(body: { action: LoanAction } & Record<string, unknown>) {
         setError("");
         startTransition(async () => {
             const result = await sendLoanRequest(`/api/borrowings/${borrowingId}`, "PATCH", body);
             if (!result.ok) return setError(result.message);
             dialogRef.current?.close();
+            notify.success(loanActionDone[body.action]);
             router.refresh();
         });
     }

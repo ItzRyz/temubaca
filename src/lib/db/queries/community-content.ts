@@ -93,7 +93,24 @@ export async function deleteCommunityEvent(communityId: string, eventId: string)
     if (!event) throw new NotFoundError("Acara tidak ditemukan.");
     if (event.publicationStatus !== "DRAFT") throw new ConflictError("Acara yang sudah terbit diarsipkan, bukan dihapus.");
     await db.delete(events).where(eq(events.id, eventId));
+    if (event.imagePath) await removeCommunityImages([event.imagePath]);
     return { id: eventId };
+}
+
+/**
+ * Sets or clears the event image (29 Okt 2026); the replaced file is removed. A duplicated event starts
+ * without one, so a file never belongs to two events.
+ */
+export async function setCommunityEventImage(communityId: string, eventId: string, imagePath: string | null) {
+    const previous = await db.transaction(async (tx) => {
+        const [event] = await tx.select({ imagePath: events.imagePath }).from(events)
+            .where(and(eq(events.id, eventId), eq(events.communityId, communityId))).for("update");
+        if (!event) throw new NotFoundError("Acara tidak ditemukan.");
+        await tx.update(events).set({ imagePath, updatedAt: new Date() }).where(eq(events.id, eventId));
+        return event.imagePath;
+    });
+    if (previous && previous !== imagePath) await removeCommunityImages([previous]);
+    return imagePath;
 }
 
 function merchandiseValues(communityId: string, input: CommunityMerchandiseInput) {

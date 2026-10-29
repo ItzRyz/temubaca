@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
 import { listingDeletionBlocker, listingDeletionBlockerMessage } from "../listing-deletion";
+import { notify } from "@/lib/toast";
 
 type BookListingDeleteProps = {
     listingId: string;
@@ -42,6 +43,7 @@ export function BookListingDelete({ listingId, bookTitle, availability }: BookLi
                 return;
             }
             dialogRef.current?.close();
+            notify.success("Buku dihapus dari koleksimu.");
             router.refresh();
         } catch {
             setError("Koneksi terputus. Coba lagi.");

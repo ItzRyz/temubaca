@@ -8,6 +8,7 @@ import { FormAlert, TextArea } from "@/components/ui/form";
 import { sendLoanRequest } from "@/features/borrowing/client";
 
 import { ACCESS_NOTE_MAX, type AccessAction } from "../access";
+import { notify } from "@/lib/toast";
 
 const primary = "flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60";
 const outline = "flex min-h-10 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold hover:bg-muted disabled:opacity-60";
@@ -27,6 +28,7 @@ export function AccessActions({ accessId, actions }: { accessId: string; actions
             const result = await sendLoanRequest(`/api/book-accesses/${accessId}`, "PATCH", body);
             if (!result.ok) return setError(result.message);
             setRejecting(false);
+            notify.success({ approve: "Pengajuan diterima.", reject: "Pengajuan ditolak.", collected: "Buku ditandai sudah diambil.", cancel: "Pengajuan dibatalkan." }[body.action]);
             router.refresh();
         });
     }

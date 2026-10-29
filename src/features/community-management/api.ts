@@ -6,7 +6,7 @@ import { BadRequestError, ForbiddenError, NotFoundError, PayloadTooLargeError, r
 import { getCommunityAccess, type EvidenceFile } from "@/lib/db/queries/community-management";
 import { isEvidenceStorageAvailable, uploadEvidenceFile } from "@/lib/supabase/storage";
 
-import { communityCapabilities, evidenceFileError, EVIDENCE_MAX_BYTES, type CommunityStatus } from "./rules";
+import { communityCapabilities, evidenceFileError, EVIDENCE_MAX_BYTES, merchPhotoError, MERCH_PHOTO_MAX_BYTES, type CommunityStatus } from "./rules";
 
 type Capability = Exclude<keyof ReturnType<typeof communityCapabilities>, "view">;
 
@@ -24,6 +24,26 @@ export async function requireCommunityCapability(communityId: string, capability
     if (!access?.role) throw new NotFoundError("Komunitas tidak ditemukan.");
     if (!communityCapabilities(access.role, access.community.status as CommunityStatus)[capability]) throw new ForbiddenError(deniedMessage[capability]);
     return { user, community: access.community, role: access.role };
+}
+
+/**
+ * The image in a multipart `file` field (logo, banner, event image): JPG/PNG/WebP up to 2 MB, the same
+ * rules as merchandise photos. `label` names it in messages ("Logo", "Banner", "Gambar acara").
+ */
+export async function readCommunityImage(request: Request, label: string) {
+    const declared = Number(request.headers.get("content-length") ?? 0);
+    if (declared > MERCH_PHOTO_MAX_BYTES + 64 * 1024) throw new PayloadTooLargeError(`Ukuran ${label.toLowerCase()} maksimal 2 MB.`);
+    let file: FormDataEntryValue | null;
+    try {
+        file = (await request.formData()).get("file");
+    } catch {
+        throw new BadRequestError("Formulir tidak dapat dibaca.");
+    }
+    if (!(file instanceof File)) throw new BadRequestError(`Pilih ${label.toLowerCase()} untuk diunggah.`);
+    const problem = merchPhotoError(file, label);
+    if (problem) throw new BadRequestError(problem);
+    if (!isEvidenceStorageAvailable()) throw new BadRequestError(`Unggah ${label.toLowerCase()} belum tersedia di server ini.`);
+    return file;
 }
 
 /** Reads a multipart form with an optional `file` field (evidence, ≤5 MB) and validates the other fields. */

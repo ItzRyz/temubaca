@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { EventImage } from "@/features/communities/components/event-image";
+import { ImageUploadField } from "@/features/community-management/components/community-logo-form";
 import { EventForm } from "@/features/community-management/components/event-form";
 import { loadManageContext, wibParts } from "@/features/community-management/server";
 import { EventPlaceForm } from "@/features/places/components/community-place-form";
@@ -39,6 +41,10 @@ export default async function EditEventPage({ params }: PageProps<"/communities/
                     publicationStatus: event.publicationStatus === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
                 }}
             />
+            <ImageUploadField endpoint={`/api/communities/${communityId}/events/${event.id}/image`} label="Gambar acara" hasImage={Boolean(event.imagePath)}
+                className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 sm:p-6"
+                hint="JPG, PNG, atau WebP, maksimal 2 MB, disarankan rasio 16:9 (mis. 1600×900). Tampil di kartu dan halaman acara."
+                preview={event.imagePath ? <EventImage path={event.imagePath} className="max-w-md rounded-xl" /> : null} />
             {/* The venue pin (DEC-07 phase 2); switching the event to online removes it. */}
             {event.locationType === "PHYSICAL" ? (
                 <EventPlaceForm

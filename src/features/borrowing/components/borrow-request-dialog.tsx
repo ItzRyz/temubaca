@@ -9,6 +9,7 @@ import { ChoiceOption, Field, FormAlert, Select, TextArea, TextInput } from "@/c
 
 import { sendLoanRequest } from "../client";
 import { dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
+import { notify } from "@/lib/toast";
 
 const NOTE_MAX = 200;
 
@@ -57,7 +58,10 @@ export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName,
                 note,
                 agreed: true,
             });
-            if (result.ok) setSent(true);
+            if (result.ok) {
+                setSent(true);
+                notify.success("Permintaan pinjam dikirim.");
+            }
             else setError(result.message);
         });
     }

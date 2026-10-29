@@ -181,17 +181,28 @@ describe("community logo (TB-030)", () => {
         const communities = await import("../../src/lib/db/queries/communities");
         removedPhotos.length = 0;
 
-        await management.setCommunityLogo(LOGO_COMMUNITY, `${LOGO_COMMUNITY}/logo-a.png`);
+        await management.setCommunityImage(LOGO_COMMUNITY, "logoPath", `${LOGO_COMMUNITY}/logo-a.png`);
         expect((await communities.findPublicCommunityProfile(LOGO_COMMUNITY))?.logoPath).toBe(`${LOGO_COMMUNITY}/logo-a.png`);
 
-        await management.setCommunityLogo(LOGO_COMMUNITY, `${LOGO_COMMUNITY}/logo-b.webp`);
-        await management.setCommunityLogo(LOGO_COMMUNITY, null);
+        await management.setCommunityImage(LOGO_COMMUNITY, "logoPath", `${LOGO_COMMUNITY}/logo-b.webp`);
+        await management.setCommunityImage(LOGO_COMMUNITY, "logoPath", null);
         expect((await communities.findPublicCommunityProfile(LOGO_COMMUNITY))?.logoPath).toBeNull();
         expect(removedPhotos).toEqual([[`${LOGO_COMMUNITY}/logo-a.png`], [`${LOGO_COMMUNITY}/logo-b.webp`]]);
     });
 
+    test("the banner is kept apart from the logo and shows on the public profile", async () => {
+        const communities = await import("../../src/lib/db/queries/communities");
+        removedPhotos.length = 0;
+        await management.setCommunityImage(LOGO_COMMUNITY, "logoPath", `${LOGO_COMMUNITY}/logo-c.png`);
+        await management.setCommunityImage(LOGO_COMMUNITY, "bannerPath", `${LOGO_COMMUNITY}/banner-a.webp`);
+        const profile = await communities.findPublicCommunityProfile(LOGO_COMMUNITY);
+        expect([profile?.logoPath, profile?.bannerPath]).toEqual([`${LOGO_COMMUNITY}/logo-c.png`, `${LOGO_COMMUNITY}/banner-a.webp`]);
+        await management.setCommunityImage(LOGO_COMMUNITY, "bannerPath", null);
+        expect(removedPhotos).toEqual([[`${LOGO_COMMUNITY}/banner-a.webp`]]);
+    });
+
     test("a suspended community's logo is frozen like the rest of its profile", async () => {
-        await expect(management.setCommunityLogo(FROZEN, `${FROZEN}/logo-a.png`)).rejects.toThrow("ditangguhkan");
-        await expect(management.setCommunityLogo(id(599), null)).rejects.toThrow("tidak ditemukan");
+        await expect(management.setCommunityImage(FROZEN, "logoPath", `${FROZEN}/logo-a.png`)).rejects.toThrow("ditangguhkan");
+        await expect(management.setCommunityImage(id(599), "bannerPath", null)).rejects.toThrow("tidak ditemukan");
     });
 });

@@ -323,6 +323,38 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Perbaikan UX: surel, titik notifikasi, media komunitas, toast, dan lainnya — 2026-10-29
+
+Permintaan pemilik repo, dengan keputusannya:
+- **Surel → Gmail:** tombol surel kontak komunitas membuka Gmail compose di tab baru (`gmailComposeUrl`). Semua kontak publik dibuka di tab baru, dan `mailto:` tidak dipakai lagi.
+- **Titik merah, tanpa angka:**
+  - Muncul di avatar, "Koleksi saya", "Pinjam & pinjamkan", "Perpustakaan saya", dan tab Koleksi/Peminjaman di `/my-listings`.
+  - "Koleksi saya" menyala oleh `listingsNeedAttention`: listing disembunyikan moderator tanpa banding sejak itu, listing ditawarkan tanpa lokasi publik, atau permintaan pinjam baru.
+- **Banner komunitas** (`communities.bannerPath`):
+  - unggah/hapus di halaman kelola, tampil di atas profil;
+  - logo dan banner berbagi `setCommunityImage`, `readCommunityImage`, dan `ImageUploadField`.
+- **Gambar acara** (`events.imagePath`):
+  - dipasang dari halaman ubah acara;
+  - tampil di kartu beranda, komunitas, `/events`, dan detail acara;
+  - berkas dihapus saat diganti atau saat draf dihapus; duplikat acara mulai tanpa gambar.
+- **Toast (`sonner` 2.0.8, kanan bawah, gaya kartu situs):**
+  - konfirmasi aksi yang mengubah data: bookmark, listing, peminjaman, profil, minat, komunitas, acara, merchandise, tim, perpustakaan, laporan, banding, dan aksi admin;
+  - galat isian tetap di samping field.
+- **Smooth scroll** (`prefers-reduced-motion` dihormati, `data-scroll-behavior="smooth"` di `<html>`) dan `scroll-padding-top` sesuai tinggi header: "Lihat Cara Membaca" kini mendarat tepat di bawah header (desktop 96 px, ponsel 136 px).
+- **Pengikut Instagram** menggantikan "kawan aktif":
+  - jumlah dari Business Discovery API resmi, cache harian, kosong saat username diganti (`src/lib/external/instagram.ts`);
+  - perlu env `INSTAGRAM_BUSINESS_ACCOUNT_ID` dan `INSTAGRAM_ACCESS_TOKEN`; caranya ada di `OPERATIONS.md`;
+  - tanpa env, angka tidak tampil.
+- **Merchandise:** Bagikan dan Laporkan menjadi ikon (40 px, ber-label untuk pembaca layar) di kanan atas kartu deskripsi. Chip komunitas memakai logo.
+- **"Komunitas saya":** tiap komunitas menampilkan logo atau inisialnya.
+- **Juga:** pembersihan data E2E memakai `book_accesses."requesterId"`, karena tabel itu sudah berubah fungsi di TB-023.
+- **Migrasi** `0024_community_media_instagram`: kolom saja.
+- **Diuji:**
+  - `bun run check` lulus (288 tes);
+  - integrasi: titik Koleksi (empat kasus), gambar acara, cache pengikut, banner;
+  - unit: Gmail, Instagram;
+  - browser lokal: semua butir di atas, termasuk 375 px.
+
 ## Koleksi perpustakaan dari katalog JAKLITERA — 2026-10-29
 
 - **Pengecekan:** 275 buku ber-ISBN dicek ke katalog JAKLITERA (`libraries:jaklitera --collect`, jeda 10 detik, mundur saat 429). 39 cocok ISBN-nya.

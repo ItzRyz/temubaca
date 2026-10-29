@@ -6,6 +6,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { Field, FormAlert, Select, Switch, TextInput } from "@/components/ui/form";
 import { sendLoanRequest } from "@/features/borrowing/client";
+import { notify } from "@/lib/toast";
 
 const primary = "min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60";
 
@@ -25,6 +26,7 @@ export function CreateLibraryForm({ places }: { places: { id: string; name: stri
                 if (!result.ok) return setError(result.message);
                 setPlaceId("");
                 setError("");
+                notify.success("Perpustakaan ditambahkan.");
                 router.refresh();
             });
         }}>
@@ -59,7 +61,8 @@ export function LibraryEditForm({ library }: { library: EditableLibrary }) {
         event.preventDefault();
         startTransition(async () => {
             const result = await sendLoanRequest(`/api/admin/libraries/${library.id}`, "PATCH", values);
-            setMessage(result.ok ? { tone: "success", text: "Perpustakaan disimpan dan tercatat di jejak audit." } : { tone: "error", text: result.message });
+            if (result.ok) notify.success("Perpustakaan disimpan dan tercatat di jejak audit.");
+            setMessage(result.ok ? null : { tone: "error", text: result.message });
             if (result.ok) router.refresh();
         });
     }
@@ -102,6 +105,7 @@ export function LibraryManagersForm({ libraryId, managers }: { libraryId: string
         if (!result.ok) return setError(result.message);
         setFound(null);
         setQuery("");
+        notify.success(method === "POST" ? "Pengelola ditambahkan." : "Pengelola dilepas.");
         router.refresh();
     });
 

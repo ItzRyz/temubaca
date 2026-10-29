@@ -8,6 +8,7 @@ import { FormAlert } from "@/components/ui/form";
 
 import { sendCommunityRequest } from "../client";
 import { INVITE_TTL_DAYS } from "../rules";
+import { notify } from "@/lib/toast";
 
 const dateTime = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
@@ -30,7 +31,7 @@ export function TeamPanel({ communityId, managers, invites }: {
         startTransition(async () => {
             const result = await run();
             if (!result.ok) return setMessage({ tone: "error", text: result.message ?? "Tindakan gagal." });
-            if (success) setMessage({ tone: "success", text: success });
+            if (success) notify.success(success);
             setConfirmRemove(null);
             router.refresh();
         });
@@ -43,7 +44,7 @@ export function TeamPanel({ communityId, managers, invites }: {
             if (!result.ok) return { ok: false, message: result.message };
             setLink(`${window.location.origin}${result.data.path}`);
             return { ok: true };
-        });
+        }, "Tautan undangan dibuat.");
     }
 
     const simple = async (url: string) => {
@@ -69,7 +70,7 @@ export function TeamPanel({ communityId, managers, invites }: {
                                             const result = await sendCommunityRequest(`/api/communities/${communityId}/owner`, "POST", { userId: manager.userId });
                                             if (result.ok) router.push(`/communities/${communityId}/manage/events`);
                                             return result.ok ? { ok: true } : { ok: false, message: result.message };
-                                        })} className="min-h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60">Ya, serahkan</button>
+                                        }, `Kepemilikan diserahkan ke ${manager.displayName}.`)} className="min-h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-60">Ya, serahkan</button>
                                         <button type="button" onClick={() => setConfirmTransfer(null)} className="min-h-9 rounded-md border border-border px-3 text-xs font-semibold">Batal</button>
                                     </span>
                                 ) : confirmRemove === manager.userId ? (
@@ -145,6 +146,7 @@ export function AcceptInviteButton({ token }: { token: string }) {
             <button type="button" disabled={pending} onClick={() => startTransition(async () => {
                 const result = await sendCommunityRequest<{ communityId: string }>("/api/community-invites/accept", "POST", { token });
                 if (!result.ok) return setError(result.message);
+                notify.success("Undangan diterima. Kamu sekarang pengurus komunitas ini.");
                 router.push(`/communities/${result.data.communityId}/manage/events`);
             })} className="min-h-11 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
                 {pending ? "Memproses..." : "Terima Undangan"}
@@ -164,6 +166,7 @@ export function ReverificationReview({ submissionId }: { submissionId: string })
         setError("");
         const result = await sendCommunityRequest(`/api/admin/community-submissions/${submissionId}`, "PATCH", { decision, note });
         if (!result.ok) return setError(result.fieldErrors.note ?? result.message);
+        notify.success(decision === "CONFIRM" ? "Verifikasi ulang dikonfirmasi." : "Pengajuan verifikasi ulang ditutup.");
         router.refresh();
     });
     return (

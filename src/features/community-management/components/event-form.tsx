@@ -11,6 +11,7 @@ import { communityEventSchema } from "@/lib/validation/schemas/community-managem
 
 import { fieldErrorsOf, sendCommunityRequest, type FieldErrors } from "../client";
 import { CountedLabel, ErrorSummary, FormSection } from "./form-parts";
+import { notify } from "@/lib/toast";
 
 export type EventValues = {
     title: string;
@@ -52,6 +53,7 @@ export function EventForm({ communityId, eventId, initial }: { communityId: stri
                 setMessage(result.message);
                 return;
             }
+            notify.success(eventId ? "Acara disimpan." : "Acara dibuat. Gambar acara bisa dipasang dari halaman ubah acara.");
             router.push(listHref);
             router.refresh();
         });

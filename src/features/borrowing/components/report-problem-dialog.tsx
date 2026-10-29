@@ -7,8 +7,9 @@ import { useRef, useState, useTransition, type FormEvent } from "react";
 import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
-import { problemReasons } from "../lifecycle";
+import { loanActionDone, problemReasons } from "../lifecycle";
 import { dialogDangerButton, dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
+import { notify } from "@/lib/toast";
 
 const DETAILS_MAX = 500;
 const INFO_MAX = 1_000;
@@ -36,6 +37,7 @@ export function ReportProblemDialog({ borrowingId, bookTitle, summary, triggerCl
             const result = await sendLoanRequest(`/api/borrowings/${borrowingId}`, "PATCH", { action: "report_problem", reason, details });
             if (!result.ok) return setError(result.message);
             dialogRef.current?.close();
+            notify.success(loanActionDone.report_problem);
             router.refresh();
         });
     }
@@ -116,6 +118,7 @@ export function AddDisputeInfoDialog({ borrowingId, bookTitle, summary, question
             if (!result.ok) return setError(result.message);
             setDetails("");
             dialogRef.current?.close();
+            notify.success(loanActionDone.add_dispute_info);
             router.refresh();
         });
     }

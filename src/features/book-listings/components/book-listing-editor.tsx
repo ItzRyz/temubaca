@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Field, FormAlert, Select, TextArea, TextInput } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 type BookListingEditorProps = {
     listingId: string;
@@ -26,13 +27,11 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
     const [location, setLocation] = useState(initialLocation ?? "");
     const [rules, setRules] = useState(initialRules ?? "");
     const [pending, setPending] = useState(false);
-    const [message, setMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setPending(true);
-        setMessage(null);
         setError(null);
 
         try {
@@ -53,7 +52,7 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
                 return;
             }
 
-            setMessage("Perubahan berhasil disimpan.");
+            notify.success("Perubahan buku disimpan.");
             router.refresh();
         } catch {
             setError("Koneksi terputus. Coba lagi.");
@@ -82,7 +81,6 @@ export function BookListingEditor({ listingId, initialCondition, initialLocation
                 <button type="submit" disabled={pending} className="min-h-11 justify-self-start rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-60">
                     {pending ? "Menyimpan…" : "Simpan perubahan"}
                 </button>
-                <FormAlert tone="success">{message}</FormAlert>
                 <FormAlert>{error}</FormAlert>
             </form>
         </details>

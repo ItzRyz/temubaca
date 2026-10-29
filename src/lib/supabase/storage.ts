@@ -85,7 +85,7 @@ function ensureMerchandisePhotoBucket() {
 const photoExtensionFor: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 /** Stores an already-validated image as `<communityId>/<prefix><uuid>.<ext>`; returns its storage path. */
-async function uploadCommunityImage(communityId: string, file: File, prefix = "") {
+export async function uploadCommunityImage(communityId: string, file: File, prefix = "") {
     await ensureMerchandisePhotoBucket();
     const admin = getSupabaseAdmin()!;
     const path = `${communityId}/${prefix}${randomUUID()}.${photoExtensionFor[file.type]}`;
@@ -101,9 +101,6 @@ export function uploadMerchandisePhoto(communityId: string, file: File) {
     return uploadCommunityImage(communityId, file);
 }
 
-export function uploadCommunityLogo(communityId: string, file: File) {
-    return uploadCommunityImage(communityId, file, "logo-");
-}
 
 export async function removeCommunityImages(paths: string[]) {
     const admin = getSupabaseAdmin();

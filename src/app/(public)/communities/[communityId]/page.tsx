@@ -1,13 +1,16 @@
-import { ArrowRight, BadgeCheck, BookOpen, CalendarDays, ChevronRight, Info, MapPin, ShieldCheck, ShoppingBag } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, CalendarDays, ChevronRight, Info, MapPin, ShieldCheck, ShoppingBag, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { communityContactLinks } from "@/features/community-management/contacts";
 import { getCommunityAccess } from "@/lib/db/queries/community-management";
-import { findPublicCommunityProfile } from "@/lib/db/queries/communities";
+import { findPublicCommunityProfile, saveInstagramFollowers } from "@/lib/db/queries/communities";
+import { instagramFollowersLabel, instagramNeedsRefresh } from "@/features/communities/instagram";
+import { fetchInstagramFollowers, isInstagramConfigured } from "@/lib/external/instagram";
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { findPublicPin } from "@/lib/db/queries/places";
@@ -19,6 +22,8 @@ import { regionByCode } from "@/features/regions/regions";
 import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
+import { EventImage } from "@/features/communities/components/event-image";
+import { CommunityBanner } from "@/features/community-management/components/community-logo-form";
 import { cn } from "@/lib/utils";
 
 type CommunityPageProps = {
@@ -65,6 +70,12 @@ function DateBadge({ date }: { date: Date }) {
 export default async function CommunityProfilePage({ params, searchParams }: CommunityPageProps) {
     const community = await findProfile((await params).communityId);
     if (!community) notFound();
+    // The follower count is re-read in the background at most daily; this view shows the cached one.
+    if (community.instagramHandle && isInstagramConfigured() && instagramNeedsRefresh(community)) {
+        const handle = community.instagramHandle;
+        after(async () => saveInstagramFollowers(community.id, handle, await fetchInstagramFollowers(handle)));
+    }
+    const followers = instagramFollowersLabel(community.instagramFollowers);
     const requested = (await searchParams).tab;
     const tab: Tab = tabs.some((item) => item.key === requested) ? requested as Tab : "tentang";
 
@@ -95,8 +106,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
             </nav>
 
             <section className="overflow-hidden rounded-2xl border border-border bg-card">
-                {/* No community photos in the schema yet; a brand banner stands in for the cover image. */}
-                <div aria-hidden="true" className="h-28 bg-[linear-gradient(135deg,#1b4d37,#3d7a5c_55%,#a9c7b2)] sm:h-40" />
+                <CommunityBanner bannerPath={community.bannerPath} className="h-28 sm:h-40" />
                 <div className="px-5 pb-6 sm:px-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex items-end gap-4">
@@ -114,6 +124,11 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 font-semibold text-primary"><BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi</span>
                         {regionByCode(community.regionCode) && <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-3.5" /> {regionByCode(community.regionCode)!.name}</span>}
                         <span className="flex items-center gap-1"><CalendarDays aria-hidden="true" className="size-3.5" /> Bergabung di TemuBaca sejak {monthYear.format(community.createdAt)}</span>
+                        {followers && community.instagramHandle && (
+                            <a href={`https://instagram.com/${encodeURIComponent(community.instagramHandle)}`} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1 font-semibold text-foreground hover:underline">
+                                <UsersRound aria-hidden="true" className="size-3.5" /> {followers}
+                            </a>
+                        )}
                     </p>
                     <p className="mt-4 max-w-3xl text-sm leading-6 text-foreground/85">{community.description || "Komunitas ini belum menambahkan deskripsi."}</p>
                     {community.interests.length > 0 && (
@@ -140,7 +155,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
                             <span className="text-xs font-semibold text-primary">Kontak publik:</span>
                             {contacts.map((contact) => (
-                                <a key={contact.kind} href={contact.href} target={contact.kind === "email" ? undefined : "_blank"} rel="noopener noreferrer nofollow"
+                                <a key={contact.kind} href={contact.href} target="_blank" rel="noopener noreferrer nofollow"
                                     className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold hover:bg-muted">
                                     {contact.label} · {contact.value}
                                 </a>
@@ -254,7 +269,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                             <ul className="mt-5 grid list-none gap-5 p-0 md:grid-cols-3">
                                 {upcoming.map((event) => (
                                     <li key={event.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
-                                        <div aria-hidden="true" className="flex h-36 items-center justify-center bg-secondary/60 text-primary/50"><CalendarDays className="size-10" /></div>
+                                        {event.imagePath ? <EventImage path={event.imagePath} className="h-36 aspect-auto" /> : <div aria-hidden="true" className="flex h-36 items-center justify-center bg-secondary/60 text-primary/50"><CalendarDays className="size-10" /></div>}
                                         <div className="flex flex-1 flex-col p-5">
                                             {event.startsAt && <p className="flex items-center gap-1 text-xs font-semibold text-foreground uppercase"><CalendarDays aria-hidden="true" className="size-3.5 text-destructive" /> {eventStamp.format(event.startsAt)} WIB</p>}
                                             <h3 className="mt-2 font-heading text-lg leading-6 font-semibold">{event.title}</h3>

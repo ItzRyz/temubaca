@@ -7,8 +7,9 @@ import { useRef, useState, useTransition, type FormEvent } from "react";
 import { ChoiceOption, Field, FormAlert, TextArea } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
-import { rejectionReasons } from "../lifecycle";
+import { loanActionDone, rejectionReasons } from "../lifecycle";
 import { dialogDangerButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
+import { notify } from "@/lib/toast";
 
 const NOTE_MAX = 200;
 
@@ -37,6 +38,7 @@ export function RejectRequestDialog({ requestId, bookTitle, requesterName, summa
             const result = await sendLoanRequest(`/api/borrow-requests/${requestId}`, "PATCH", { action: "reject", reason, note, markUnavailable });
             if (!result.ok) return setError(result.message);
             dialogRef.current?.close();
+            notify.success(loanActionDone.reject);
             router.refresh();
         });
     }

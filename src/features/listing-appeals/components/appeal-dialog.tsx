@@ -10,6 +10,7 @@ import { sendCommunityRequest } from "@/features/community-management/client";
 import { timeAgo } from "@/lib/format/relative-time";
 
 import { APPEAL_DETAILS_MAX, appealFileError, appealReasons, APPEAL_FILE_TYPES } from "../rules";
+import { notify } from "@/lib/toast";
 
 /** Figma "Ajukan Banding - Modal" (301:2608) for a listing an admin has hidden. */
 export function AppealDialog({ listingId, bookTitle, hiddenAt, hiddenReason }: { listingId: string; bookTitle: string; hiddenAt: string; hiddenReason: string | null }) {
@@ -43,6 +44,7 @@ export function AppealDialog({ listingId, bookTitle, hiddenAt, hiddenReason }: {
                 return;
             }
             dialogRef.current?.close();
+            notify.success("Banding dikirim ke admin.");
             router.refresh();
         });
     }
@@ -151,6 +153,7 @@ export function AppealReviewPanel({ appealId }: { appealId: string }) {
         if (note.trim().length < 5) return setError("Tulis alasan keputusan minimal 5 karakter.");
         const result = await sendCommunityRequest(`/api/admin/listing-appeals/${appealId}`, "PATCH", { decision, note });
         if (!result.ok) return setError(result.fieldErrors.note ?? result.message);
+        notify.success(decision === "APPROVE" ? "Banding diterima; buku tampil kembali." : "Banding ditolak.");
         router.refresh();
     });
     return (

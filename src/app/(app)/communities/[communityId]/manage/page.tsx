@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { CommunityProfileForm, VerificationRequestForm } from "@/features/community-management/components/community-forms";
-import { CommunityLogoForm } from "@/features/community-management/components/community-logo-form";
+import { CommunityBannerForm, CommunityLogoForm } from "@/features/community-management/components/community-logo-form";
 import { loadManageContext } from "@/features/community-management/server";
 import { CommunityPlaceForm } from "@/features/places/components/community-place-form";
 import { listCommunitySubmissions } from "@/lib/db/queries/community-management";
@@ -41,7 +41,12 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
                 </p>
             )}
 
-            {can.editProfile && <CommunityLogoForm community={{ id: community.id, name: community.name, logoPath: community.logoPath }} />}
+            {can.editProfile && (
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <CommunityLogoForm community={{ id: community.id, name: community.name, logoPath: community.logoPath }} />
+                    <CommunityBannerForm community={{ id: community.id, bannerPath: community.bannerPath }} />
+                </div>
+            )}
 
             {can.editProfile ? (
                 <CommunityProfileForm

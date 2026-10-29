@@ -275,6 +275,10 @@ export const communities = pgTable('communities', {
     contactEmail: text(), instagramHandle: text(), whatsappNumber: text(),
     // Storage path of the logo (TB-030), in the public community image bucket; null shows the initials.
     logoPath: text(),
+    // Custom profile banner (29 Okt 2026), same bucket; null shows the brand gradient.
+    bannerPath: text(),
+    // Follower count from Instagram's Business Discovery API, cached for a day; null when unknown or not a business account.
+    instagramFollowers: integer(), instagramCheckedAt: nowDate(),
     createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
     index('communities_owner_id_idx').on(t.ownerId), index('communities_status_idx').on(t.status), index('communities_name_idx').on(t.name), enumCheck(t.status, communityStatusValues),
@@ -316,6 +320,8 @@ export const events = pgTable('events', {
     description: text(), startsAt: nowDate(), endsAt: nowDate(), publicLocation: text(), eventUrl: text(),
     // Figma "Buat Acara": a public venue (name + address/landmark) or an online link.
     locationType: enumText(eventLocationTypeValues).notNull().default('PHYSICAL'), venueName: text(),
+    // Event image (29 Okt 2026), in the public community image bucket.
+    imagePath: text(),
     publicationStatus: enumText(publicationStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('events_community_publication_status_idx').on(t.communityId, t.publicationStatus), index('events_starts_at_idx').on(t.startsAt), enumCheck(t.publicationStatus, publicationStatusValues), enumCheck(t.locationType, eventLocationTypeValues)]).enableRLS();
 

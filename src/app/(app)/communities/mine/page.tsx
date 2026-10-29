@@ -2,6 +2,7 @@ import { Ban, ChevronRight, CircleCheck, Clock, Plus, UsersRound, XCircle } from
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CommunityAvatar } from "@/features/communities/components/community-card";
 import { MAX_PENDING_APPLICATIONS } from "@/features/community-management/rules";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
@@ -55,6 +56,7 @@ export default async function MyCommunitiesPage() {
                         return (
                             <li key={community.id}>
                                 <Link href={`/communities/${community.id}/manage`} className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:bg-muted/50">
+                                    <CommunityAvatar community={community} className="size-12 shrink-0 rounded-xl text-base" />
                                     <div className="min-w-0 flex-1">
                                         <p className="flex flex-wrap items-center gap-2">
                                             <span className="font-heading text-lg font-semibold">{community.name}</span>

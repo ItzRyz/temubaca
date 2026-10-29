@@ -13,6 +13,7 @@ import { fieldErrorsOf, sendCommunityRequest, type FieldErrors } from "../client
 import { MERCH_VARIANT_LIMIT, merchandiseCategories, parseVariants } from "../rules";
 import { CountedLabel, ErrorSummary, FormSection } from "./form-parts";
 import { MerchandisePhotos } from "./merchandise-photos";
+import { notify } from "@/lib/toast";
 
 export type MerchandiseValues = {
     title: string;
@@ -71,6 +72,7 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
                 setMessage(result.message);
                 return;
             }
+            notify.success(itemId ? "Merchandise disimpan." : "Merchandise dibuat.");
             router.push(listHref);
             router.refresh();
         });

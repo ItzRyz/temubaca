@@ -7,6 +7,7 @@ import { FormAlert, TextInput } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
 import { addInterest, deleteInterest } from "../actions";
+import { notify } from "@/lib/toast";
 
 type Interest = { id: string; subject: string };
 type GenreSuggestion = { slug: string; label: string };
@@ -35,7 +36,8 @@ export function InterestManager({ interests, suggestions }: { interests: Interes
             const formData = new FormData();
             formData.set("subject", value);
             const result = await addInterest(formData);
-            setMessage(result.success ? { tone: "success", text: `“${value}” ditambahkan ke minat.` } : { tone: "error", text: result.message });
+            if (result.success) notify.success(`“${value}” ditambahkan ke minat.`);
+            setMessage(result.success ? null : { tone: "error", text: result.message });
             if (result.success) setCustom("");
         });
     }
@@ -44,7 +46,8 @@ export function InterestManager({ interests, suggestions }: { interests: Interes
         startTransition(async () => {
             applyOptimistic({ removeId: interest.id });
             const result = await deleteInterest(interest.id);
-            setMessage(result.success ? { tone: "success", text: `“${interest.subject}” dilepas dari minat.` } : { tone: "error", text: result.message ?? "Minat gagal dihapus." });
+            if (result.success) notify.success(`“${interest.subject}” dilepas dari minat.`);
+            setMessage(result.success ? null : { tone: "error", text: result.message ?? "Minat gagal dihapus." });
         });
     }
 

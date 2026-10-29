@@ -5,13 +5,15 @@ import { merchandisePhotoUrl } from "@/features/merchandise/format";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { cn } from "@/lib/utils";
 
+import { instagramFollowersLabel } from "../instagram";
+
 export type CommunityCardData = {
     id: string;
     name: string;
     logoPath: string | null;
     description: string | null;
     publicLocation: string | null;
-    activeMemberCount: number;
+    instagramFollowers: number | null;
     upcomingEventCount: number;
 };
 
@@ -71,7 +73,9 @@ export function CommunityCard({ community, isAuthenticated, reason }: { communit
                 <li className="flex items-center gap-1 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">
                     <BadgeCheck aria-hidden="true" className="size-3" /> Terverifikasi
                 </li>
-                <li className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">{community.activeMemberCount} kawan aktif</li>
+                {instagramFollowersLabel(community.instagramFollowers) && (
+                    <li className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">{instagramFollowersLabel(community.instagramFollowers)}</li>
+                )}
             </ul>
             <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">

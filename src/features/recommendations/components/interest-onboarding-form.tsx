@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { saveInterestOnboarding } from "../actions";
 import { MIN_ONBOARDING_INTERESTS } from "../onboarding";
+import { notify } from "@/lib/toast";
 
 const chipClass = "inline-flex min-h-10 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60";
 const key = (subject: string) => subject.toLocaleLowerCase("id-ID");
@@ -46,6 +47,7 @@ export function InterestOnboardingForm({ next, regionCode }: { next: string; reg
         startTransition(async () => {
             const result = await saveInterestOnboarding({ subjects: selected, regionCode: region });
             if (!result.success) return setError(result.message);
+            notify.success("Minat bacamu disimpan.");
             // "Panduan TemuBaca" opens once after this page (it checks whether the account has seen it).
             router.replace(withTourFlag(next));
             router.refresh();

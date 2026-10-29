@@ -7,10 +7,11 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { openTour } from "@/features/onboarding/components/product-tour";
 
-type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; count?: keyof Pick<MenuAttention, "loans" | "libraries"> };
+type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "listings" | "loans" | "libraries"> };
 type MenuGroup = { title: string; items: MenuItem[] };
 
-export type MenuAttention = { loans: number; libraries: number; managesLibraries: boolean };
+/** What waits for this user, shown as red dots (owner's decision 29 Okt 2026: a dot, no count). */
+export type MenuAttention = { listings: boolean; loans: boolean; libraries: boolean; managesLibraries: boolean };
 
 /** Grouped so a new reader can tell the entries apart (owner's request 28 Okt 2026); each has a one-line hint. */
 function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLibraries: boolean }): MenuGroup[] {
@@ -18,8 +19,8 @@ function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLi
         {
             title: "Buku",
             items: [
-                { href: "/my-listings", label: "Koleksi saya", hint: "Buku yang kamu bagikan", icon: BookOpen },
-                { href: "/my-listings?tab=peminjaman", label: "Pinjam & pinjamkan", hint: "Permintaan dan pinjaman", icon: ArrowLeftRight, count: "loans" },
+                { href: "/my-listings", label: "Koleksi saya", hint: "Buku yang kamu bagikan", icon: BookOpen, attention: "listings" },
+                { href: "/my-listings?tab=peminjaman", label: "Pinjam & pinjamkan", hint: "Permintaan dan pinjaman", icon: ArrowLeftRight, attention: "loans" },
             ],
         },
         {
@@ -33,7 +34,7 @@ function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLi
             title: "Komunitas",
             items: [
                 { href: "/communities/mine", label: "Komunitas saya", hint: "Komunitas yang kamu ikuti atau kelola", icon: UsersRound },
-                ...(managesLibraries ? [{ href: "/my-libraries", label: "Perpustakaan saya", hint: "Pengajuan dan koleksi", icon: Library, count: "libraries" as const }] : []),
+                ...(managesLibraries ? [{ href: "/my-libraries", label: "Perpustakaan saya", hint: "Pengajuan dan koleksi", icon: Library, attention: "libraries" as const }] : []),
             ],
         },
         ...(isAdmin ? [{ title: "Pengelola", items: [{ href: "/admin", label: "Admin", hint: "Peninjauan dan data platform", icon: ShieldCheck }] }] : []),
@@ -43,9 +44,9 @@ function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLi
 const itemClass = "flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
 
 /**
- * Avatar button with the account menu (Figma "Profile Dropdown" 135:862). A dot on the avatar and counts
- * on "Pinjam & pinjamkan" and "Perpustakaan saya" show what waits for this user. "Panduan TemuBaca"
- * reopens the tour.
+ * Avatar button with the account menu (Figma "Profile Dropdown" 135:862). Red dots on the avatar and on
+ * "Koleksi saya", "Pinjam & pinjamkan" and "Perpustakaan saya" show what waits for this user.
+ * "Panduan TemuBaca" reopens the tour.
  */
 export function ProfileMenu({ initials, displayName, isAdmin, attention }: { initials: string; displayName: string; isAdmin: boolean; attention: MenuAttention }) {
     const [open, setOpen] = useState(false);
@@ -94,7 +95,7 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
         list[next]?.focus();
     }
 
-    const total = attention.loans + attention.libraries;
+    const waiting = attention.listings || attention.loans || attention.libraries;
     const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries });
 
     return (
@@ -106,12 +107,12 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
                 aria-haspopup="menu"
                 aria-expanded={open}
                 aria-controls={menuId}
-                aria-label={`Menu akun ${displayName}${total ? `, ${total} perlu tindakan` : ""}`}
+                aria-label={`Menu akun ${displayName}${waiting ? ", ada yang perlu tindakan" : ""}`}
                 onClick={() => setOpen((value) => !value)}
                 className="relative flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
                 {initials}
-                {total > 0 && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-destructive ring-2 ring-background" />}
+                {waiting && <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-destructive ring-2 ring-background" />}
             </button>
             {open && (
                 <div ref={menuRef} id={menuId} role="menu" aria-label="Menu akun" onKeyDown={onMenuKeyDown}
@@ -133,8 +134,8 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
                     {groups.map((group) => (
                         <div key={group.title} role="group" aria-label={group.title} className="mt-1 border-t border-border pt-1">
                             <p aria-hidden="true" className="px-3 pt-1.5 pb-0.5 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">{group.title}</p>
-                            {group.items.map(({ href, label, hint, icon: Icon, count }) => {
-                                const value = count ? attention[count] : 0;
+                            {group.items.map(({ href, label, hint, icon: Icon, attention: key }) => {
+                                const marked = key ? attention[key] : false;
                                 return (
                                     <Link key={href} href={href} role="menuitem" aria-current={pathname === href ? "page" : undefined} className={itemClass}>
                                         <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -142,9 +143,9 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
                                             <span className="block text-sm font-medium">{label}</span>
                                             <span className="block text-xs text-muted-foreground">{hint}</span>
                                         </span>
-                                        {value > 0 && (
-                                            <span className="mt-0.5 rounded-full bg-destructive px-1.5 text-xs font-semibold text-white tabular-nums">
-                                                {value}<span className="sr-only"> perlu tindakan</span>
+                                        {marked && (
+                                            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-destructive">
+                                                <span className="sr-only">Perlu tindakan</span>
                                             </span>
                                         )}
                                     </Link>

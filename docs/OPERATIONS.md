@@ -122,3 +122,20 @@ Penanggung jawab: pemilik repo website untuk Vercel, Supabase, dan Upstash; pemi
 ## Email autentikasi
 
 Kode verifikasi dan atur ulang kata sandi dikirim Supabase Auth lewat SMTP Resend, dari domain `mail.finsight.space`. Template, subjek, catatan DNS (DKIM, SPF, DMARC), dan daftar periksa anti-spam ada di [`supabase/templates/README.md`](../supabase/templates/README.md). Template di repo disalin manual ke dashboard Supabase; aplikasi tidak perlu dideploy ulang.
+
+## Pengikut Instagram komunitas
+
+Profil dan kartu komunitas menampilkan jumlah pengikut Instagram, menggantikan "kawan aktif" (keputusan pemilik repo, 29 Okt 2026).
+
+- **Sumber:** Business Discovery API resmi (Graph API v25.0). Hanya jumlah yang tersedia; daftar pengikut tidak dapat diambil, dan tidak ada scraping.
+- **Batasan:** hanya akun komunitas bertipe Business atau Creator. Akun pribadi, privat, atau dibatasi umur tidak menampilkan angka; profil tetap menautkan ke Instagram.
+- **Cache:** angka disimpan di `communities.instagramFollowers` dan diperbarui di latar belakang paling sering sekali sehari, saat profil komunitas dibuka. Kegagalan juga dicatat waktunya, agar API tidak dipanggil terus. Mengganti username Instagram mengosongkan angka lama.
+- **Menyalakan:**
+  1. Buat Meta App (tipe Business) di developers.facebook.com.
+  2. Hubungkan akun Instagram Business milik TemuBaca ke sebuah Facebook Page.
+  3. Beri izin `instagram_basic`, `instagram_manage_insights`, dan `pages_read_engagement`.
+  4. Buat token jangka panjang. Token System User di Business Manager tidak kedaluwarsa; token pengguna biasa berlaku 60 hari dan harus diperbarui.
+  5. Isi `INSTAGRAM_BUSINESS_ACCOUNT_ID` (ID akun IG Business, angka) dan `INSTAGRAM_ACCESS_TOKEN` di Vercel (Production), lalu redeploy.
+- **Tanpa kedua variabel:** angka tidak ditampilkan dan tidak ada panggilan ke Meta.
+- **Token:** dikirim lewat header `Authorization`, bukan di URL, agar tidak tercatat di log.
+

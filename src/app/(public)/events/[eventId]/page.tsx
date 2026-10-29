@@ -11,6 +11,7 @@ import { googleMapsUrl } from "@/features/places/places";
 import { uuidSchema } from "@/lib/validation/common";
 import { colorFor, initialsOf } from "@/features/communities/components/community-card";
 import { ShareButton } from "@/features/books/components/share-button";
+import { EventImage } from "@/features/communities/components/event-image";
 import { ReportForm } from "@/features/reports/components/report-form";
 
 type EventPageProps = {
@@ -74,29 +75,32 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 </Link>
             </div>
 
-            <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
-                <p className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${isPast ? "bg-muted text-muted-foreground" : "bg-[#e7efe8] text-secondary-foreground"}`}>
-                    <span aria-hidden="true" className={`size-1.5 rounded-full ${isPast ? "bg-muted-foreground" : "bg-primary"}`} />
-                    {isPast ? "Sudah berlangsung" : "Akan datang"}
-                </p>
-                <h1 className="mt-4 max-w-3xl font-heading text-[28px] leading-tight font-bold text-[#1f2924] sm:text-[40px]">{event.title}</h1>
-                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <Link href={`/communities/${event.communityId}`} className="flex items-center gap-3 hover:underline">
-                        <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg font-heading text-sm text-white ${colorFor(event.communityId)}`}>
-                            {initialsOf(event.communityName)}
-                        </span>
-                        <span>
-                            <span className="block text-sm font-semibold">{event.communityName}</span>
-                            <span className="block text-xs text-muted-foreground">Komunitas terverifikasi</span>
-                        </span>
-                    </Link>
-                    <div className="flex gap-2">
-                        {eventUrl && (
-                            <a href={eventUrl} target="_blank" rel="noopener noreferrer nofollow" className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-                                Info dari Penyelenggara <ExternalLink aria-hidden="true" className="size-3.5" />
-                            </a>
-                        )}
-                        <ShareButton title={event.title} className="h-10 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" />
+            <section className="overflow-hidden rounded-2xl border border-border bg-card">
+                {event.imagePath && <EventImage path={event.imagePath} className="max-h-[420px]" />}
+                <div className="p-5 sm:p-8">
+                    <p className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${isPast ? "bg-muted text-muted-foreground" : "bg-[#e7efe8] text-secondary-foreground"}`}>
+                        <span aria-hidden="true" className={`size-1.5 rounded-full ${isPast ? "bg-muted-foreground" : "bg-primary"}`} />
+                        {isPast ? "Sudah berlangsung" : "Akan datang"}
+                    </p>
+                    <h1 className="mt-4 max-w-3xl font-heading text-[28px] leading-tight font-bold text-[#1f2924] sm:text-[40px]">{event.title}</h1>
+                    <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <Link href={`/communities/${event.communityId}`} className="flex items-center gap-3 hover:underline">
+                            <span aria-hidden="true" className={`flex size-10 items-center justify-center rounded-lg font-heading text-sm text-white ${colorFor(event.communityId)}`}>
+                                {initialsOf(event.communityName)}
+                            </span>
+                            <span>
+                                <span className="block text-sm font-semibold">{event.communityName}</span>
+                                <span className="block text-xs text-muted-foreground">Komunitas terverifikasi</span>
+                            </span>
+                        </Link>
+                        <div className="flex gap-2">
+                            {eventUrl && (
+                                <a href={eventUrl} target="_blank" rel="noopener noreferrer nofollow" className="flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                                    Info dari Penyelenggara <ExternalLink aria-hidden="true" className="size-3.5" />
+                                </a>
+                            )}
+                            <ShareButton title={event.title} className="h-10 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted" />
+                        </div>
                     </div>
                 </div>
             </section>

@@ -1,8 +1,12 @@
 "use client";
 
+import { Share2 } from "lucide-react";
 import { useState } from "react";
 
-export function ShareButton({ title, className }: { title: string; className?: string }) {
+import { notify } from "@/lib/toast";
+
+/** Native share sheet where available, else copies the link. `iconOnly` shows just the icon, named for screen readers. */
+export function ShareButton({ title, className, iconOnly = false }: { title: string; className?: string; iconOnly?: boolean }) {
     const [message, setMessage] = useState("");
 
     async function share() {
@@ -13,7 +17,7 @@ export function ShareButton({ title, className }: { title: string; className?: s
                 return;
             }
             await navigator.clipboard.writeText(url);
-            setMessage("Tautan disalin.");
+            notify.success("Tautan disalin.");
         } catch (error) {
             if (error instanceof DOMException && error.name === "AbortError") return;
             setMessage("Tautan belum dapat dibagikan.");
@@ -22,7 +26,11 @@ export function ShareButton({ title, className }: { title: string; className?: s
 
     return (
         <>
-            <button type="button" onClick={share} className={className}>Bagikan</button>
+            {iconOnly ? (
+                <button type="button" onClick={share} aria-label="Bagikan" title="Bagikan" className={className}><Share2 aria-hidden="true" className="size-4" /></button>
+            ) : (
+                <button type="button" onClick={share} className={className}>Bagikan</button>
+            )}
             <span aria-live="polite" className="sr-only">{message}</span>
         </>
     );

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Switch } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 type BookListingAvailabilityProps = {
     listingId: string;
@@ -15,12 +16,10 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
     const labelId = useId();
     const [availability, setAvailability] = useState(initialAvailability);
     const [pending, setPending] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     async function toggleAvailability() {
         const nextAvailability = availability === "AVAILABLE" ? "UNAVAILABLE" : "AVAILABLE";
         setPending(true);
-        setError(null);
 
         try {
             const response = await fetch(`/api/book-listings/${listingId}`, {
@@ -30,16 +29,17 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
             });
 
             if (!response.ok) {
-                setError(response.status === 429
+                notify.error(response.status === 429
                     ? "Terlalu banyak perubahan. Coba lagi sebentar."
                     : "Ketersediaan belum dapat diperbarui.");
                 return;
             }
 
             setAvailability(nextAvailability);
+            notify.success(nextAvailability === "AVAILABLE" ? "Buku ditawarkan untuk dipinjam." : "Buku tidak lagi ditawarkan.");
             router.refresh();
         } catch {
-            setError("Koneksi terputus. Coba lagi.");
+            notify.error("Koneksi terputus. Coba lagi.");
         } finally {
             setPending(false);
         }
@@ -59,7 +59,6 @@ export function BookListingAvailability({ listingId, initialAvailability }: Book
                 </span>
                 <Switch checked={offered} onCheckedChange={() => toggleAvailability()} aria-labelledby={labelId} disabled={pending || locked} />
             </div>
-            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
         </div>
     );
 }

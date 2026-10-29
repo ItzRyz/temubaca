@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
+import { listingsNeedAttention } from "@/lib/db/queries/books";
 import { countLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { countLibraryActions, listManagedLibraries } from "@/lib/db/queries/libraries";
 import { hasSeenTour } from "@/lib/db/queries/users";
@@ -17,11 +18,11 @@ function initialsOf(name: string) {
 
 export async function SiteHeader() {
     const user = await getCurrentUser();
-    const [loans, library, managed] = user
-        ? await Promise.all([countLoansNeedingAction(user.id), countLibraryActions(user.id), listManagedLibraries(user.id)])
-        : [0, { toAnswer: 0, toCollect: 0 }, []];
+    const [listings, loans, library, managed] = user
+        ? await Promise.all([listingsNeedAttention(user.id), countLoansNeedingAction(user.id), countLibraryActions(user.id), listManagedLibraries(user.id)])
+        : [false, 0, { toAnswer: 0, toCollect: 0 }, []];
     // Approved library requests to pick up sit with the reader's loans; requests to answer with the libraries they run.
-    const attention = { loans: loans + library.toCollect, libraries: library.toAnswer, managesLibraries: managed.length > 0 };
+    const attention = { listings, loans: loans + library.toCollect > 0, libraries: library.toAnswer > 0, managesLibraries: managed.length > 0 };
 
     return (
         <header className="sticky top-0 z-40 bg-background/95 shadow-[0_1px_4px_rgba(0,0,0,0.04)] backdrop-blur-[6px]">

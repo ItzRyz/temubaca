@@ -7,10 +7,11 @@ import { useState, useTransition } from "react";
 import { FormAlert } from "@/components/ui/form";
 
 import { sendLoanRequest } from "../client";
-import type { LoanAction, LoanRole } from "../lifecycle";
+import { loanActionDone, type LoanAction, type LoanRole } from "../lifecycle";
 import { RejectExtensionDialog, RequestExtensionDialog } from "./extension-dialogs";
 import { RejectRequestDialog } from "./reject-request-dialog";
 import { AddDisputeInfoDialog, ReportProblemDialog } from "./report-problem-dialog";
+import { notify } from "@/lib/toast";
 
 const primary = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60";
 const outline = "flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-60";
@@ -46,6 +47,7 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
             );
             if (!result.ok) return setError(result.message);
             setConfirmingCancel(false);
+            notify.success(loanActionDone[action]);
             router.refresh();
         });
     }

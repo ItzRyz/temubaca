@@ -10,6 +10,7 @@ import { regionByCode } from "@/features/regions/regions";
 import { cn } from "@/lib/utils";
 
 import { addMeetingPoint, composeListingDetails, conditionChoices, GUARANTEE_MAX_LENGTH, isMoneyGuarantee, loanDayOptions, MAX_MEETING_POINTS } from "../listing-draft";
+import { notify } from "@/lib/toast";
 
 type LocalBook = { id: string; title: string; authors: string[]; publishedAt: string | null; publisher: string | null };
 type ExternalBook = { provider: "OPEN_LIBRARY" | "GOOGLE_BOOKS"; providerId: string; title: string; authors: string[]; publishedAt?: string; publisher?: string; localBookId: string | null };
@@ -209,6 +210,7 @@ export function AddBookDialog() {
                 return;
             }
             close();
+            notify.success("Buku ditambahkan ke koleksimu.");
             router.refresh();
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Koneksi terputus. Coba lagi.");

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { Field, FormAlert, TextArea } from "@/components/ui/form";
+import { notify } from "@/lib/toast";
 
 /** Hide a listing from public pages with a recorded reason, or restore it (Figma "Tindakan Listing"). */
 export function ListingVisibilityPanel({ listingId, bookId, hidden }: { listingId: string; bookId: string; hidden: boolean }) {
@@ -34,7 +35,7 @@ export function ListingVisibilityPanel({ listingId, bookId, hidden }: { listingI
                 return;
             }
             setReason("");
-            setMessage({ tone: "ok", text: hidden ? "Listing ditampilkan kembali." : "Listing disembunyikan dari halaman publik." });
+            notify.success(hidden ? "Listing ditampilkan kembali." : "Listing disembunyikan dari halaman publik.");
             router.refresh();
         } catch {
             setMessage({ tone: "error", text: "Koneksi terputus. Coba lagi." });

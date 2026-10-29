@@ -7,6 +7,7 @@ import { ChoiceOption, Field, FormAlert, Select, TextArea } from "@/components/u
 
 import { sendLoanRequest } from "../client";
 import { borrowBlockDayOptions, disputeConsequenceLabels, type DisputeConsequence } from "../lifecycle";
+import { notify } from "@/lib/toast";
 
 const consequenceHints: Record<DisputeConsequence, string> = {
     NONE: "Tidak ada pihak yang dikenai sanksi.",
@@ -36,6 +37,7 @@ export function ResolveDisputePanel({ borrowingId }: { borrowingId: string }) {
         startTransition(async () => {
             const result = await sendLoanRequest(`/api/admin/borrowings/${borrowingId}`, "PATCH", { outcome, note, consequence: chosen });
             if (!result.ok) return setError(result.message);
+            notify.success("Keputusan sengketa disimpan.");
             router.refresh();
         });
     }
@@ -112,6 +114,7 @@ export function AskDisputePanel({ borrowingId }: { borrowingId: string }) {
             const result = await sendLoanRequest(`/api/admin/borrowings/${borrowingId}/questions`, "POST", { party, question });
             if (!result.ok) return setError(result.message);
             setQuestion("");
+            notify.success("Pertanyaan dikirim.");
             router.refresh();
         });
     }

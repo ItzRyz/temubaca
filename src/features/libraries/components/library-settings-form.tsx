@@ -5,6 +5,7 @@ import { useId, useState, useTransition, type FormEvent } from "react";
 
 import { Field, FormAlert, Switch, TextArea, TextInput } from "@/components/ui/form";
 import { sendLoanRequest } from "@/features/borrowing/client";
+import { notify } from "@/lib/toast";
 
 /** A library's manager decides whether readers can ask through TemuBaca, the rules, and the pick-up window. */
 export function LibrarySettingsForm({ libraryId, initial }: { libraryId: string; initial: { accessEnabled: boolean; accessRules: string | null; pickupDays: number } }) {
@@ -20,7 +21,8 @@ export function LibrarySettingsForm({ libraryId, initial }: { libraryId: string;
         event.preventDefault();
         startTransition(async () => {
             const result = await sendLoanRequest(`/api/libraries/${libraryId}`, "PATCH", { accessEnabled, accessRules, pickupDays: Number(pickupDays) });
-            setMessage(result.ok ? { tone: "success", text: "Pengaturan disimpan." } : { tone: "error", text: result.message });
+            if (result.ok) notify.success("Pengaturan disimpan.");
+            setMessage(result.ok ? null : { tone: "error", text: result.message });
             if (result.ok) router.refresh();
         });
     }

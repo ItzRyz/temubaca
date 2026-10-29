@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { sendCommunityRequest } from "../client";
+import { notify } from "@/lib/toast";
 
-type MenuItem = { label: string; icon: typeof Archive; danger?: boolean; confirm?: string; run: () => Promise<{ ok: boolean; message?: string }> };
+type MenuItem = { label: string; icon: typeof Archive; danger?: boolean; confirm?: string; done: string; run: () => Promise<{ ok: boolean; message?: string }> };
 
 /** The "⋮" menu on event and merchandise rows. Destructive items ask once before running. */
 function RowMenu({ label, items }: { label: string; items: MenuItem[] }) {
@@ -41,6 +42,7 @@ function RowMenu({ label, items }: { label: string; items: MenuItem[] }) {
             if (!result.ok) return setError(result.message ?? "Tindakan gagal.");
             setOpen(false);
             setConfirming(null);
+            notify.success(item.done);
             router.refresh();
         });
     }
@@ -73,14 +75,14 @@ const call = async (url: string, method: "POST" | "DELETE", body?: unknown) => {
 
 export function EventRowMenu({ communityId, eventId, title, isDraft, isArchived }: { communityId: string; eventId: string; title: string; isDraft: boolean; isArchived: boolean }) {
     const url = `/api/communities/${communityId}/events/${eventId}`;
-    const items: MenuItem[] = [{ label: "Duplikat sebagai draf", icon: Copy, run: () => call(url, "POST", { action: "duplicate" }) }];
-    if (!isDraft && !isArchived) items.push({ label: "Arsipkan", icon: Archive, confirm: "Ya, arsipkan dari publik", run: () => call(url, "POST", { action: "archive" }) });
-    if (isDraft) items.push({ label: "Hapus draf", icon: Trash2, danger: true, confirm: "Ya, hapus permanen", run: () => call(url, "DELETE") });
+    const items: MenuItem[] = [{ label: "Duplikat sebagai draf", icon: Copy, done: "Acara diduplikat sebagai draf.", run: () => call(url, "POST", { action: "duplicate" }) }];
+    if (!isDraft && !isArchived) items.push({ label: "Arsipkan", icon: Archive, confirm: "Ya, arsipkan dari publik", done: "Acara diarsipkan.", run: () => call(url, "POST", { action: "archive" }) });
+    if (isDraft) items.push({ label: "Hapus draf", icon: Trash2, danger: true, confirm: "Ya, hapus permanen", done: "Draf acara dihapus.", run: () => call(url, "DELETE") });
     return <RowMenu label={`Tindakan lain untuk ${title}`} items={items} />;
 }
 
 export function MerchandiseRowMenu({ communityId, itemId, title }: { communityId: string; itemId: string; title: string }) {
-    const items: MenuItem[] = [{ label: "Hapus", icon: Trash2, danger: true, confirm: "Ya, hapus permanen", run: () => call(`/api/communities/${communityId}/merchandise/${itemId}`, "DELETE") }];
+    const items: MenuItem[] = [{ label: "Hapus", icon: Trash2, danger: true, confirm: "Ya, hapus permanen", done: "Merchandise dihapus.", run: () => call(`/api/communities/${communityId}/merchandise/${itemId}`, "DELETE") }];
     return <RowMenu label={`Tindakan lain untuk ${title}`} items={items} />;
 }
 
@@ -91,7 +93,9 @@ export function DuplicateEventButton({ communityId, eventId }: { communityId: st
     return (
         <button type="button" disabled={pending} onClick={() => startTransition(async () => {
             const result = await sendCommunityRequest<{ id: string }>(`/api/communities/${communityId}/events/${eventId}`, "POST", { action: "duplicate" });
-            if (result.ok) router.push(`/communities/${communityId}/manage/events/${result.data.id}`);
+            if (!result.ok) return notify.error(result.message);
+            notify.success("Acara diduplikat sebagai draf.");
+            router.push(`/communities/${communityId}/manage/events/${result.data.id}`);
         })} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-semibold hover:bg-muted disabled:opacity-60">
             <Copy aria-hidden="true" className="size-4" /> Duplikat
         </button>

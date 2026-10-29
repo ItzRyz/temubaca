@@ -32,6 +32,21 @@ export type LoanAction =
     | "approve" | "reject" | "cancel" | "confirm_handover" | "confirm_return" | "remind" | "report_problem"
     | "request_extension" | "approve_extension" | "reject_extension" | "add_dispute_info";
 
+/** Toast after an action succeeds (29 Okt 2026). */
+export const loanActionDone: Record<LoanAction, string> = {
+    approve: "Permintaan pinjam disetujui.",
+    reject: "Permintaan pinjam ditolak.",
+    cancel: "Permintaan pinjam dibatalkan.",
+    confirm_handover: "Serah terima buku dikonfirmasi.",
+    confirm_return: "Pengembalian buku dikonfirmasi.",
+    remind: "Pengingat dikirim.",
+    report_problem: "Laporan masalah dikirim ke admin.",
+    request_extension: "Permintaan perpanjangan dikirim.",
+    approve_extension: "Perpanjangan disetujui.",
+    reject_extension: "Perpanjangan ditolak.",
+    add_dispute_info: "Keterangan tambahan dikirim ke admin.",
+};
+
 export type LoanSnapshot = {
     requestStatus: string;
     borrowingStatus: string | null;
