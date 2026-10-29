@@ -5,7 +5,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../client";
 import { communities, merchandiseListings } from "../schema";
 
-const publicMerchandiseFilter = and(
+/** Published items of verified communities: what public pages and the sitemap show. */
+export const publicMerchandiseFilter = and(
     eq(merchandiseListings.status, "PUBLISHED"),
     eq(communities.status, "VERIFIED"),
 );

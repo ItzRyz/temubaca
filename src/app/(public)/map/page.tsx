@@ -4,11 +4,12 @@ import Link from "next/link";
 import { MapExplorer } from "@/features/places/components/map-explorer";
 import { PLACE_TYPES } from "@/features/places/places";
 import { listPublicPlaces } from "@/lib/db/queries/places";
+import { listingRobots, pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = {
-    title: "Peta Literasi",
-    description: "Temukan perpustakaan, komunitas baca terverifikasi, acara, dan titik temu publik di sekitarmu.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Peta Literasi", description: "Temukan perpustakaan, komunitas baca terverifikasi, acara, dan titik temu publik di sekitarmu.", path: "/map" }), robots: listingRobots(await searchParams) };
+}
 
 export const dynamic = "force-dynamic";
 

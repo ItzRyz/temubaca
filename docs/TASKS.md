@@ -323,6 +323,44 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## SEO lengkap dan ikon appicon — 2026-10-29
+
+Permintaan pemilik repo. Domain kanonis: `NEXT_PUBLIC_APP_URL` (`https://temubaca.vercel.app`).
+
+- **Ikon:** dari `public/appicon.png` (512 px), disusun lewat konvensi file Next:
+  - `src/app/icon.png`;
+  - `apple-icon.png` (180 px);
+  - `favicon.ico` (16/32/48, menggantikan ikon bawaan Next);
+  - `public/icons/icon-192.png` dan `icon-512.png` untuk manifest.
+- **Metadata situs** (`src/config/site.ts`):
+  - `metadataBase`, template judul `%s · TemuBaca`, deskripsi, kata kunci, Open Graph `id_ID`, Twitter `summary_large_image`;
+  - robots `max-image-preview: large`;
+  - `verification.google` dari env opsional `GOOGLE_SITE_VERIFICATION`;
+  - `themeColor` di viewport.
+- **Gambar bagikan default:** `opengraph-image.tsx` dan `twitter-image.tsx` (1200×630, hijau brand, ikon, tagline).
+- **Halaman detail:** canonical, deskripsi cadangan yang informatif, gambar OG sendiri, dan JSON-LD.
+  - Buku: `Book`, sampul, `og:type=book`.
+  - Acara: `Event`, tanggal, lokasi fisik atau daring.
+  - Komunitas: `Organization`, banner atau logo.
+  - Merchandise: `Product` dengan `Offer`, hanya bila harganya tetap.
+  - Perpustakaan: `Library`.
+- **Beranda:** JSON-LD `WebSite`, dengan `SearchAction` ke `/books?q=`, plus `Organization`.
+- **Halaman daftar** (`/books`, `/communities`, `/events`, `/merchandise`, `/libraries`, `/map`):
+  - canonical tanpa query;
+  - hasil pencarian, filter, dan halaman berikutnya `noindex, follow`.
+- **Halaman statis:** canonical.
+- **Halaman privat:** layout `(app)`, `(management)`, dan `(auth)` bernilai `noindex, nofollow`.
+- **`robots.ts`:** menutup API, admin, halaman akun, dan auth; menautkan sitemap.
+- **`sitemap.ts`** (revalidasi per jam, `listSitemapEntries`): halaman statis, semua buku, komunitas terverifikasi, serta acara dan merchandise terbit dari komunitas terverifikasi. Perpustakaan yang tidak disembunyikan juga ikut.
+- **`manifest.ts`:** PWA dasar.
+- **Diuji:**
+  - `bun run check` lulus;
+  - unit: metadata, robots daftar, snippet, escape JSON-LD;
+  - integrasi: isi sitemap hanya data publik;
+  - lokal: `robots.txt`, `sitemap.xml` (3.091 URL, XML valid), manifest, ikon, gambar OG 1200×630;
+  - `<head>`: canonical, og, twitter, JSON-LD buku, acara, dan komunitas dapat di-parse;
+  - `/books?q=` bernilai `noindex`, `/login` dan `/my-listings` bernilai `noindex, nofollow`.
+
 ## Perbaikan UX: surel, titik notifikasi, media komunitas, toast, dan lainnya — 2026-10-29
 
 Permintaan pemilik repo, dengan keputusannya:

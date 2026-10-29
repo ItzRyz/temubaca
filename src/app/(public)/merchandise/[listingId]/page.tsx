@@ -8,12 +8,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { findPublicMerchandise, listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { uuidSchema } from "@/lib/validation/common";
 import { CommunityAvatar } from "@/features/communities/components/community-card";
-import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/features/merchandise/format";
+import { formatMerchandisePrice, merchandiseAvailabilityLabels, merchandisePhotoUrl } from "@/features/merchandise/format";
 import { MerchandiseGallery } from "@/features/merchandise/components/merchandise-gallery";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { communityContactLinks } from "@/features/community-management/contacts";
+import { JsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, siteUrl, snippet } from "@/config/site";
 
 type MerchandisePageProps = {
     params: Promise<{ listingId: string }>;
@@ -46,7 +48,13 @@ const findListing = cache(async (listingId: string) => {
 
 export async function generateMetadata({ params }: MerchandisePageProps): Promise<Metadata> {
     const listing = await findListing((await params).listingId);
-    return listing ? { title: listing.title, description: listing.description?.slice(0, 160) ?? undefined } : {};
+    if (!listing) return {};
+    return pageMetadata({
+        title: listing.title,
+        description: snippet(listing.description, `${listing.title} dari ${listing.communityName}. Hasil penjualan untuk kegiatan komunitas baca.`),
+        path: `/merchandise/${listing.id}`,
+        image: listing.photoPaths[0] ? merchandisePhotoUrl(listing.photoPaths[0]) : null,
+    });
 }
 
 export default async function MerchandiseDetailPage({ params }: MerchandisePageProps) {
@@ -63,6 +71,25 @@ export default async function MerchandiseDetailPage({ params }: MerchandisePageP
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-8 sm:px-6">
+            {/* Only a fixed price makes an Offer; "price on request" items carry no product markup. */}
+            {listing.priceAmount !== null && (
+                <JsonLd data={{
+                    "@context": "https://schema.org",
+                    "@type": "Product",
+                    name: listing.title,
+                    url: new URL(`/merchandise/${listing.id}`, siteUrl).toString(),
+                    ...(listing.description ? { description: snippet(listing.description, "") } : {}),
+                    ...(listing.photoPaths.length ? { image: listing.photoPaths.map((path) => merchandisePhotoUrl(path)) } : {}),
+                    brand: { "@type": "Organization", name: listing.communityName },
+                    offers: {
+                        "@type": "Offer",
+                        price: String(listing.priceAmount),
+                        priceCurrency: listing.currency ?? "IDR",
+                        availability: { AVAILABLE: "https://schema.org/InStock", RESERVED: "https://schema.org/LimitedAvailability", UNAVAILABLE: "https://schema.org/OutOfStock" }[listing.availability],
+                        url: new URL(`/merchandise/${listing.id}`, siteUrl).toString(),
+                    },
+                }} />
+            )}
             <div className="flex flex-wrap items-center justify-between gap-2 py-4 text-xs text-muted-foreground">
                 <nav aria-label="Breadcrumb">
                     <ol className="flex list-none flex-wrap items-center gap-1 p-0">

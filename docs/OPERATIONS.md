@@ -139,3 +139,11 @@ Profil dan kartu komunitas menampilkan jumlah pengikut Instagram, menggantikan "
 - **Tanpa kedua variabel:** angka tidak ditampilkan dan tidak ada panggilan ke Meta.
 - **Token:** dikirim lewat header `Authorization`, bukan di URL, agar tidak tercatat di log.
 
+## Google Search Console
+
+1. Tambahkan properti URL-prefix `https://temubaca.vercel.app` di Search Console, lalu pilih verifikasi **HTML tag**.
+2. Salin isi `content` dari meta tag itu (bukan seluruh tag) ke env `GOOGLE_SITE_VERIFICATION` di Vercel (Production), lalu redeploy dan klik **Verify**.
+3. Di menu **Sitemaps**, kirim `sitemap.xml`. Sitemap diperbarui paling lama setiap jam.
+4. Pakai **URL Inspection** untuk satu halaman buku agar terindeks lebih cepat. Rich Results Test bisa memeriksa JSON-LD (`Book`, `Event`, `Product`).
+5. Jika domain berganti, ubah `NEXT_PUBLIC_APP_URL`, karena canonical, sitemap, dan Open Graph mengikutinya.
+

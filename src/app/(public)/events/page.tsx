@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { EventImage } from "@/features/communities/components/event-image";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { publicEventQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
+import { listingRobots, pageMetadata } from "@/config/site";
 
 type EventsPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -15,10 +16,10 @@ function singleValue(value: string | string[] | undefined) {
     return typeof value === "string" ? value : undefined;
 }
 
-export const metadata: Metadata = {
-    title: "Acara baca",
-    description: "Temukan acara mendatang dari komunitas baca terverifikasi di TemuBaca.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Acara baca", description: "Temukan acara mendatang dari komunitas baca terverifikasi di TemuBaca.", path: "/events" }), robots: listingRobots(await searchParams) };
+}
 
 export const dynamic = "force-dynamic";
 

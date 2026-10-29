@@ -23,6 +23,9 @@ import { formatMerchandisePrice, merchandiseAvailabilityLabels } from "@/feature
 import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { EventImage } from "@/features/communities/components/event-image";
+import { JsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, siteUrl, snippet } from "@/config/site";
+import { merchandisePhotoUrl } from "@/features/merchandise/format";
 import { CommunityBanner } from "@/features/community-management/components/community-logo-form";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +57,14 @@ const findProfile = cache(async (communityId: string) => {
 
 export async function generateMetadata({ params }: CommunityPageProps): Promise<Metadata> {
     const community = await findProfile((await params).communityId);
-    return community ? { title: community.name, description: community.description?.slice(0, 160) ?? undefined } : {};
+    if (!community) return {};
+    const image = community.bannerPath ?? community.logoPath;
+    return pageMetadata({
+        title: community.name,
+        description: snippet(community.description, `${community.name}, komunitas baca terverifikasi di TemuBaca. Lihat agenda, merchandise, dan cara bergabung.`),
+        path: `/communities/${community.id}`,
+        image: image ? merchandisePhotoUrl(image) : null,
+    });
 }
 
 function DateBadge({ date }: { date: Date }) {
@@ -95,6 +105,16 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-10 sm:px-6">
+            <JsonLd data={{
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: community.name,
+                url: new URL(`/communities/${community.id}`, siteUrl).toString(),
+                ...(community.description ? { description: snippet(community.description, "") } : {}),
+                ...(community.logoPath ? { logo: merchandisePhotoUrl(community.logoPath) } : {}),
+                ...(community.publicLocation ? { areaServed: community.publicLocation } : {}),
+                ...(community.instagramHandle ? { sameAs: [`https://instagram.com/${encodeURIComponent(community.instagramHandle)}`] } : {}),
+            }} />
             <nav aria-label="Breadcrumb" className="py-4 text-xs text-muted-foreground">
                 <ol className="flex list-none items-center gap-1 p-0">
                     <li><Link href="/" className="hover:text-foreground">Beranda</Link></li>

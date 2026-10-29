@@ -4,11 +4,12 @@ import Link from "next/link";
 
 import { provinceOptions, regionByCode } from "@/features/regions/regions";
 import { listLibraries } from "@/lib/db/queries/libraries";
+import { listingRobots, pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = {
-    title: "Perpustakaan",
-    description: "Perpustakaan di TemuBaca, koleksi yang tercatat, dan cara mengajukan akses buku.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Perpustakaan", description: "Perpustakaan di TemuBaca, koleksi yang tercatat, dan cara mengajukan akses buku.", path: "/libraries" }), robots: listingRobots(await searchParams) };
+}
 export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };

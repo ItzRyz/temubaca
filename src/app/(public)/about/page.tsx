@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+import { pageMetadata } from "@/config/site";
+
+export const metadata: Metadata = pageMetadata({
+    title: "Tentang TemuBaca",
+    description: "TemuBaca menghubungkan pembaca dengan buku warga, komunitas baca, perpustakaan, dan Peta Literasi di sekitarnya.",
+    path: "/about",
+});
 
 const principles = [
     {

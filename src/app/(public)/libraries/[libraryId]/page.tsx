@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { mergeHoldings } from "@/features/libraries/access";
 import { HoldingBadge } from "@/features/libraries/components/holding-badge";
 import { regionByCode } from "@/features/regions/regions";
+import { JsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, siteUrl } from "@/config/site";
 import { getCurrentUser } from "@/lib/auth";
 import { findLibrary, isLibraryManager, listHoldingsForLibrary } from "@/lib/db/queries/libraries";
 import { libraryIdParamSchema } from "@/lib/validation/schemas/library.schema";
@@ -21,7 +23,12 @@ async function libraryFrom(params: PageProps["params"]) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const library = await libraryFrom(params);
-    return library ? { title: library.name, description: `Koleksi ${library.name} yang tercatat di TemuBaca.` } : { title: "Perpustakaan" };
+    if (!library) return { title: "Perpustakaan" };
+    return pageMetadata({
+        title: library.name,
+        description: `Koleksi ${library.name}${library.publicLocation ? `, ${library.publicLocation}` : ""}, yang tercatat di TemuBaca, dan cara meminta akses buku.`,
+        path: `/libraries/${library.id}`,
+    });
 }
 
 /** One library: details, how to ask for access, and its collection (TB-023). */
@@ -38,6 +45,14 @@ export default async function LibraryPage({ params, searchParams }: PageProps) {
 
     return (
         <main className="mx-auto w-full max-w-[1100px] px-4 py-8 sm:px-6 sm:py-10">
+            <JsonLd data={{
+                "@context": "https://schema.org",
+                "@type": "Library",
+                name: library.name,
+                url: new URL(`/libraries/${library.id}`, siteUrl).toString(),
+                ...(library.publicLocation ? { address: library.publicLocation } : {}),
+                ...(library.websiteUrl ? { sameAs: [library.websiteUrl] } : {}),
+            }} />
             <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground"><Link href="/libraries" className="hover:underline">Perpustakaan</Link> / {library.name}</nav>
             <header className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>

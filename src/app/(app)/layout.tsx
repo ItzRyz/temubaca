@@ -1,10 +1,15 @@
+import type { Metadata } from "next";
 
+import { privateMetadata } from "@/config/site";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { DeletionPendingBanner } from "@/features/account-deletion/components/delete-account-dialog";
+
+/** Signed-in pages are personal: kept out of search results. */
+export const metadata: Metadata = privateMetadata;
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
     const user = await getCurrentUser();

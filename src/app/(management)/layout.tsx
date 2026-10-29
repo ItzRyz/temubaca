@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { privateMetadata } from "@/config/site";
 import { AdminSidebar } from "@/components/layout/admin-sidebar";
 import { MAIN_CONTENT_ID, SkipLink } from "@/components/layout/skip-link";
 import { getCurrentUser } from "@/lib/auth";
@@ -8,6 +10,8 @@ import { countCommunitiesByStatus } from "@/lib/db/queries/communities";
 import { countReportsByStatus } from "@/lib/db/queries/reports";
 import { countOpenBorrowingDisputes } from "@/lib/db/queries/borrowing";
 import { countPendingAppeals } from "@/lib/db/queries/listing-appeals";
+
+export const metadata: Metadata = privateMetadata;
 
 export default async function ManagementLayout({ children }: LayoutProps<"/">) {
     const user = await getCurrentUser();

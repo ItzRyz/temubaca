@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PolicyPage, PolicySection } from "@/features/policies/components/policy-page";
+import { pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = { title: "Panduan Keamanan", description: "Cara aman bertemu, meminjam buku, dan membeli merchandise komunitas lewat TemuBaca." };
+export const metadata: Metadata = pageMetadata({ title: "Panduan Keamanan", description: "Cara aman bertemu, meminjam buku, dan membeli merchandise komunitas lewat TemuBaca.", path: "/safety" });
 
 export default function SafetyPage() {
     return (

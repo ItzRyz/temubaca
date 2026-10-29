@@ -5,6 +5,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { JsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, siteUrl, snippet } from "@/config/site";
 import { db } from "@/lib/db";
 import { listBookListings, publicBookColumns } from "@/lib/db/queries/books";
 import { hasBookmark } from "@/lib/db/queries/bookmarks";
@@ -59,7 +61,15 @@ const findPublicBook = cache(async (bookId: string) => {
 
 export async function generateMetadata({ params }: BookPageProps): Promise<Metadata> {
     const book = await findPublicBook((await params).bookId);
-    return book ? { title: book.title, description: book.description?.slice(0, 160) ?? undefined } : {};
+    if (!book) return {};
+    const by = book.authors.length ? ` karya ${book.authors.join(", ")}` : "";
+    return pageMetadata({
+        title: book.title,
+        description: snippet(book.description, `${book.title}${by}. Lihat salinan yang dibagikan warga dan perpustakaan yang mencatatnya di TemuBaca.`),
+        path: `/books/${book.id}`,
+        image: book.coverUrl,
+        openGraph: { type: "book", authors: book.authors, isbn: book.isbn ?? undefined },
+    });
 }
 
 const secondaryButtonClass = "flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring";
@@ -112,6 +122,19 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-10 sm:px-6">
+            <JsonLd data={{
+                "@context": "https://schema.org",
+                "@type": "Book",
+                name: book.title,
+                url: new URL(`/books/${book.id}`, siteUrl).toString(),
+                ...(book.authors.length ? { author: book.authors.map((name) => ({ "@type": "Person", name })) } : {}),
+                ...(book.isbn ? { isbn: book.isbn } : {}),
+                ...(book.publisher ? { publisher: { "@type": "Organization", name: book.publisher } } : {}),
+                ...(book.publishedAt ? { datePublished: book.publishedAt } : {}),
+                ...(book.language ? { inLanguage: book.language } : {}),
+                ...(book.coverUrl ? { image: book.coverUrl } : {}),
+                ...(book.description ? { description: snippet(book.description, "") } : {}),
+            }} />
             <nav aria-label="Breadcrumb" className="py-3 text-[13px] text-muted-foreground">
                 <ol className="flex list-none flex-wrap items-center gap-1 p-0">
                     <li><Link href="/books" className="hover:text-foreground">Jelajahi</Link></li>

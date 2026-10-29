@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,6 +11,8 @@ const loraHeading = Lora({ subsets: ['latin'], variable: '--font-heading' });
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = siteMetadata;
+
+export const viewport: Viewport = { themeColor: "#1b4d37" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

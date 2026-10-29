@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PolicyPage, PolicySection } from "@/features/policies/components/policy-page";
+import { pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = { title: "Bantuan", description: "Cara mendapat bantuan, melaporkan masalah, dan menghubungi pengelola TemuBaca." };
+export const metadata: Metadata = pageMetadata({ title: "Bantuan", description: "Cara mendapat bantuan, melaporkan masalah, dan menghubungi pengelola TemuBaca.", path: "/help" });
 
 /** DEC-11 support channel: in-app reports now; the support email is added once a custom domain exists. */
 export default function HelpPage() {

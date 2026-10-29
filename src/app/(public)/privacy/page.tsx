@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PolicyPage, PolicySection } from "@/features/policies/components/policy-page";
+import { pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = { title: "Kebijakan Privasi", description: "Data apa yang disimpan TemuBaca, untuk apa, berapa lama, dan cara mengunduh atau menghapusnya." };
+export const metadata: Metadata = pageMetadata({ title: "Kebijakan Privasi", description: "Data apa yang disimpan TemuBaca, untuk apa, berapa lama, dan cara mengunduh atau menghapusnya.", path: "/privacy" });
 
 export default function PrivacyPage() {
     return (

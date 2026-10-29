@@ -32,6 +32,11 @@ const serverSchema = z.object({
         .string()
         .optional(),
 
+    // Google Search Console HTML-tag verification code (content of the meta tag only).
+    GOOGLE_SITE_VERIFICATION: z
+        .string()
+        .optional(),
+
     // Instagram Business Discovery (29 Okt 2026): follower counts of community accounts. Both unset: counts are not shown.
     INSTAGRAM_BUSINESS_ACCOUNT_ID: z
         .string()
@@ -117,6 +122,9 @@ const serverEnv = serverSchema.safeParse({
 
     GOOGLE_BOOKS_API_KEY:
         process.env.GOOGLE_BOOKS_API_KEY,
+
+    GOOGLE_SITE_VERIFICATION:
+        process.env.GOOGLE_SITE_VERIFICATION,
 
     INSTAGRAM_BUSINESS_ACCOUNT_ID:
         process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID,

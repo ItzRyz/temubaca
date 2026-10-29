@@ -12,6 +12,7 @@ import { CommunityRecommendations } from "@/features/recommendations/components/
 import { getCommunityRecommendations } from "@/features/recommendations/community-queries";
 import { EmptyState, SectionHeader } from "@/features/home/components/section-header";
 import { publicCommunityQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
+import { listingRobots, pageMetadata } from "@/config/site";
 
 type CommunitiesPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -21,10 +22,10 @@ function singleValue(value: string | string[] | undefined) {
     return typeof value === "string" ? value : undefined;
 }
 
-export const metadata: Metadata = {
-    title: "Komunitas & acara literasi",
-    description: "Jelajahi komunitas baca terverifikasi dan acara literasi yang akan datang di TemuBaca.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Komunitas & acara literasi", description: "Jelajahi komunitas baca terverifikasi dan acara literasi yang akan datang di TemuBaca.", path: "/communities" }), robots: listingRobots(await searchParams) };
+}
 
 export const dynamic = "force-dynamic";
 

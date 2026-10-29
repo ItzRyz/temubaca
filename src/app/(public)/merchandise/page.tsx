@@ -7,11 +7,12 @@ import { ReportForm } from "@/features/reports/components/report-form";
 import { countPublicMerchandise, listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { publicEventQuerySchema } from "@/lib/validation/schemas/public-catalog.schema";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
+import { listingRobots, pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = {
-    title: "Katalog merchandise",
-    description: "Lihat merchandise yang dipublikasikan oleh komunitas baca terverifikasi.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Katalog merchandise", description: "Lihat merchandise yang dipublikasikan oleh komunitas baca terverifikasi.", path: "/merchandise" }), robots: listingRobots(await searchParams) };
+}
 
 export const dynamic = "force-dynamic";
 

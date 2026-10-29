@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PolicyPage, PolicySection } from "@/features/policies/components/policy-page";
+import { pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = { title: "Syarat Layanan", description: "Aturan memakai TemuBaca: akun, pinjam-meminjam buku, komunitas, merchandise, dan moderasi." };
+export const metadata: Metadata = pageMetadata({ title: "Syarat Layanan", description: "Aturan memakai TemuBaca: akun, pinjam-meminjam buku, komunitas, merchandise, dan moderasi.", path: "/terms" });
 
 export default function TermsPage() {
     return (

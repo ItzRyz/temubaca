@@ -14,11 +14,12 @@ import { browseBooks, listBookFacets, listGenreFacets } from "@/lib/db/queries/b
 import { genreBySlug } from "@/features/books/genres";
 import { languageLabel } from "@/lib/external/books/language";
 import { bookBrowseQuerySchema } from "@/lib/validation/schemas/book.schema";
+import { listingRobots, pageMetadata } from "@/config/site";
 
-export const metadata: Metadata = {
-    title: "Jelajahi buku",
-    description: "Cari buku berdasarkan judul, penulis, ISBN, atau kategori dan lihat salinan yang dibagikan warga.",
-};
+/** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+    return { ...pageMetadata({ title: "Jelajahi buku", description: "Cari buku berdasarkan judul, penulis, ISBN, atau kategori dan lihat salinan yang dibagikan warga.", path: "/books" }), robots: listingRobots(await searchParams) };
+}
 
 export const dynamic = "force-dynamic";
 

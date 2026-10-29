@@ -13,6 +13,9 @@ import { colorFor, initialsOf } from "@/features/communities/components/communit
 import { ShareButton } from "@/features/books/components/share-button";
 import { EventImage } from "@/features/communities/components/event-image";
 import { ReportForm } from "@/features/reports/components/report-form";
+import { merchandisePhotoUrl } from "@/features/merchandise/format";
+import { JsonLd } from "@/components/seo/json-ld";
+import { pageMetadata, siteUrl, snippet } from "@/config/site";
 
 type EventPageProps = {
     params: Promise<{ eventId: string }>;
@@ -42,9 +45,40 @@ const findEvent = cache(async (eventId: string) => {
     return parsed.success ? findPublicEvent(parsed.data) : null;
 });
 
+const eventMetaDate = new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
+
+/** schema.org Event, so search can show the date and place. */
+function eventJsonLd(event: NonNullable<Awaited<ReturnType<typeof findEvent>>>) {
+    const online = event.locationType !== "PHYSICAL";
+    return {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        name: event.title,
+        url: new URL(`/events/${event.id}`, siteUrl).toString(),
+        ...(event.startsAt ? { startDate: event.startsAt.toISOString() } : {}),
+        ...(event.endsAt ? { endDate: event.endsAt.toISOString() } : {}),
+        ...(event.description ? { description: snippet(event.description, "") } : {}),
+        ...(event.imagePath ? { image: merchandisePhotoUrl(event.imagePath) } : {}),
+        eventStatus: "https://schema.org/EventScheduled",
+        eventAttendanceMode: online ? "https://schema.org/OnlineEventAttendanceMode" : "https://schema.org/OfflineEventAttendanceMode",
+        location: online
+            ? { "@type": "VirtualLocation", url: safeExternalUrl(event.eventUrl) ?? new URL(`/events/${event.id}`, siteUrl).toString() }
+            : { "@type": "Place", name: event.venueName ?? event.publicLocation ?? event.communityName, address: event.publicLocation ?? undefined },
+        organizer: { "@type": "Organization", name: event.communityName, url: new URL(`/communities/${event.communityId}`, siteUrl).toString() },
+    };
+}
+
 export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
     const event = await findEvent((await params).eventId);
-    return event ? { title: event.title, description: event.description?.slice(0, 160) ?? undefined } : {};
+    if (!event) return {};
+    const when = event.startsAt ? `${eventMetaDate.format(event.startsAt)} WIB` : "Jadwal diumumkan komunitas";
+    const where = event.locationType === "PHYSICAL" ? event.venueName ?? event.publicLocation : "Daring";
+    return pageMetadata({
+        title: event.title,
+        description: snippet(event.description, `${when}${where ? ` · ${where}` : ""}. Acara ${event.communityName} di TemuBaca.`),
+        path: `/events/${event.id}`,
+        image: event.imagePath ? merchandisePhotoUrl(event.imagePath) : null,
+    });
 }
 
 export default async function EventDetailPage({ params }: EventPageProps) {
@@ -62,6 +96,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
     return (
         <main className="mx-auto w-full max-w-[1256px] px-4 pb-8 sm:px-6">
+            <JsonLd data={eventJsonLd(event)} />
             <div className="flex flex-wrap items-center justify-between gap-2 py-4 text-xs text-muted-foreground">
                 <nav aria-label="Breadcrumb">
                     <ol className="flex list-none items-center gap-1 p-0">
