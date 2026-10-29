@@ -8,6 +8,20 @@ export const siteTitle = `${appConfig.name} — Temukan buku dan teman baca di s
 export const siteDescription =
     "Pinjam buku dari warga sekitar, temukan komunitas baca dan agendanya, lihat koleksi perpustakaan, dan jelajahi Peta Literasi di TemuBaca.";
 
+/**
+ * The Search Console code from `GOOGLE_SITE_VERIFICATION`. Google shows a whole tag
+ * (`<meta name="google-site-verification" content="…" />`); either that or just its content is accepted.
+ */
+export function googleVerificationCode(value: string | undefined) {
+    const raw = value?.trim();
+    if (!raw) return undefined;
+    const fromTag = raw.match(/content\s*=\s*["']([^"']+)["']/i)?.[1];
+    const code = (fromTag ?? raw).trim().replace(/^["']|["']$/g, "");
+    return /^[A-Za-z0-9_-]+$/.test(code) ? code : undefined;
+}
+
+const googleVerification = googleVerificationCode(env.GOOGLE_SITE_VERIFICATION);
+
 /** Site-wide metadata (SEO, 29 Okt 2026); pages override title, description, canonical and images. */
 export const siteMetadata: Metadata = {
     metadataBase: siteUrl,
@@ -22,7 +36,7 @@ export const siteMetadata: Metadata = {
     openGraph: { type: "website", siteName: appConfig.name, locale: "id_ID", url: "/", title: siteTitle, description: siteDescription },
     twitter: { card: "summary_large_image", title: siteTitle, description: siteDescription },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
-    ...(env.GOOGLE_SITE_VERIFICATION ? { verification: { google: env.GOOGLE_SITE_VERIFICATION } } : {}),
+    ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
 /** For signed-in, admin and auth pages: never in search results. */

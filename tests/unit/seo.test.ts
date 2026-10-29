@@ -3,7 +3,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { jsonLdText } from "@/components/seo/json-ld";
 
 mock.module("@/env", () => ({ env: { NEXT_PUBLIC_APP_URL: "https://temubaca.vercel.app" } }));
-const { listingRobots, pageMetadata, siteMetadata, snippet } = await import("@/config/site");
+const { googleVerificationCode, listingRobots, pageMetadata, siteMetadata, snippet } = await import("@/config/site");
 
 describe("SEO metadata (29 Okt 2026)", () => {
     test("site defaults: absolute base, title template, Indonesian Open Graph", () => {
@@ -37,6 +37,14 @@ describe("SEO metadata (29 Okt 2026)", () => {
         const long = snippet("kata ".repeat(60), "x");
         expect(long.length).toBeLessThanOrEqual(158);
         expect(long.endsWith("…")).toBe(true);
+    });
+
+    test("the Search Console code is taken from the whole tag Google shows, or used as is", () => {
+        expect(googleVerificationCode('<meta name="google-site-verification" content="AbC-12_xyz" />')).toBe("AbC-12_xyz");
+        expect(googleVerificationCode("  AbC-12_xyz ")).toBe("AbC-12_xyz");
+        expect(googleVerificationCode('"AbC-12_xyz"')).toBe("AbC-12_xyz");
+        expect(googleVerificationCode("<meta name=x>")).toBeUndefined();
+        expect(googleVerificationCode(undefined)).toBeUndefined();
     });
 
     test("JSON-LD text cannot close its script tag", () => {
