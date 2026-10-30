@@ -5,6 +5,7 @@ import Link from "next/link";
 import { provinceOptions, regionByCode } from "@/features/regions/regions";
 import { listLibraries } from "@/lib/db/queries/libraries";
 import { listingRobots, pageMetadata } from "@/config/site";
+import { LIBRARY_ACCESS_REQUESTS_OPEN } from "@/features/libraries/access";
 
 /** Canonical without a query; searches, filters and later pages stay out of the index (SEO, 29 Okt 2026). */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
@@ -28,7 +29,7 @@ export default async function LibrariesPage({ searchParams }: PageProps) {
                 <p className="text-sm font-semibold tracking-[0.16em] text-primary uppercase">Akses buku</p>
                 <h1 className="mt-2 font-heading text-[32px] leading-tight font-semibold text-primary">Perpustakaan</h1>
                 <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-                    Lihat buku yang tercatat di koleksi perpustakaan, lalu ajukan akses bila perpustakaannya menerima pengajuan lewat TemuBaca.
+                    Lihat buku yang tercatat di koleksi perpustakaan, lalu datang langsung ke perpustakaannya; TemuBaca tidak melayani peminjaman dari perpustakaan.
                     &quot;Tercatat di koleksi&quot; berarti buku pernah dicatat, belum tentu sedang ada di rak; status &quot;Tersedia&quot; hanya dari pengelola perpustakaan.
                 </p>
             </header>
@@ -57,7 +58,7 @@ export default async function LibrariesPage({ searchParams }: PageProps) {
                         <li key={library.id} className="flex flex-col rounded-xl border border-border bg-card p-5">
                             <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <Library aria-hidden="true" className="size-3.5" /> {regionByCode(library.regionCode)?.name ?? "Wilayah belum tercatat"}
-                                {library.accessEnabled && <span className="rounded-full bg-[#c9ecd6] px-2 py-0.5 font-semibold text-primary">Menerima pengajuan</span>}
+                                {LIBRARY_ACCESS_REQUESTS_OPEN && library.accessEnabled && <span className="rounded-full bg-[#c9ecd6] px-2 py-0.5 font-semibold text-primary">Menerima pengajuan</span>}
                             </p>
                             <h2 className="mt-1.5 font-heading text-lg font-semibold">
                                 <Link href={`/libraries/${library.id}`} className="hover:underline">{library.name}</Link>

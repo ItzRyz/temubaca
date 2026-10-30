@@ -42,11 +42,11 @@ export default async function AdminLibrariesPage({ searchParams }: PageProps) {
                         {libraries.map((library) => (
                             <li key={library.id} className={cn("rounded-xl border bg-card p-4", selected?.id === library.id ? "border-primary" : "border-border")}>
                                 <p className="text-xs font-semibold text-muted-foreground">
-                                    {library.hiddenAt ? "Disembunyikan" : library.accessEnabled ? "Menerima pengajuan" : "Belum menerima pengajuan"} · {regionByCode(library.regionCode)?.name ?? "Wilayah belum tercatat"}
+                                    {library.hiddenAt ? "Disembunyikan" : "Tampil"} · {regionByCode(library.regionCode)?.name ?? "Wilayah belum tercatat"}
                                 </p>
                                 <p className="mt-1 font-semibold">{library.name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                    {library.holdings} catatan koleksi · {library.openRequests} pengajuan berjalan · Pengelola: {library.managers.map((manager) => manager.displayName).join(", ") || "belum ada"}
+                                    {library.holdings} catatan koleksi · Pengelola: {library.managers.map((manager) => manager.displayName).join(", ") || "belum ada"}
                                 </p>
                                 <div className="mt-2 flex flex-wrap gap-3 text-sm font-semibold">
                                     <Link href={`/admin/libraries?edit=${library.id}`} className="text-primary hover:underline">Ubah<span className="sr-only">: {library.name}</span></Link>
@@ -66,7 +66,7 @@ export default async function AdminLibrariesPage({ searchParams }: PageProps) {
                         </div>
                         <div>
                             <h3 className="font-heading text-base font-semibold">Pengelola</h3>
-                            <p className="mt-1 text-xs text-muted-foreground">Pengelola menjawab pengajuan, mencatat koleksi, dan mengatur akses. Akun yang ditangguhkan tidak dapat ditunjuk.</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Pengelola mencatat koleksi perpustakaan. Akun yang ditangguhkan tidak dapat ditunjuk.</p>
                             <div className="mt-3"><LibraryManagersForm libraryId={selected.id} managers={selected.managers} /></div>
                         </div>
                         <div>

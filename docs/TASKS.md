@@ -323,6 +323,33 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Titik merah per sub-tab Peminjaman; pengajuan perpustakaan dimatikan — 2026-10-30
+
+Permintaan pemilik repo:
+- **Koleksi:** titik merah dihapus, baik di tab `/my-listings` maupun di menu akun "Koleksi saya". `listingsNeedAttention` dan tesnya dihapus.
+- **Peminjaman:** sub-tab punya titik masing-masing.
+  - "Dipinjamkan ke kawan": ada pinjaman sebagai pemilik di "Perlu Tindakan".
+  - "Saya pinjam": ada tindakan sebagai peminjam, atau kabar baru sejak terakhir dibuka.
+  - Tab Peminjaman menyala bila salah satunya menyala (`LoanViewNav attention`).
+- **Sub-tab Perpustakaan dihapus.** Pemilik memilih mematikan pengajuan akses perpustakaan (DEC-13, pembaruan 30 Okt 2026) lewat `LIBRARY_ACCESS_REQUESTS_OPEN = false`:
+  - `POST /api/book-accesses` menjawab `403`;
+  - "Ajukan Akses" di halaman buku diganti "Datang langsung ke perpustakaan";
+  - halaman perpustakaan diberi teks baru;
+  - pengelola hanya melihat tab Koleksi;
+  - `/my-libraries` dan admin tidak lagi menyebut pengajuan;
+  - titik merah tidak lagi menghitung pengajuan perpustakaan;
+  - `view=perpustakaan` lama diarahkan ke Peminjaman; `LibraryAccessPanel` dihapus.
+  - Production dicek read-only: tidak ada data `book_accesses`.
+- **Diuji:**
+  - `bun run check` lulus (308 tes);
+  - browser lokal:
+    - tab dan menu Koleksi tanpa titik;
+    - pemilik dengan permintaan masuk: titik hanya di "Dipinjamkan ke kawan";
+    - peminjam: titik "Saya pinjam" menyala setelah permintaannya ditolak, lalu hilang setelah dibuka;
+    - tidak ada sub-tab Perpustakaan, tautan lama mendarat di "Dipinjamkan ke kawan";
+    - halaman buku tanpa "Ajukan Akses" bahkan untuk perpustakaan yang `accessEnabled`;
+    - POST pengajuan `403`.
+
 ## Revisi batch: notifikasi, ulasan, profil peminjam, waktu temu, agenda, "Dipesan", header, Settings — 2026-10-30
 
 Master prompt pemilik repo, 9 kelompok (A–I). Keputusan pemilik:

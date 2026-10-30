@@ -5,17 +5,14 @@ import Link from "next/link";
 import { AddBookDialog } from "@/features/book-listings/components/add-book-dialog";
 import { ManagedListingItem } from "@/features/book-listings/components/managed-listing-item";
 import { LoansPanel, loanStats, type LoanFilter, type LoanView } from "@/features/borrowing/components/loans-panel";
-import { accessState } from "@/features/libraries/access";
-import { LibraryAccessPanel } from "@/features/libraries/components/library-access-panel";
-import { listAccessRequestsForUser } from "@/lib/db/queries/libraries";
 import { loanGroup } from "@/features/borrowing/lifecycle";
 import { getCurrentUser } from "@/lib/auth";
 import { MarkLoansSeen } from "@/features/borrowing/components/mark-loans-seen";
 import { loansSeenAt } from "@/lib/db/queries/users";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
-import { listingLoanStates, listLoansForUser } from "@/lib/db/queries/borrowing";
+import { countLoanUpdatesSince, listingLoanStates, listLoansForUser } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
-import { listingsNeedAttention, listUserBookListings } from "@/lib/db/queries/books";
+import { listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Buku saya" };
@@ -53,22 +50,24 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
 
     const tab = single(params.tab) === "peminjaman" ? "peminjaman" : "koleksi";
     const requestedView = single(params.view);
-    const loanView: LoanView = requestedView === "pinjam" || requestedView === "perpustakaan" ? requestedView : "pinjamkan";
+    // "perpustakaan" (library requests) closed on 30 Okt 2026; old links land on lending.
+    const loanView: LoanView = requestedView === "pinjam" ? "pinjam" : "pinjamkan";
     const loanFilters: LoanFilter[] = ["all", "action", "ongoing", "history"];
     const loanFilter = loanFilters.find((value) => value === params.filter) ?? "all";
     const now = new Date();
 
-    const [listings, loans, accessRequests, collectionNeedsAttention] = await Promise.all([
+    const [listings, loans, loanNews] = await Promise.all([
         listUserBookListings(user.id),
         listLoansForUser(user.id, now),
-        tab === "peminjaman" && loanView === "perpustakaan" ? listAccessRequestsForUser(user.id) : Promise.resolve([]),
-        listingsNeedAttention(user.id),
+        countLoanUpdatesSince(user.id, loansSeenAt(user.preferences, now)),
     ]);
     const [appeals, loanStates] = await Promise.all([
         latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id)),
         listingLoanStates(listings.filter((listing) => listing.availability === "RESERVED").map((listing) => listing.id)),
     ]);
-    const loansNeedingAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length;
+    // Dots per side of Peminjaman (30 Okt 2026): something to do, or an answer the borrower has not seen yet.
+    const needsAction = (role: "owner" | "requester") => loans.some((loan) => loan.role === role && loanGroup(loan.snapshot, loan.role, now) === "action");
+    const loanAttention = { pinjamkan: needsAction("owner"), pinjam: needsAction("requester") || loanNews > 0 };
     const statusOf = (listing: (typeof listings)[number]) => (listing.hiddenAt ? "HIDDEN" : listing.availability);
     const counts: Record<Filter, number> = {
         all: listings.length,
@@ -99,13 +98,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     };
 
     const loanCounts = loanStats(loans, loanView, now);
-    const accessStates = accessRequests.map((request) => accessState(request, now));
-    const stats = tab === "peminjaman" && loanView === "perpustakaan" ? [
-        { icon: Hourglass, value: accessStates.filter((state) => state === "PENDING").length, unit: "Pengajuan", label: "Menunggu Jawaban", tone: "bg-[#fbecc4] text-[#5c3d00]" },
-        { icon: AlertTriangle, value: accessStates.filter((state) => state === "APPROVED").length, unit: "Buku", label: "Siap Diambil", tone: "bg-[#c9ecd6] text-primary" },
-        { icon: CheckCircle2, value: accessStates.filter((state) => state === "COLLECTED").length, unit: "Buku", label: "Sudah Diambil", tone: "bg-[#e7efe8] text-primary" },
-        { icon: Lock, value: accessStates.filter((state) => state === "REJECTED" || state === "CANCELLED" || state === "EXPIRED").length, unit: "Pengajuan", label: "Ditolak/Batal", tone: "bg-[#f1f0ea] text-foreground" },
-    ] : tab === "peminjaman" ? [
+    const stats = tab === "peminjaman" ? [
         { icon: AlertTriangle, value: loanCounts.action, unit: "Item", label: "Perlu Tindakan", tone: "bg-[#fbecc4] text-[#5c3d00]" },
         { icon: Hourglass, value: loanCounts.pending, unit: "Permintaan", label: loanView === "pinjamkan" ? "Permintaan Baru" : "Menunggu Jawaban", tone: "bg-[#dbe2dc] text-primary" },
         { icon: ArrowLeftRight, value: loanCounts.ongoing, unit: loanView === "pinjamkan" ? "Pinjaman" : "Buku", label: loanView === "pinjamkan" ? "Sedang Dipinjam" : "Sedang Saya Pinjam", tone: "bg-[#ffdbd1] text-[#5c1a0a]" },
@@ -145,25 +138,21 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                 <Link href="/my-listings" aria-current={tab === "koleksi" ? "page" : undefined}
                     className={cn("flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm", tab === "koleksi" ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     Koleksi
-                    {collectionNeedsAttention && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
                 </Link>
                 <Link href="/my-listings?tab=peminjaman" aria-current={tab === "peminjaman" ? "page" : undefined}
                     className={cn("flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm", tab === "peminjaman" ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     Peminjaman
-                    {loansNeedingAction > 0 && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
+                    {(loanAttention.pinjamkan || loanAttention.pinjam) && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
                 </Link>
             </nav>
 
             {tab === "peminjaman" ? (
-                loanView === "perpustakaan"
-                    ? <LibraryAccessPanel requests={accessRequests} now={now} />
-                    : (
-                        <>
-                            {/* What the reader borrows: answers newer than their last visit are marked, then the dot clears. */}
-                            {loanView === "pinjam" && <MarkLoansSeen />}
-                            <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} newSince={loanView === "pinjam" ? loansSeenAt(user.preferences, now) : undefined} />
-                        </>
-                    )
+                <>
+                    {/* What the reader borrows: answers newer than their last visit are marked, then the dot clears. */}
+                    {loanView === "pinjam" && <MarkLoansSeen />}
+                    <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} attention={loanAttention}
+                        newSince={loanView === "pinjam" ? loansSeenAt(user.preferences, now) : undefined} />
+                </>
             ) : (
                 <>
                     <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">

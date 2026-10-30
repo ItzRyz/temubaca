@@ -13,6 +13,7 @@ import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { findLibrary, isLibraryManager, listAccessRequestsForLibrary, listHoldingsForLibrary } from "@/lib/db/queries/libraries";
 import { cn } from "@/lib/utils";
 import { libraryIdParamSchema } from "@/lib/validation/schemas/library.schema";
+import { LIBRARY_ACCESS_REQUESTS_OPEN } from "@/features/libraries/access";
 
 export const metadata: Metadata = { title: "Kelola perpustakaan" };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,9 @@ export const dynamic = "force-dynamic";
 type PageProps = { params: Promise<{ libraryId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const dateTime = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
-const tabs = [["pengajuan", "Pengajuan"], ["koleksi", "Koleksi"], ["pengaturan", "Pengaturan"]] as const;
+const allTabs = [["pengajuan", "Pengajuan"], ["koleksi", "Koleksi"], ["pengaturan", "Pengaturan"]] as const;
+// Requests and their settings closed on 30 Okt 2026 (no library lending through TemuBaca); the collection stays.
+const tabs = allTabs.filter(([value]) => LIBRARY_ACCESS_REQUESTS_OPEN || value === "koleksi");
 const managerActions: AccessAction[] = ["approve", "reject", "collected"];
 
 /** A library's manager answers access requests, keeps the collection, and sets the access rules (TB-023). */
@@ -32,7 +35,7 @@ export default async function ManageLibraryPage({ params, searchParams }: PagePr
     const library = await findLibrary(parsed.data.libraryId, { includeHidden: true });
     if (!library || !(await isLibraryManager(user.id, library.id))) notFound();
     const query = await searchParams;
-    const tab = tabs.find(([value]) => value === query.tab)?.[0] ?? "pengajuan";
+    const tab = tabs.find(([value]) => value === query.tab)?.[0] ?? tabs[0][0];
     const now = new Date();
     const [requests, holdings] = await Promise.all([
         tab === "pengajuan" ? listAccessRequestsForLibrary(library.id) : Promise.resolve([]),
@@ -46,14 +49,14 @@ export default async function ManageLibraryPage({ params, searchParams }: PagePr
             {library.hiddenAt && <p className="mt-2 rounded-lg bg-[#fbecc4] px-3 py-2 text-sm text-[#5c3d00]">Perpustakaan ini sedang disembunyikan admin dan tidak tampil ke pembaca.</p>}
             <p className="mt-1 text-sm"><Link href={`/libraries/${library.id}`} className="font-semibold text-primary hover:underline">Lihat halaman publik</Link></p>
 
-            <nav aria-label="Bagian kelola" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
+            {tabs.length > 1 && <nav aria-label="Bagian kelola" className="mt-6 flex w-fit gap-1 rounded-xl border border-border bg-[#f1f0ea] p-1">
                 {tabs.map(([value, label]) => (
-                    <Link key={value} href={value === "pengajuan" ? `/libraries/${library.id}/manage` : `/libraries/${library.id}/manage?tab=${value}`} aria-current={tab === value ? "page" : undefined}
+                    <Link key={value} href={value === tabs[0][0] ? `/libraries/${library.id}/manage` : `/libraries/${library.id}/manage?tab=${value}`} aria-current={tab === value ? "page" : undefined}
                         className={cn("rounded-lg px-4 py-2 text-sm", tab === value ? "bg-card font-semibold shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                         {label}
                     </Link>
                 ))}
-            </nav>
+            </nav>}
 
             {tab === "pengajuan" && (
                 requests.length === 0 ? (

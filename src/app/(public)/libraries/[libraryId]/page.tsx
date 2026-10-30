@@ -11,6 +11,7 @@ import { pageMetadata, siteUrl } from "@/config/site";
 import { getCurrentUser } from "@/lib/auth";
 import { findLibrary, isLibraryManager, listHoldingsForLibrary } from "@/lib/db/queries/libraries";
 import { libraryIdParamSchema } from "@/lib/validation/schemas/library.schema";
+import { LIBRARY_ACCESS_REQUESTS_OPEN } from "@/features/libraries/access";
 
 export const dynamic = "force-dynamic";
 
@@ -69,13 +70,13 @@ export default async function LibraryPage({ params, searchParams }: PageProps) {
 
             <section aria-labelledby="access-title" className="mt-6 rounded-xl border border-border bg-card p-5">
                 <h2 id="access-title" className="font-heading text-lg font-semibold">Cara mengakses</h2>
-                {library.accessEnabled ? (
+                {LIBRARY_ACCESS_REQUESTS_OPEN && library.accessEnabled ? (
                     <p className="mt-2 text-sm text-muted-foreground">
                         Buka buku dari koleksi di bawah, lalu tekan <strong>Ajukan Akses</strong>. Bila diterima, ambil buku dalam {library.pickupDays} hari.
                         {library.accessRules ? ` Aturan perpustakaan: ${library.accessRules}` : ""}
                     </p>
                 ) : (
-                    <p className="mt-2 text-sm text-muted-foreground">Perpustakaan ini belum menerima pengajuan lewat TemuBaca. Datang langsung atau periksa katalog resminya.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">TemuBaca tidak melayani peminjaman dari perpustakaan. Datang langsung ke perpustakaan atau periksa katalog resminya; daftar di bawah membantu menemukan buku yang tercatat di koleksinya.</p>
                 )}
             </section>
 

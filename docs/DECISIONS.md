@@ -177,6 +177,11 @@ Catat keputusan dengan format: **keputusan; konteks; opsi yang dipertimbangkan; 
 
 ## DEC-13 — Ketersediaan buku di perpustakaan (arah diputuskan 18 Okt 2026)
 
+**Pembaruan 30 Okt 2026 (pemilik repo):** pengajuan akses buku ke perpustakaan lewat TemuBaca **dimatikan**, karena tidak ada sistem peminjaman dari perpustakaan melalui TemuBaca.
+- Perpustakaan dan koleksi yang tercatat tetap tampil sebagai informasi. Pembaca diarahkan datang langsung atau memeriksa katalog resmi.
+- Tombol "Ajukan Akses", sub-tab Peminjaman → Perpustakaan, serta tab Pengajuan dan Pengaturan pengelola disembunyikan. `POST /api/book-accesses` menjawab `403`.
+- Data dan kode pengajuan dipertahankan di balik `LIBRARY_ACCESS_REQUESTS_OPEN` (`src/features/libraries/access.ts`). Saat dimatikan, production tidak punya pengajuan sama sekali.
+
 - **Keputusan:** ketersediaan perpustakaan diambil lewat **integrasi katalog perpustakaan** (mis. OPAC atau iPusnas) bila API atau sumber data terbuka tersedia. Datanya disimpan di model tersendiri, terpisah dari `book_accesses`.
 - **Opsi yang dipertimbangkan:**
   - Daftar yang dikurasi admin, dengan tanggal "terakhir dicek".

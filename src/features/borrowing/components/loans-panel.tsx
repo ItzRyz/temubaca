@@ -14,8 +14,10 @@ import { LoanActions } from "./loan-actions";
 import { meetingTimeLabel } from "../meeting-time";
 import { ProfileHintBadge } from "./profile-hint-badge";
 
-/** "perpustakaan" lists the reader's requests to libraries (TB-023); it has its own panel. */
-export type LoanView = "pinjamkan" | "pinjam" | "perpustakaan";
+/** The two sides of Peminjaman; the library side ("perpustakaan") closed on 30 Okt 2026. */
+export type LoanView = "pinjamkan" | "pinjam";
+/** Red dots on the two sides of Peminjaman (30 Okt 2026). */
+export type LoanViewAttention = { pinjamkan: boolean; pinjam: boolean };
 export type LoanFilter = "all" | "action" | "ongoing" | "history";
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
@@ -275,7 +277,7 @@ function Section({ title, loans, now, newSince }: { title: string; loans: LoanIt
  * `basePath` shows the panel elsewhere than "Buku Saya" (a community's loans, 30 Okt 2026): links and the
  * search stay on that page, and the switch between lending and borrowing is left out.
  */
-export function LoansPanel({ loans, view, filter, query, now, basePath, newSince }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date; basePath?: string; newSince?: Date }) {
+export function LoansPanel({ loans, view, filter, query, now, basePath, newSince, attention }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date; basePath?: string; newSince?: Date; attention?: LoanViewAttention }) {
     const role = view === "pinjamkan" ? "owner" : "requester";
     const needle = query.toLocaleLowerCase("id-ID");
     const mine = loans
@@ -309,7 +311,7 @@ export function LoansPanel({ loans, view, filter, query, now, basePath, newSince
         <>
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
-                    {!basePath && <LoanViewNav view={view} />}
+                    {!basePath && <LoanViewNav view={view} attention={attention} />}
                     {(Object.keys(filterLabels) as LoanFilter[]).map((value) => (
                         <Link key={value} href={hrefFor({ filter: value })} aria-current={filter === value ? "true" : undefined}
                             className={cn("rounded-lg border px-3 py-1.5 text-sm font-semibold", filter === value ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted")}>
@@ -359,13 +361,14 @@ export function LoansPanel({ loans, view, filter, query, now, basePath, newSince
 }
 
 /** Which loans the tab shows: lent to others, borrowed, or asked of libraries. */
-export function LoanViewNav({ view }: { view: LoanView }) {
+export function LoanViewNav({ view, attention }: { view: LoanView; attention?: LoanViewAttention }) {
     return (
         <nav aria-label="Arah pinjaman" className="flex flex-wrap gap-1 rounded-lg bg-[#f1f0ea] p-1">
-            {([["pinjamkan", "Dipinjamkan ke kawan"], ["pinjam", "Saya pinjam"], ["perpustakaan", "Perpustakaan"]] as const).map(([value, label]) => (
+            {([["pinjamkan", "Dipinjamkan ke kawan"], ["pinjam", "Saya pinjam"]] as const).map(([value, label]) => (
                 <Link key={value} href={value === "pinjamkan" ? "/my-listings?tab=peminjaman" : `/my-listings?tab=peminjaman&view=${value}`} aria-current={view === value ? "page" : undefined}
-                    className={cn("rounded-md px-3 py-1.5 text-xs font-semibold", view === value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+                    className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold", view === value ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground")}>
                     {label}
+                    {attention?.[value] && <span className="size-2 rounded-full bg-destructive"><span className="sr-only">Perlu tindakan</span></span>}
                 </Link>
             ))}
         </nav>

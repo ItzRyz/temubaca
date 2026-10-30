@@ -7,11 +7,11 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { openTour } from "@/features/onboarding/components/product-tour";
 
-type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "listings" | "loans" | "libraries" | "communities"> };
+type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "loans" | "communities"> };
 type MenuGroup = { title: string; items: MenuItem[] };
 
 /** What waits for this user, shown as red dots (owner's decision 29 Okt 2026: a dot, no count). */
-export type MenuAttention = { listings: boolean; loans: boolean; loansHref: string; libraries: boolean; communities: boolean; managesLibraries: boolean };
+export type MenuAttention = { loans: boolean; loansHref: string; communities: boolean; managesLibraries: boolean };
 
 /** Grouped so a new reader can tell the entries apart (owner's request 28 Okt 2026); each has a one-line hint. */
 function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean; managesLibraries: boolean; loansHref: string }): MenuGroup[] {
@@ -19,7 +19,7 @@ function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean
         {
             title: "Buku",
             items: [
-                { href: "/my-listings", label: "Koleksi saya", hint: "Buku yang kamu bagikan", icon: BookOpen, attention: "listings" },
+                { href: "/my-listings", label: "Koleksi saya", hint: "Buku yang kamu bagikan", icon: BookOpen },
                 { href: loansHref, label: "Pinjam & pinjamkan", hint: "Permintaan dan pinjaman", icon: ArrowLeftRight, attention: "loans" },
             ],
         },
@@ -34,7 +34,7 @@ function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean
             title: "Komunitas",
             items: [
                 { href: "/communities/mine", label: "Komunitas saya", hint: "Komunitas yang kamu ikuti atau kelola", icon: UsersRound, attention: "communities" },
-                ...(managesLibraries ? [{ href: "/my-libraries", label: "Perpustakaan saya", hint: "Pengajuan dan koleksi", icon: Library, attention: "libraries" as const }] : []),
+                ...(managesLibraries ? [{ href: "/my-libraries", label: "Perpustakaan saya", hint: "Koleksi yang tercatat", icon: Library }] : []),
             ],
         },
         ...(isAdmin ? [{ title: "Pengelola", items: [{ href: "/admin", label: "Admin", hint: "Peninjauan dan data platform", icon: ShieldCheck }] }] : []),
@@ -45,7 +45,7 @@ const itemClass = "flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left 
 
 /**
  * Avatar button with the account menu (Figma "Profile Dropdown" 135:862). Red dots on the avatar and on
- * "Koleksi saya", "Pinjam & pinjamkan" and "Perpustakaan saya" show what waits for this user.
+ * "Pinjam & pinjamkan" and "Komunitas saya" show what waits for this user (30 Okt 2026).
  * "Panduan TemuBaca" reopens the tour.
  */
 export function ProfileMenu({ initials, displayName, isAdmin, attention }: { initials: string; displayName: string; isAdmin: boolean; attention: MenuAttention }) {
@@ -95,7 +95,7 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
         list[next]?.focus();
     }
 
-    const waiting = attention.listings || attention.loans || attention.libraries || attention.communities;
+    const waiting = attention.loans || attention.communities;
     const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries, loansHref: attention.loansHref });
 
     return (

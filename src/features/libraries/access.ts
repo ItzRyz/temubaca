@@ -9,6 +9,12 @@
  *   approved request reads as expired; that state is never stored.
  */
 
+/**
+ * Readers cannot ask libraries for books through TemuBaca (owner's decision 30 Okt 2026: there is no library
+ * lending through the site). Libraries and their recorded collections stay; requests made before are kept.
+ */
+export const LIBRARY_ACCESS_REQUESTS_OPEN = false;
+
 export const accessStatuses = ["PENDING", "APPROVED", "REJECTED", "CANCELLED", "COLLECTED"] as const;
 export type AccessStatus = (typeof accessStatuses)[number];
 export type AccessState = AccessStatus | "EXPIRED";

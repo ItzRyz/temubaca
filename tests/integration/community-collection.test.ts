@@ -82,7 +82,6 @@ describe("community collection", () => {
         expect(await borrowing.countCommunityLoansNeedingAction(FOUNDER)).toEqual(new Map([[COMMUNITY, 1]]));
         // The request is the community's, not the personal "Pinjam & pinjamkan" of whoever added the copy.
         expect(await borrowing.countLoansNeedingAction(MANAGER)).toBe(0);
-        expect(await books.listingsNeedAttention(MANAGER)).toBe(false);
 
         expect((await borrowing.actOnBorrowRequest(requestId, FOUNDER, { action: "approve" })).status).toBe("APPROVED");
         await borrowing.actOnBorrowRequest(requestId, MANAGER, { action: "confirm_handover" });

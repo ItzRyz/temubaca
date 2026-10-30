@@ -22,7 +22,7 @@ import { ShareButton } from "@/features/books/components/share-button";
 import { ReportForm } from "@/features/reports/components/report-form";
 import { BorrowRequestDialog } from "@/features/borrowing/components/borrow-request-dialog";
 import { genresForSubjects } from "@/features/books/genres";
-import { mergeHoldings } from "@/features/libraries/access";
+import { LIBRARY_ACCESS_REQUESTS_OPEN, mergeHoldings } from "@/features/libraries/access";
 import { AccessRequestDialog } from "@/features/libraries/components/access-request-dialog";
 import { HoldingBadge } from "@/features/libraries/components/holding-badge";
 import { listHoldingsForBook, listManagedLibraries, openAccessRequestLibraries } from "@/lib/db/queries/libraries";
@@ -98,7 +98,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
         ? await Promise.all([
             hasBookmark(user.id, book.id),
             findOpenRequestsForListings(user.id, listings.map((listing) => listing.id)),
-            openAccessRequestLibraries(user.id, book.id),
+            LIBRARY_ACCESS_REQUESTS_OPEN ? openAccessRequestLibraries(user.id, book.id) : new Set<string>(),
             listManagedLibraries(user.id),
             listManagedCommunities(user.id),
         ])
@@ -270,14 +270,15 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                             </p>
                                         </div>
                                         <div className="shrink-0">
-                                            {!holding.library.accessEnabled ? (
+                                            {managedIds.has(holding.libraryId) ? (
+                                                <Link href={`/libraries/${holding.libraryId}/manage`} className="text-xs font-semibold text-primary hover:underline">Perpustakaan Anda · Kelola</Link>
+                                            ) : !LIBRARY_ACCESS_REQUESTS_OPEN || !holding.library.accessEnabled ? (
+                                                // No library lending through TemuBaca (30 Okt 2026): readers go to the library itself.
                                                 <span className="text-xs text-muted-foreground">Datang langsung ke perpustakaan</span>
                                             ) : !user ? (
                                                 <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className={borrowButtonClass}>Masuk untuk mengajukan</Link>
-                                            ) : managedIds.has(holding.libraryId) ? (
-                                                <Link href={`/libraries/${holding.libraryId}/manage`} className="text-xs font-semibold text-primary hover:underline">Perpustakaan Anda · Kelola</Link>
                                             ) : openAccess.has(holding.libraryId) ? (
-                                                <Link href="/my-listings?tab=peminjaman&view=perpustakaan" className="inline-flex min-h-9 items-center rounded-lg bg-[#e7efe8] px-3 text-xs font-semibold text-primary hover:bg-[#d9e6db]">Pengajuan terkirim · Lihat</Link>
+                                                <span className="inline-flex min-h-9 items-center rounded-lg bg-[#e7efe8] px-3 text-xs font-semibold text-primary">Pengajuan terkirim</span>
                                             ) : (
                                                 <AccessRequestDialog
                                                     libraryId={holding.libraryId}

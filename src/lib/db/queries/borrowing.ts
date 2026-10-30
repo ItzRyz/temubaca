@@ -26,7 +26,6 @@ import type { AskDisputePartyInput, BorrowingActionInput, BorrowRequestActionInp
 
 import { db } from "../client";
 import {
-    bookAccesses,
     borrowerReviews,
     adminAuditLogs,
     places,
@@ -613,14 +612,14 @@ export function listLoansForCommunity(communityId: string, userId: string, now =
  * Reads only the snapshot columns; the rule itself stays in `loanGroup`.
  */
 /**
- * News for the reader since `since`: answers to their requests and loans made by someone else, reviews
- * about them, and refused library requests. Feeds the dot on "Pinjam & pinjamkan" until they open it.
+ * News for the reader since `since`: answers to their requests and loans made by someone else, and reviews
+ * about them. Feeds the dot on "Pinjam & pinjamkan" and "Saya pinjam" until they open it.
  */
 export type ListingLoanState = "AWAITING_HANDOVER" | "BORROWED";
 
 export async function countLoanUpdatesSince(userId: string, since: Date) {
     const sinceIso = since.toISOString();
-    const [[events], [reviews], [library]] = await Promise.all([
+    const [[events], [reviews]] = await Promise.all([
         db.select({ total: sql<number>`count(*)::int` }).from(borrowEvents)
             .innerJoin(borrowRequests, eq(borrowRequests.id, borrowEvents.requestId))
             .where(and(
@@ -631,10 +630,8 @@ export async function countLoanUpdatesSince(userId: string, since: Date) {
             )),
         db.select({ total: sql<number>`count(*)::int` }).from(borrowerReviews)
             .where(and(eq(borrowerReviews.requesterId, userId), sql`${borrowerReviews.createdAt} > ${sinceIso}::timestamptz`)),
-        db.select({ total: sql<number>`count(*)::int` }).from(bookAccesses)
-            .where(and(eq(bookAccesses.requesterId, userId), eq(bookAccesses.status, "REJECTED"), sql`${bookAccesses.respondedAt} > ${sinceIso}::timestamptz`)),
     ]);
-    return (events?.total ?? 0) + (reviews?.total ?? 0) + (library?.total ?? 0);
+    return (events?.total ?? 0) + (reviews?.total ?? 0);
 }
 
 /**

@@ -2,9 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
-import { listingsNeedAttention } from "@/lib/db/queries/books";
 import { countCommunityLoansNeedingAction, countLoanUpdatesSince, countLoansNeedingAction } from "@/lib/db/queries/borrowing";
-import { countLibraryActions, listManagedLibraries } from "@/lib/db/queries/libraries";
+import { listManagedLibraries } from "@/lib/db/queries/libraries";
 import { hasSeenTour, loansSeenAt } from "@/lib/db/queries/users";
 import { ProductTour } from "@/features/onboarding/components/product-tour";
 import { ProfileMenu } from "@/components/navigation/profile-menu";
@@ -18,17 +17,15 @@ function initialsOf(name: string) {
 
 export async function SiteHeader() {
     const user = await getCurrentUser();
-    const [listings, loans, library, managed, communityLoans, loanNews] = user
-        ? await Promise.all([listingsNeedAttention(user.id), countLoansNeedingAction(user.id), countLibraryActions(user.id), listManagedLibraries(user.id), countCommunityLoansNeedingAction(user.id), countLoanUpdatesSince(user.id, loansSeenAt(user.preferences))])
-        : [false, 0, { toAnswer: 0, toCollect: 0 }, [], new Map<string, number>(), 0];
-    const loansWaiting = loans + library.toCollect > 0;
-    // Approved library requests to pick up sit with the reader's loans; requests to answer with the libraries they run.
+    const [loans, managed, communityLoans, loanNews] = user
+        ? await Promise.all([countLoansNeedingAction(user.id), listManagedLibraries(user.id), countCommunityLoansNeedingAction(user.id), countLoanUpdatesSince(user.id, loansSeenAt(user.preferences))])
+        : [0, [], new Map<string, number>(), 0];
+    const loansWaiting = loans > 0;
+    // Library requests closed on 30 Okt 2026, so libraries no longer add to the dots.
     const attention = {
-        listings,
         loans: loansWaiting || loanNews > 0,
         // Something to do opens "Perlu Tindakan"; only news opens what the reader borrows.
         loansHref: loansWaiting ? "/my-listings?tab=peminjaman&filter=action" : loanNews > 0 ? "/my-listings?tab=peminjaman&view=pinjam" : "/my-listings?tab=peminjaman",
-        libraries: library.toAnswer > 0,
         communities: communityLoans.size > 0,
         managesLibraries: managed.length > 0,
     };
