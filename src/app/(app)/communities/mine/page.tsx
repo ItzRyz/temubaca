@@ -6,6 +6,7 @@ import { CommunityAvatar } from "@/features/communities/components/community-car
 import { MAX_PENDING_APPLICATIONS } from "@/features/community-management/rules";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
+import { countCommunityLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { listManagedCommunities } from "@/lib/db/queries/community-management";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +23,7 @@ const status = {
 export default async function MyCommunitiesPage() {
     const user = await getCurrentUser();
     if (!user) return redirectToLogin();
-    const communities = await listManagedCommunities(user.id);
+    const [communities, loansWaiting] = await Promise.all([listManagedCommunities(user.id), countCommunityLoansNeedingAction(user.id)]);
     const pending = communities.filter((item) => item.role === "owner" && item.status === "PENDING").length;
     const canApply = pending < MAX_PENDING_APPLICATIONS;
 
@@ -61,6 +62,11 @@ export default async function MyCommunitiesPage() {
                                         <p className="flex flex-wrap items-center gap-2">
                                             <span className="font-heading text-lg font-semibold">{community.name}</span>
                                             <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold", badge.className)}><Icon aria-hidden="true" className="size-3.5" /> {badge.label}</span>
+                                            {loansWaiting.has(community.id) && (
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                                                    <span aria-hidden="true" className="size-1.5 rounded-full bg-destructive" /> Peminjaman perlu tindakan
+                                                </span>
+                                            )}
                                         </p>
                                         <p className="text-sm text-muted-foreground">{community.role === "owner" ? "Pemilik" : "Pengurus"}{community.publicLocation ? ` • ${community.publicLocation}` : ""}</p>
                                     </div>

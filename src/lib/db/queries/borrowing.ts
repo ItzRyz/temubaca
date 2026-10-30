@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import {
@@ -33,8 +33,10 @@ import {
     borrowings,
     borrowRequests,
     userProfiles,
+    communities,
 } from "../schema";
 import { setUserSuspensionIn } from "./admin-users";
+import { managedCommunityIdsSql, managesListing } from "./listing-access";
 import { meetingPlaceNames } from "./places";
 
 const requesterProfile = alias(userProfiles, "requester_profile");
@@ -81,16 +83,25 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                 publicLocation: bookListings.publicLocation,
                 meetingPlaceIds: bookListings.meetingPlaceIds,
                 borrowingRules: bookListings.borrowingRules,
+                communityId: bookListings.communityId,
+                communityStatus: communities.status,
                 ownerSuspendedAt: userProfiles.suspendedAt,
                 ownerDeletionRequestedAt: userProfiles.deletionRequestedAt,
             })
             .from(bookListings)
             .innerJoin(userProfiles, eq(userProfiles.id, bookListings.ownerId))
+            .leftJoin(communities, eq(communities.id, bookListings.communityId))
             .where(eq(bookListings.id, input.listingId))
             .for("update", { of: bookListings });
 
-        if (!listing || listing.hiddenAt || listing.ownerSuspendedAt || listing.ownerDeletionRequestedAt) throw new NotFoundError("Salinan buku tidak ditemukan.");
-        if (listing.ownerId === requesterId) throw new ForbiddenError("Anda tidak dapat meminjam buku milik sendiri.");
+        // A personal copy hides with its suspended or leaving owner; a community's copy with its community's verification.
+        const hidden = !listing || listing.hiddenAt || (listing.communityId
+            ? listing.communityStatus !== "VERIFIED"
+            : listing.ownerSuspendedAt || listing.ownerDeletionRequestedAt);
+        if (!listing || hidden) throw new NotFoundError("Salinan buku tidak ditemukan.");
+        if (await managesListing(tx, requesterId, listing)) {
+            throw new ForbiddenError(listing.communityId ? "Pengurus tidak dapat meminjam dari koleksi komunitasnya sendiri." : "Anda tidak dapat meminjam buku milik sendiri.");
+        }
         if (listing.availability !== "AVAILABLE") throw new ConflictError("Salinan ini sedang tidak ditawarkan.");
 
         const maxDays = maxLoanDaysFromRules(listing.borrowingRules);
@@ -135,6 +146,7 @@ async function lockLoan(tx: Tx, where: { requestId: string } | { borrowingId: st
             request: borrowRequests,
             listingId: bookListings.id,
             ownerId: bookListings.ownerId,
+            communityId: bookListings.communityId,
             availability: bookListings.availability,
             borrowing: borrowings,
         })
@@ -145,7 +157,8 @@ async function lockLoan(tx: Tx, where: { requestId: string } | { borrowingId: st
         .for("update", { of: [borrowRequests, bookListings] });
 
     if (!row) throw new NotFoundError("Pinjaman tidak ditemukan.");
-    const role: LoanRole | null = row.ownerId === userId ? "owner" : row.request.requesterId === userId ? "requester" : null;
+    // For a community's copy, any of its managers acts as the owner (30 Okt 2026).
+    const role: LoanRole | null = await managesListing(tx, userId, row) ? "owner" : row.request.requesterId === userId ? "requester" : null;
     if (!role) throw new NotFoundError("Pinjaman tidak ditemukan.");
     if (row.borrowing) {
         // Row locks on the outer side of a left join are not allowed, so take the borrowing lock separately.
@@ -335,11 +348,26 @@ export async function askDisputeParty(borrowingId: string, adminId: string, inpu
     });
 }
 
+/** Admin-side events, never a community manager's handling. */
+const ADMIN_EVENTS = ["DISPUTE_INFO_REQUESTED", "DISPUTE_RESOLVED"] as const;
+
+/**
+ * The manager who last handled a loan of a community's copy (owner's decision 30 Okt 2026): a dispute's
+ * owner-side consequence falls on them. Null when no manager acted, e.g. the request is still unanswered.
+ */
+async function communityHandlerOf(tx: Pick<Tx, "select">, requestId: string, requesterId: string) {
+    const [event] = await tx.select({ actorId: borrowEvents.actorId }).from(borrowEvents)
+        .where(and(eq(borrowEvents.requestId, requestId), isNotNull(borrowEvents.actorId), ne(borrowEvents.actorId, requesterId), notInArray(borrowEvents.type, [...ADMIN_EVENTS])))
+        .orderBy(desc(borrowEvents.createdAt))
+        .limit(1);
+    return event?.actorId ?? null;
+}
+
 export async function resolveBorrowingDispute(borrowingId: string, adminId: string, input: ResolveBorrowingDisputeInput) {
     return db.transaction(async (tx) => {
         const now = new Date();
         const [row] = await tx
-            .select({ borrowing: borrowings, listingId: borrowRequests.listingId, ownerId: bookListings.ownerId, requesterId: borrowRequests.requesterId })
+            .select({ borrowing: borrowings, requestId: borrowRequests.id, listingId: borrowRequests.listingId, ownerId: bookListings.ownerId, communityId: bookListings.communityId, requesterId: borrowRequests.requesterId })
             .from(borrowings)
             .innerJoin(borrowRequests, eq(borrowRequests.id, borrowings.requestId))
             .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
@@ -349,7 +377,9 @@ export async function resolveBorrowingDispute(borrowingId: string, adminId: stri
         if (row.borrowing.status !== "DISPUTED") throw new ConflictError("Sengketa ini sudah diputuskan.");
 
         const { consequence } = input;
-        const partyId = consequence.type === "NONE" ? null : consequence.party === "OWNER" ? row.ownerId : row.requesterId;
+        const partyId = consequence.type === "NONE" ? null
+            : consequence.party === "REQUESTER" ? row.requesterId
+                : row.communityId ? await communityHandlerOf(tx, row.requestId, row.requesterId) ?? row.ownerId : row.ownerId;
         const days = consequence.type === "BORROW_BLOCK" ? consequence.days : null;
         if (partyId && consequence.type === "SUSPENSION") {
             const [party] = await tx.select({ role: userProfiles.role }).from(userProfiles).where(eq(userProfiles.id, partyId));
@@ -438,14 +468,22 @@ export type LoanItem = {
     events: { id: string; type: string; note: string | null; createdAt: Date; by: "you" | "other" | "system" | "admin" }[];
 };
 
-/** Every loan the user takes part in, as owner ("Dipinjamkan ke kawan") or borrower ("Saya pinjam"). */
-export async function listLoansForUser(userId: string, now = new Date()): Promise<LoanItem[]> {
+type LoanScope = { kind: "user"; userId: string } | { kind: "community"; communityId: string; userId: string };
+
+/**
+ * Loans as seen by a reader (their own copies and what they borrow) or by a community's managers (its
+ * collection, 30 Okt 2026). A community's copy belongs to the community's view, not to the manager who added it.
+ */
+async function loadLoans(scope: LoanScope, now: Date): Promise<LoanItem[]> {
+    const viewerId = scope.userId;
     const rows = await db
         .select({
             request: borrowRequests,
             borrowing: borrowings,
             listingId: bookListings.id,
             ownerId: bookListings.ownerId,
+            communityId: bookListings.communityId,
+            communityName: communities.name,
             book: { id: books.id, title: books.title, authors: books.authors, coverUrl: books.coverUrl },
             requesterName: requesterProfile.displayName,
             ownerName: ownerProfile.displayName,
@@ -456,9 +494,12 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
         .innerJoin(books, eq(books.id, bookListings.bookId))
         .innerJoin(requesterProfile, eq(requesterProfile.id, borrowRequests.requesterId))
         .innerJoin(ownerProfile, eq(ownerProfile.id, bookListings.ownerId))
+        .leftJoin(communities, eq(communities.id, bookListings.communityId))
         .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
         .leftJoin(places, and(eq(places.id, borrowRequests.meetingPlaceId), isNull(places.hiddenAt)))
-        .where(or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)))
+        .where(scope.kind === "community"
+            ? eq(bookListings.communityId, scope.communityId)
+            : or(eq(borrowRequests.requesterId, viewerId), and(eq(bookListings.ownerId, viewerId), isNull(bookListings.communityId))))
         .orderBy(desc(borrowRequests.updatedAt))
         .limit(200);
 
@@ -469,11 +510,22 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
     const eventsByRequest = new Map<string, typeof eventRows>();
     for (const event of eventRows) eventsByRequest.set(event.requestId, [...(eventsByRequest.get(event.requestId) ?? []), event]);
 
-    return rows.map(({ request, borrowing, listingId, ownerId, book, requesterName, ownerName, meetingPlace }) => {
-        const role: LoanRole = ownerId === userId ? "owner" : "requester";
+    return rows.map(({ request, borrowing, listingId, ownerId, communityId, communityName, book, requesterName, ownerName, meetingPlace }) => {
+        const role: LoanRole = scope.kind === "community" || (ownerId === viewerId && communityId === null) ? "owner" : "requester";
         const snapshot = snapshotOf(request, borrowing);
         const events = eventsByRequest.get(request.id) ?? [];
         const asked = role === "owner" ? snapshot.ownerReplyRequestedAt : snapshot.requesterReplyRequestedAt;
+        // On a community's side, any non-admin event not by the borrower was the community's own doing.
+        const bySide = (actorId: string | null, type: string) => {
+            if (actorId === null) return "system" as const;
+            if (actorId === viewerId) return "you" as const;
+            if (scope.kind === "community") {
+                if (actorId === request.requesterId) return "other" as const;
+                return (ADMIN_EVENTS as readonly string[]).includes(type) ? "admin" as const : "you" as const;
+            }
+            const ownerSide = communityId ? !(ADMIN_EVENTS as readonly string[]).includes(type) && actorId !== request.requesterId : actorId === ownerId;
+            return actorId === request.requesterId || ownerSide ? "other" as const : "admin" as const;
+        };
         return {
             requestId: request.id,
             borrowingId: borrowing?.id ?? null,
@@ -482,7 +534,9 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             snapshot,
             listingId,
             book,
-            otherParty: role === "owner" ? { id: request.requesterId, displayName: requesterName } : { id: ownerId, displayName: ownerName },
+            otherParty: role === "owner"
+                ? { id: request.requesterId, displayName: requesterName }
+                : communityId ? { id: communityId, displayName: communityName ?? ownerName } : { id: ownerId, displayName: ownerName },
             meetingPoint: request.meetingPoint,
             meetingPlace,
             loanDays: request.loanDays,
@@ -506,27 +560,41 @@ export async function listLoansForUser(userId: string, now = new Date()): Promis
             // The stored note starts with "Untuk <pihak>: " for the shared history; the asked party needs only the question.
             disputeQuestion: asked ? events.findLast((event) => event.type === "DISPUTE_INFO_REQUESTED")?.note?.replace(/^Untuk [^:]+:\s*/, "") ?? null : null,
             consequence: borrowing?.consequence && borrowing.consequence !== "NONE"
-                ? { type: borrowing.consequence, days: borrowing.consequenceDays, appliesToYou: borrowing.consequenceUserId === userId }
+                ? {
+                    type: borrowing.consequence,
+                    days: borrowing.consequenceDays,
+                    // On a community's side, a consequence on any manager concerns the community.
+                    appliesToYou: borrowing.consequenceUserId === viewerId || (scope.kind === "community" && borrowing.consequenceUserId !== null && borrowing.consequenceUserId !== request.requesterId),
+                }
                 : null,
-            cancelledByOther: request.status === "CANCELLED" && request.cancelledById !== null && request.cancelledById !== userId,
+            cancelledByOther: request.status === "CANCELLED" && request.cancelledById !== null && (role === "owner" ? request.cancelledById === request.requesterId : request.cancelledById !== viewerId),
             events: events.map((event) => ({
                 id: event.id,
                 type: event.type,
                 note: event.note,
                 createdAt: event.createdAt,
-                by: event.actorId === null ? "system" as const
-                    : event.actorId === userId ? "you" as const
-                        : event.actorId === request.requesterId || event.actorId === ownerId ? "other" as const
-                            : "admin" as const,
+                by: bySide(event.actorId, event.type),
             })),
         };
     });
+}
+
+/** Every loan the user takes part in, as owner ("Dipinjamkan ke kawan") or borrower ("Saya pinjam"). */
+export function listLoansForUser(userId: string, now = new Date()): Promise<LoanItem[]> {
+    return loadLoans({ kind: "user", userId }, now);
+}
+
+/** Loans of a community's collection, as its managers see them; `userId` is the manager reading. */
+export function listLoansForCommunity(communityId: string, userId: string, now = new Date()): Promise<LoanItem[]> {
+    return loadLoans({ kind: "community", communityId, userId }, now);
 }
 
 /**
  * How many of the user's loans are under "Perlu Tindakan" (`loanGroup`), for the dot on the account menu.
  * Reads only the snapshot columns; the rule itself stays in `loanGroup`.
  */
+const openLoan = or(inArray(borrowRequests.status, ["PENDING", "APPROVED"]), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"]));
+
 export async function countLoansNeedingAction(userId: string, now = new Date()) {
     const rows = await db
         .select({ request: borrowRequests, borrowing: borrowings, ownerId: bookListings.ownerId })
@@ -534,11 +602,29 @@ export async function countLoansNeedingAction(userId: string, now = new Date()) 
         .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
         .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
         .where(and(
-            or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)),
-            or(inArray(borrowRequests.status, ["PENDING", "APPROVED"]), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"])),
+            or(eq(borrowRequests.requesterId, userId), and(eq(bookListings.ownerId, userId), isNull(bookListings.communityId))),
+            openLoan,
         ));
     return rows.filter(({ request, borrowing, ownerId }) =>
         loanGroup(snapshotOf(request, borrowing), ownerId === userId ? "owner" : "requester", now) === "action").length;
+}
+
+/**
+ * Loans of community collections waiting for a manager, per community, for the communities `userId` manages
+ * (manage menu and the account-menu dot).
+ */
+export async function countCommunityLoansNeedingAction(userId: string, now = new Date()) {
+    const rows = await db
+        .select({ request: borrowRequests, borrowing: borrowings, communityId: bookListings.communityId })
+        .from(borrowRequests)
+        .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
+        .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
+        .where(and(sql`${bookListings.communityId} in ${managedCommunityIdsSql(userId)}`, openLoan));
+    const counts = new Map<string, number>();
+    for (const { request, borrowing, communityId } of rows) {
+        if (communityId && loanGroup(snapshotOf(request, borrowing), "owner", now) === "action") counts.set(communityId, (counts.get(communityId) ?? 0) + 1);
+    }
+    return counts;
 }
 
 /** The reader's open (waiting or accepted) requests among the given listings, for the book detail page. */
@@ -565,7 +651,7 @@ export async function listBorrowingDisputes(limit = 50) {
             resolutionNote: borrowings.resolutionNote,
             consequence: borrowings.consequence,
             consequenceDays: borrowings.consequenceDays,
-            consequenceToOwner: sql<boolean>`${borrowings.consequenceUserId} = ${bookListings.ownerId}`,
+            consequenceToOwner: sql<boolean>`${borrowings.consequenceUserId} <> ${borrowRequests.requesterId}`,
             ownerReplyRequestedAt: borrowings.ownerReplyRequestedAt,
             requesterReplyRequestedAt: borrowings.requesterReplyRequestedAt,
             handedOverAt: borrowings.handedOverAt,
@@ -576,7 +662,8 @@ export async function listBorrowingDisputes(limit = 50) {
             requesterName: requesterProfile.displayName,
             ownerName: ownerProfile.displayName,
             reporterName: reporterProfile.displayName,
-            reportedByOwner: sql<boolean>`${borrowings.disputedById} = ${bookListings.ownerId}`,
+            reportedByOwner: sql<boolean>`${borrowings.disputedById} <> ${borrowRequests.requesterId}`,
+            communityName: communities.name,
         })
         .from(borrowings)
         .innerJoin(borrowRequests, eq(borrowRequests.id, borrowings.requestId))
@@ -584,6 +671,7 @@ export async function listBorrowingDisputes(limit = 50) {
         .innerJoin(books, eq(books.id, bookListings.bookId))
         .innerJoin(requesterProfile, eq(requesterProfile.id, borrowRequests.requesterId))
         .innerJoin(ownerProfile, eq(ownerProfile.id, bookListings.ownerId))
+        .leftJoin(communities, eq(communities.id, bookListings.communityId))
         .leftJoin(reporterProfile, eq(reporterProfile.id, borrowings.disputedById))
         .where(sql`${borrowings.disputedAt} is not null`)
         .orderBy(sql`${borrowings.status} = 'DISPUTED' desc`, desc(borrowings.disputedAt))

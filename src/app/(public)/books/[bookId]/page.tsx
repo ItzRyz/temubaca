@@ -26,6 +26,8 @@ import { mergeHoldings } from "@/features/libraries/access";
 import { AccessRequestDialog } from "@/features/libraries/components/access-request-dialog";
 import { HoldingBadge } from "@/features/libraries/components/holding-badge";
 import { listHoldingsForBook, listManagedLibraries, openAccessRequestLibraries } from "@/lib/db/queries/libraries";
+import { listManagedCommunities } from "@/lib/db/queries/community-management";
+import { CommunityAvatar } from "@/features/communities/components/community-card";
 import { conditionNoteFromRules, guaranteeFromRules, loanDayChoices, maxLoanDaysFromRules, meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { findOpenRequestsForListings } from "@/lib/db/queries/borrowing";
 
@@ -92,15 +94,20 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
         listBookDataSources(book),
         listHoldingsForBook(book.id),
     ]);
-    const [isBookmarked, openRequests, openAccess, managed] = user
+    const [isBookmarked, openRequests, openAccess, managed, myCommunities] = user
         ? await Promise.all([
             hasBookmark(user.id, book.id),
             findOpenRequestsForListings(user.id, listings.map((listing) => listing.id)),
             openAccessRequestLibraries(user.id, book.id),
             listManagedLibraries(user.id),
+            listManagedCommunities(user.id),
         ])
-        : [false, new Map<string, { id: string; status: string }>(), new Set<string>(), []];
+        : [false, new Map<string, { id: string; status: string }>(), new Set<string>(), [], []];
     const managedIds = new Set(managed.map((library) => library.id));
+    // Copies the viewer lends: their own, or their community's collection (30 Okt 2026).
+    const myCommunityIds = new Set(myCommunities.filter((community) => community.status === "VERIFIED").map((community) => community.id));
+    const isMine = (listing: (typeof listings)[number]) => (listing.communityId ? myCommunityIds.has(listing.communityId) : listing.ownerId === user?.id);
+    const lenderName = (listing: (typeof listings)[number]) => listing.community?.name ?? listing.ownerUser.displayName;
     const holdings = mergeHoldings(holdingRows);
     const bookGenres = genresForSubjects(book.categories);
     const authors = book.authors.length > 0 ? book.authors.join(", ") : "Penulis belum tercatat";
@@ -324,14 +331,30 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                 <ul className="mt-3 grid list-none gap-4 p-0 md:grid-cols-2">
                                     {visibleCopies.map((listing) => (
                                         <li key={listing.id} className="flex flex-col rounded-xl border border-border bg-[#faf7f0] p-4">
-                                            <p className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                                                <UserRound aria-hidden="true" className="size-3" /> Perorangan
-                                            </p>
+                                            {listing.community ? (
+                                                <p className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                                    <UsersRound aria-hidden="true" className="size-3" /> Komunitas
+                                                </p>
+                                            ) : (
+                                                <p className="flex items-center gap-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
+                                                    <UserRound aria-hidden="true" className="size-3" /> Perorangan
+                                                </p>
+                                            )}
                                             <div className="mt-1 flex items-start justify-between gap-3">
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-semibold">{listing.ownerUser.displayName}</p>
-                                                    <p className="text-xs text-muted-foreground">Bergabung sejak {listing.ownerUser.createdAt.getFullYear()}</p>
-                                                </div>
+                                                {listing.community ? (
+                                                    <Link href={`/communities/${listing.community.id}?tab=koleksi`} className="flex min-w-0 items-center gap-2 hover:underline">
+                                                        <CommunityAvatar community={listing.community} className="size-8 rounded-lg text-xs" />
+                                                        <span className="min-w-0">
+                                                            <span className="block truncate text-sm font-semibold">{listing.community.name}</span>
+                                                            <span className="block text-xs text-muted-foreground">Koleksi komunitas terverifikasi</span>
+                                                        </span>
+                                                    </Link>
+                                                ) : (
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-sm font-semibold">{listing.ownerUser.displayName}</p>
+                                                        <p className="text-xs text-muted-foreground">Bergabung sejak {listing.ownerUser.createdAt.getFullYear()}</p>
+                                                    </div>
+                                                )}
                                                 <span className="shrink-0 rounded-full bg-[#c9ecd6] px-2 py-0.5 text-[11px] font-semibold text-primary">Ditawarkan</span>
                                             </div>
                                             <ul className="mt-3 mb-4 flex list-none flex-col gap-1.5 p-0 text-xs text-foreground/85">
@@ -353,8 +376,8 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                 </p>
                                                 {!user ? (
                                                     <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className={borrowButtonClass}>Masuk untuk meminjam</Link>
-                                                ) : listing.ownerId === user.id ? (
-                                                    <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">Salinan Anda</span>
+                                                ) : isMine(listing) ? (
+                                                    <span className="rounded-lg bg-[#ebe9e1] px-3 py-1.5 text-xs font-semibold text-muted-foreground">{listing.community ? "Koleksi komunitas Anda" : "Salinan Anda"}</span>
                                                 ) : openRequests.has(listing.id) ? (
                                                     <Link href="/my-listings?tab=peminjaman&view=pinjam" className="inline-flex min-h-9 items-center rounded-lg bg-[#e7efe8] px-3 text-xs font-semibold text-primary hover:bg-[#d9e6db]">
                                                         Permintaan terkirim · Lihat
@@ -364,7 +387,7 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                         listingId={listing.id}
                                                         bookTitle={book.title}
                                                         bookMeta={[authors, book.publisher].filter(Boolean).join(" • ")}
-                                                        ownerName={listing.ownerUser.displayName}
+                                                        ownerName={lenderName(listing)}
                                                         conditionNote={conditionNoteFromRules(listing.borrowingRules)}
                                                         guarantee={guaranteeFromRules(listing.borrowingRules)}
                                                         meetingPoints={meetingPointsOf(listing.publicLocation)}
@@ -374,8 +397,10 @@ export default async function BookDetailPage({ params, searchParams }: BookPageP
                                                 )}
                                             </div>
                                             <div className="flex flex-wrap gap-x-4">
-                                                <ReportForm targetType="BOOK_LISTING" targetId={listing.id} targetName={book.title} targetMeta={`Salinan milik ${listing.ownerUser.displayName}`} isAuthenticated={user !== null} label="Laporkan listing" />
-                                                {listing.ownerId !== user?.id && (
+                                                <ReportForm targetType="BOOK_LISTING" targetId={listing.id} targetName={book.title} targetMeta={`Salinan milik ${lenderName(listing)}`} isAuthenticated={user !== null} label="Laporkan listing" />
+                                                {listing.community ? (
+                                                    !isMine(listing) && <ReportForm targetType="COMMUNITY" targetId={listing.community.id} targetName={listing.community.name} targetMeta="Pemilik koleksi" isAuthenticated={user !== null} label="Laporkan komunitas" />
+                                                ) : listing.ownerId !== user?.id && (
                                                     <ReportForm targetType="USER" targetId={listing.ownerId} targetName={listing.ownerUser.displayName} targetMeta="Pemilik buku" isAuthenticated={user !== null} label="Laporkan akun pemilik" />
                                                 )}
                                             </div>

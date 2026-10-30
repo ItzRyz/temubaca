@@ -76,7 +76,7 @@ export default async function AdminLoansPage({ searchParams }: PageProps) {
                                     <h2 className="mt-1.5 font-heading text-lg font-semibold">
                                         <Link href={`/books/${item.book.id}`} className="hover:underline">{item.book.title}</Link>
                                     </h2>
-                                    <p className="text-sm text-muted-foreground">Pemilik {item.ownerName} • Peminjam {item.requesterName}</p>
+                                    <p className="text-sm text-muted-foreground">Pemilik {item.communityName ? `${item.communityName} (komunitas)` : item.ownerName} • Peminjam {item.requesterName}</p>
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         Diserahkan {item.handedOverAt ? date.format(item.handedOverAt) : "-"} • Jatuh tempo {item.dueAt ? date.format(item.dueAt) : "-"}{item.meetingPoint ? ` • Titik temu ${item.meetingPoint}` : ""}
                                     </p>

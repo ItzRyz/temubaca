@@ -43,7 +43,7 @@ type Executor = Tx | typeof db;
 const RETENTION_KEY = "retention";
 const SYSTEM_TARGET_ID = "00000000-0000-0000-0000-000000000000";
 
-/** Loans that keep the account alive: accepted, ongoing, or disputed, on either side. */
+/** Loans that keep the account alive: accepted, ongoing, or disputed, on either side (a community's loans belong to the community). */
 async function countActiveLoans(executor: Executor, userId: string) {
     const [row] = await executor
         .select({ total: count() })
@@ -51,7 +51,7 @@ async function countActiveLoans(executor: Executor, userId: string) {
         .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
         .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
         .where(and(
-            or(eq(borrowRequests.requesterId, userId), eq(bookListings.ownerId, userId)),
+            or(eq(borrowRequests.requesterId, userId), and(eq(bookListings.ownerId, userId), isNull(bookListings.communityId))),
             or(eq(borrowRequests.status, "APPROVED"), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"])),
         ));
     return row?.total ?? 0;
@@ -98,7 +98,7 @@ export async function requestAccountDeletion(userId: string, now = new Date()) {
             .returning({ id: borrowRequests.id });
         const incoming = await tx.update(borrowRequests)
             .set({ status: "REJECTED", rejectionReason: OWNER_CLOSED_REASON, respondedAt: now, updatedAt: now })
-            .where(and(eq(borrowRequests.status, "PENDING"), inArray(borrowRequests.listingId, tx.select({ id: bookListings.id }).from(bookListings).where(eq(bookListings.ownerId, userId)))))
+            .where(and(eq(borrowRequests.status, "PENDING"), inArray(borrowRequests.listingId, tx.select({ id: bookListings.id }).from(bookListings).where(and(eq(bookListings.ownerId, userId), isNull(bookListings.communityId))))))
             .returning({ id: borrowRequests.id });
         const events = [
             ...ownPending.map((row) => ({ requestId: row.id, actorId: userId, type: "CANCELLED" as const, note: "Peminjam menutup akunnya." })),
@@ -141,16 +141,29 @@ export async function purgeAccount(userId: string, now = new Date()) {
 
         // Copies with loan history stay (hidden, stripped of location and notes) so borrowers keep their record.
         const withHistory = tx.select({ id: borrowRequests.listingId }).from(borrowRequests);
+        const personal = and(eq(bookListings.ownerId, userId), isNull(bookListings.communityId));
         await tx.update(bookListings)
             .set({ hiddenAt: now, hiddenReason: "Akun pemilik dihapus", availability: "UNAVAILABLE", publicLocation: null, borrowingRules: null, updatedAt: now })
-            .where(and(eq(bookListings.ownerId, userId), inArray(bookListings.id, withHistory)));
-        await tx.delete(bookListings).where(and(eq(bookListings.ownerId, userId), notInArray(bookListings.id, withHistory)));
+            .where(and(personal, inArray(bookListings.id, withHistory)));
+        await tx.delete(bookListings).where(and(personal, notInArray(bookListings.id, withHistory)));
         await tx.update(borrowRequests).set({ note: null, preferredTime: null }).where(eq(borrowRequests.requesterId, userId));
         await tx.update(bookAccesses).set({ message: null }).where(eq(bookAccesses.requesterId, userId));
         await tx.delete(libraryManagers).where(eq(libraryManagers.userId, userId));
 
         const owned = await tx.select({ id: communities.id }).from(communities).where(and(eq(communities.ownerId, userId), ne(communities.status, "VERIFIED")));
         const ownedIds = owned.map((row) => row.id);
+        if (ownedIds.length > 0) {
+            // A collection of a community that goes with the account: loan history stays as hidden copies, the rest goes.
+            const ofOwned = inArray(bookListings.communityId, ownedIds);
+            await tx.update(bookListings)
+                .set({ communityId: null, hiddenAt: now, hiddenReason: "Komunitas dihapus bersama akun pemiliknya", availability: "UNAVAILABLE", publicLocation: null, borrowingRules: null, updatedAt: now })
+                .where(and(ofOwned, inArray(bookListings.id, withHistory)));
+            await tx.delete(bookListings).where(and(ofOwned, notInArray(bookListings.id, withHistory)));
+        }
+        // Copies this manager added to other communities stay in those collections, now under each community's owner.
+        await tx.update(bookListings)
+            .set({ ownerId: sql`(select "communities"."ownerId" from "communities" where "communities"."id" = "book_listings"."communityId")`, updatedAt: now })
+            .where(and(eq(bookListings.ownerId, userId), isNotNull(bookListings.communityId)));
         const files = ownedIds.length > 0
             ? await tx.select({ path: communitySubmissions.filePath }).from(communitySubmissions).where(and(inArray(communitySubmissions.communityId, ownedIds), isNotNull(communitySubmissions.filePath)))
             : [];

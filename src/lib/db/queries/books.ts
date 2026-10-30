@@ -14,7 +14,6 @@ import {
     notExists,
     or,
     sql,
-    type AnyColumn,
 } from "drizzle-orm";
 
 import {
@@ -28,6 +27,7 @@ import { meetingPointsOf } from "@/features/borrowing/lifecycle";
 import { ValidationError } from "@/lib/api/errors";
 
 import { db } from "../client";
+import { listingManagedBy, listingVisible } from "./listing-access";
 import { meetingPlaceNames } from "./places";
 
 import {
@@ -39,10 +39,6 @@ import {
     listingAppeals,
 } from "../schema";
 
-/** Public listings exclude owners an admin has suspended or who asked to delete their account (DEC-11). */
-function ownerNotSuspended(ownerId: AnyColumn) {
-    return sql`${ownerId} not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null)`;
-}
 
 /** Fields safe and useful for public catalog responses; omits raw provider metadata and internal timestamps. */
 export const publicBookColumns = {
@@ -92,7 +88,7 @@ export async function findBookById(
                 },
 
                 where: (listing, { and, eq, isNull }) =>
-                    and(eq(listing.availability, "AVAILABLE"), isNull(listing.hiddenAt), ownerNotSuspended(listing.ownerId)),
+                    and(eq(listing.availability, "AVAILABLE"), isNull(listing.hiddenAt), listingVisible(listing.ownerId, listing.communityId)),
 
                 orderBy: (table, { desc }) => [
                     desc(table.createdAt),
@@ -166,11 +162,15 @@ export type BookBrowseFilters = {
  * Copies readers offer now: AVAILABLE, not hidden, from an owner who is not suspended or leaving.
  * Qualified names: drizzle renders bare column refs unqualified inside sql``, which would bind to the subquery table.
  */
+/** Raw-SQL twin of `listingVisible` for subqueries over "book_listings" (personal owner active, or community verified). */
+export const publicListingSql = sql`(("book_listings"."communityId" is null and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null))
+    or "book_listings"."communityId" in (select "communities"."id" from "communities" where "communities"."status" = 'VERIFIED'))`;
+
 const availableCopiesSql = sql<number>`(
     select count(*)::int from ${bookListings}
     where "book_listings"."bookId" = "books"."id" and "book_listings"."availability" = 'AVAILABLE'
     and "book_listings"."hiddenAt" is null
-    and "book_listings"."ownerId" not in (select "user_profiles"."id" from "user_profiles" where "user_profiles"."suspendedAt" is not null or "user_profiles"."deletionRequestedAt" is not null)
+    and ${publicListingSql}
 )`;
 
 /** Recorded at a library readers can see (TB-023). */
@@ -334,7 +334,7 @@ export async function listBookListings(
             ),
             // Listings hidden by an admin, or owned by a suspended account, never reach public pages.
             isNull(bookListings.hiddenAt),
-            ownerNotSuspended(bookListings.ownerId),
+            listingVisible(bookListings.ownerId, bookListings.communityId),
         ),
 
         with: {
@@ -344,6 +344,8 @@ export async function listBookListings(
                     createdAt: true,
                 },
             },
+            // A community's copy is shown as the community, not the manager who added it.
+            community: { columns: { id: true, name: true, logoPath: true, createdAt: true } },
         },
 
         orderBy: (table, { desc }) => [
@@ -352,9 +354,35 @@ export async function listBookListings(
     });
 }
 
+const listingBookColumns = { id: true, title: true, authors: true, categories: true, publishedAt: true, publisher: true, coverUrl: true } as const;
+
+/** Every copy in a community's collection, for its managers (30 Okt 2026). */
+export async function listCommunityBookListings(communityId: string) {
+    return db.query.bookListings.findMany({
+        where: eq(bookListings.communityId, communityId),
+        with: { book: { columns: listingBookColumns } },
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+    });
+}
+
+/** The community's copies the public may see and borrow: offered or reserved, not hidden, community verified. */
+export async function listPublicCommunityBookListings(communityId: string) {
+    return db.query.bookListings.findMany({
+        where: and(
+            eq(bookListings.communityId, communityId),
+            isNull(bookListings.hiddenAt),
+            ne(bookListings.availability, "UNAVAILABLE"),
+            listingVisible(bookListings.ownerId, bookListings.communityId),
+        ),
+        with: { book: { columns: listingBookColumns } },
+        orderBy: (table, { asc }) => [asc(table.availability), desc(table.createdAt)],
+    });
+}
+
+/** The reader's own copies; copies added for a community live in that community's collection. */
 export async function listUserBookListings(userId: string) {
     return db.query.bookListings.findMany({
-        where: eq(bookListings.ownerId, userId),
+        where: and(eq(bookListings.ownerId, userId), isNull(bookListings.communityId)),
         with: {
             book: {
                 columns: {
@@ -384,6 +412,7 @@ export async function listingsNeedAttention(ownerId: string) {
     const [row] = await db.select({ id: bookListings.id }).from(bookListings)
         .where(and(
             eq(bookListings.ownerId, ownerId),
+            isNull(bookListings.communityId),
             or(
                 and(isNotNull(bookListings.hiddenAt), notExists(appealedSinceHidden)),
                 and(isNull(bookListings.hiddenAt), ne(bookListings.availability, "UNAVAILABLE"), sql`coalesce(trim(${bookListings.publicLocation}), '') = ''`),
@@ -436,7 +465,7 @@ export async function findAvailableBookListings(
             ),
             // Listings hidden by an admin, or owned by a suspended account, never reach public pages.
             isNull(bookListings.hiddenAt),
-            ownerNotSuspended(bookListings.ownerId),
+            listingVisible(bookListings.ownerId, bookListings.communityId),
         ),
 
         with: {
@@ -478,11 +507,13 @@ export async function createBookListing(input: {
     publicLocation?: string;
     meetingPlaceIds?: string[];
     borrowingRules?: string;
+    communityId?: string;
 }) {
     const [listing] = await db
         .insert(bookListings)
         .values({
             ownerId: input.ownerId,
+            communityId: input.communityId ?? null,
             bookId: input.bookId,
             condition: input.condition,
             availability:
@@ -526,7 +557,7 @@ export async function updateBookListing(
     let meetingPlaceIds: string[] | undefined;
     if (input.publicLocation !== undefined || input.meetingPlaceIds !== undefined) {
         const current = await db.query.bookListings.findFirst({
-            where: and(eq(bookListings.id, listingId), eq(bookListings.ownerId, ownerId)),
+            where: and(eq(bookListings.id, listingId), listingManagedBy(ownerId, bookListings.ownerId, bookListings.communityId)),
             columns: { publicLocation: true, meetingPlaceIds: true },
         });
         if (!current) return null;
@@ -577,7 +608,7 @@ export async function updateBookListing(
         })
         .where(and(
             eq(bookListings.id, listingId),
-            eq(bookListings.ownerId, ownerId),
+            listingManagedBy(ownerId, bookListings.ownerId, bookListings.communityId),
         ))
         .returning();
 
@@ -599,7 +630,7 @@ export async function deleteBookListing(
             .from(bookListings)
             .where(and(
                 eq(bookListings.id, listingId),
-                eq(bookListings.ownerId, ownerId),
+                listingManagedBy(ownerId, bookListings.ownerId, bookListings.communityId),
             ))
             .for("update");
 

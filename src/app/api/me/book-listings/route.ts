@@ -13,6 +13,7 @@ import {
     listUserBookListings,
 } from "@/lib/db/queries/books";
 import { books } from "@/lib/db/schema";
+import { requireCommunityCapability } from "@/features/community-management/api";
 import { createUserRateLimitKey, RATE_LIMITS } from "@/lib/rate-limit";
 import { createBookListingSchema } from "@/lib/validation/schemas/book.schema";
 import { eq } from "drizzle-orm";
@@ -42,6 +43,8 @@ export const POST = withApiHandler(async (request) => {
     if (!book) {
         throw new NotFoundError("Book not found.");
     }
+    // A community's copy: only its managers add to the collection, while the community is verified.
+    if (input.communityId) await requireCommunityCapability(input.communityId, "manageContent");
 
     const listing = await createBookListing({
         ...input,

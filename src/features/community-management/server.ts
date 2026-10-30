@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
+import { countCommunityLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { countCommunityContent, getCommunityAccess } from "@/lib/db/queries/community-management";
 import { uuidSchema } from "@/lib/validation/common";
 
@@ -24,7 +25,11 @@ export const loadManageContext = cache(async (communityId: string) => {
         role: access.role,
         status,
         can: communityCapabilities(access.role, status),
-        counts: await countCommunityContent(communityId),
+        counts: {
+            ...await countCommunityContent(communityId),
+            // Loans of the community's collection waiting for a manager (30 Okt 2026).
+            loansNeedingAction: (await countCommunityLoansNeedingAction(user.id)).get(communityId) ?? 0,
+        },
     };
 });
 

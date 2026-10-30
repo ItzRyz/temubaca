@@ -216,7 +216,7 @@ async function ListingsTab({ view, query, selected, hrefFor }: TabProps<ListingV
                                                 <span className="block truncate font-heading font-semibold">{row.title}</span>
                                                 <span className="block truncate text-xs text-muted-foreground">{row.authors.join(", ") || "Penulis belum tercatat"}</span>
                                             </span>
-                                            <span className="hidden truncate text-sm md:block">{row.ownerName}</span>
+                                            <span className="hidden truncate text-sm md:block">{row.communityName ?? row.ownerName}</span>
                                             <Badge ui={listingStatusUi[row.adminStatus]} />
                                             <span className={cn("col-start-2 text-xs md:col-start-auto md:text-sm", row.openReportCount > 0 ? "font-semibold text-destructive" : "text-muted-foreground")}>
                                                 <span className="md:hidden">Laporan: </span>{row.reportCount > 0 ? row.reportCount : "—"}
@@ -257,7 +257,7 @@ async function ListingsTab({ view, query, selected, hrefFor }: TabProps<ListingV
                         <div className="border-t border-border p-5">
                             <SectionTitle>Listing</SectionTitle>
                             <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                                <Field label="Pemilik" value={active.ownerName} />
+                                <Field label="Pemilik" value={active.communityName ? `${active.communityName} (komunitas, ditambahkan ${active.ownerName})` : active.ownerName} />
                                 <Field label="Kondisi" value={conditionLabels[active.condition] ?? active.condition} />
                             </dl>
                             <p className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground">

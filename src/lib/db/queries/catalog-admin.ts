@@ -3,7 +3,7 @@ import "server-only";
 import { and, desc, eq, ilike, isNotNull, isNull, or, sql } from "drizzle-orm";
 
 import { db } from "../client";
-import { bookListings, books, bookSyncLogs, userProfiles, verifications } from "../schema";
+import { bookListings, books, bookSyncLogs, communities, userProfiles, verifications } from "../schema";
 
 const LIMIT = 200;
 
@@ -26,6 +26,7 @@ export async function listListingsForAdmin(options: { query?: string } = {}) {
             provider: books.provider,
             syncedAt: books.syncedAt,
             ownerName: userProfiles.displayName,
+            communityName: communities.name,
             condition: bookListings.condition,
             availability: bookListings.availability,
             publicLocation: bookListings.publicLocation,
@@ -45,7 +46,8 @@ export async function listListingsForAdmin(options: { query?: string } = {}) {
         .from(bookListings)
         .innerJoin(books, eq(bookListings.bookId, books.id))
         .innerJoin(userProfiles, eq(bookListings.ownerId, userProfiles.id))
-        .where(pattern ? or(ilike(books.title, pattern), ilike(userProfiles.displayName, pattern), sql`array_to_string(${books.authors}, ' ') ilike ${pattern}`) : undefined)
+        .leftJoin(communities, eq(bookListings.communityId, communities.id))
+        .where(pattern ? or(ilike(books.title, pattern), ilike(userProfiles.displayName, pattern), ilike(communities.name, pattern), sql`array_to_string(${books.authors}, ' ') ilike ${pattern}`) : undefined)
         .orderBy(desc(bookListings.createdAt))
         .limit(LIMIT);
 }

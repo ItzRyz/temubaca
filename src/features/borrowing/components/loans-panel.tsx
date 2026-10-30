@@ -242,7 +242,11 @@ function Section({ title, loans, now }: { title: string; loans: LoanItem[]; now:
 }
 
 /** Figma "Buku Saya - Peminjaman" (297:2494, owner) and "Saya Pinjam" (298:2551, borrower). */
-export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date }) {
+/**
+ * `basePath` shows the panel elsewhere than "Buku Saya" (a community's loans, 30 Okt 2026): links and the
+ * search stay on that page, and the switch between lending and borrowing is left out.
+ */
+export function LoansPanel({ loans, view, filter, query, now, basePath }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date; basePath?: string }) {
     const role = view === "pinjamkan" ? "owner" : "requester";
     const needle = query.toLocaleLowerCase("id-ID");
     const mine = loans
@@ -263,20 +267,20 @@ export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanIte
     const history = inGroup("history").slice(0, 20);
 
     const hrefFor = (next: { view?: LoanView; filter?: LoanFilter }) => {
-        const search = new URLSearchParams({ tab: "peminjaman" });
+        const search = new URLSearchParams(basePath ? {} : { tab: "peminjaman" });
         const nextView = next.view ?? view;
         if (nextView !== "pinjamkan") search.set("view", nextView);
         const nextFilter = next.filter ?? (next.view ? "all" : filter);
         if (nextFilter !== "all") search.set("filter", nextFilter);
         if (query && !next.view) search.set("q", query);
-        return `/my-listings?${search.toString()}`;
+        return `${basePath ?? "/my-listings"}${search.size ? `?${search.toString()}` : ""}`;
     };
 
     return (
         <>
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
-                    <LoanViewNav view={view} />
+                    {!basePath && <LoanViewNav view={view} />}
                     {(Object.keys(filterLabels) as LoanFilter[]).map((value) => (
                         <Link key={value} href={hrefFor({ filter: value })} aria-current={filter === value ? "true" : undefined}
                             className={cn("rounded-lg border px-3 py-1.5 text-sm font-semibold", filter === value ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted")}>
@@ -284,8 +288,8 @@ export function LoansPanel({ loans, view, filter, query, now }: { loans: LoanIte
                         </Link>
                     ))}
                 </div>
-                <form action="/my-listings" method="get" role="search" className="flex gap-2 lg:w-80">
-                    <input type="hidden" name="tab" value="peminjaman" />
+                <form action={basePath ?? "/my-listings"} method="get" role="search" className="flex gap-2 lg:w-80">
+                    {!basePath && <input type="hidden" name="tab" value="peminjaman" />}
                     {view !== "pinjamkan" && <input type="hidden" name="view" value={view} />}
                     {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
                     <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">

@@ -7,11 +7,11 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { openTour } from "@/features/onboarding/components/product-tour";
 
-type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "listings" | "loans" | "libraries"> };
+type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "listings" | "loans" | "libraries" | "communities"> };
 type MenuGroup = { title: string; items: MenuItem[] };
 
 /** What waits for this user, shown as red dots (owner's decision 29 Okt 2026: a dot, no count). */
-export type MenuAttention = { listings: boolean; loans: boolean; libraries: boolean; managesLibraries: boolean };
+export type MenuAttention = { listings: boolean; loans: boolean; libraries: boolean; communities: boolean; managesLibraries: boolean };
 
 /** Grouped so a new reader can tell the entries apart (owner's request 28 Okt 2026); each has a one-line hint. */
 function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLibraries: boolean }): MenuGroup[] {
@@ -33,7 +33,7 @@ function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLi
         {
             title: "Komunitas",
             items: [
-                { href: "/communities/mine", label: "Komunitas saya", hint: "Komunitas yang kamu ikuti atau kelola", icon: UsersRound },
+                { href: "/communities/mine", label: "Komunitas saya", hint: "Komunitas yang kamu ikuti atau kelola", icon: UsersRound, attention: "communities" },
                 ...(managesLibraries ? [{ href: "/my-libraries", label: "Perpustakaan saya", hint: "Pengajuan dan koleksi", icon: Library, attention: "libraries" as const }] : []),
             ],
         },
@@ -95,7 +95,7 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
         list[next]?.focus();
     }
 
-    const waiting = attention.listings || attention.loans || attention.libraries;
+    const waiting = attention.listings || attention.loans || attention.libraries || attention.communities;
     const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries });
 
     return (

@@ -117,6 +117,11 @@ export const createBookListingSchema =
             borrowingRules:
                 borrowingRulesSchema
                     .optional(),
+
+            // Adds the copy to this community's collection (30 Okt 2026); the caller must manage it.
+            communityId:
+                z.uuid()
+                    .optional(),
         })
         .strict();
 

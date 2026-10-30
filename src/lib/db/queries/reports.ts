@@ -122,8 +122,9 @@ export async function resolveReportTargets(targets: TargetRef[]) {
 
     const [bookRows, listingRows, communityRows, eventRows, merchRows, userRows] = await Promise.all([
         idsOf("BOOK").length ? db.select({ id: books.id, title: books.title, authors: books.authors }).from(books).where(inArray(books.id, idsOf("BOOK"))) : [],
-        idsOf("BOOK_LISTING").length ? db.select({ id: bookListings.id, bookId: books.id, title: books.title, owner: userProfiles.displayName, availability: bookListings.availability })
+        idsOf("BOOK_LISTING").length ? db.select({ id: bookListings.id, bookId: books.id, title: books.title, owner: userProfiles.displayName, community: communities.name, availability: bookListings.availability })
             .from(bookListings).innerJoin(books, eq(bookListings.bookId, books.id)).innerJoin(userProfiles, eq(bookListings.ownerId, userProfiles.id))
+            .leftJoin(communities, eq(bookListings.communityId, communities.id))
             .where(inArray(bookListings.id, idsOf("BOOK_LISTING"))) : [],
         idsOf("COMMUNITY").length ? db.select({ id: communities.id, name: communities.name, status: communities.status }).from(communities).where(inArray(communities.id, idsOf("COMMUNITY"))) : [],
         idsOf("EVENT").length ? db.select({ id: events.id, title: events.title, community: communities.name, status: events.publicationStatus })
@@ -134,7 +135,7 @@ export async function resolveReportTargets(targets: TargetRef[]) {
     ]);
 
     for (const row of bookRows) result.set(key("BOOK", row.id), { title: row.title, subtitle: `Buku • ${row.authors.join(", ") || "Penulis belum tercatat"}`, href: `/books/${row.id}` });
-    for (const row of listingRows) result.set(key("BOOK_LISTING", row.id), { title: row.title, subtitle: `Listing buku • Pemilik: ${row.owner}`, href: `/books/${row.bookId}` });
+    for (const row of listingRows) result.set(key("BOOK_LISTING", row.id), { title: row.title, subtitle: `Listing buku • Pemilik: ${row.community ? `${row.community} (komunitas)` : row.owner}`, href: `/books/${row.bookId}` });
     for (const row of communityRows) result.set(key("COMMUNITY", row.id), { title: row.name, subtitle: `Komunitas • ${row.status}`, href: row.status === "VERIFIED" ? `/communities/${row.id}` : null });
     for (const row of eventRows) result.set(key("EVENT", row.id), { title: row.title, subtitle: `Acara • ${row.community}`, href: row.status === "PUBLISHED" ? `/events/${row.id}` : null });
     for (const row of merchRows) result.set(key("MERCHANDISE_LISTING", row.id), { title: row.title, subtitle: `Merchandise • ${row.community}`, href: row.status === "PUBLISHED" ? `/merchandise/${row.id}` : null });

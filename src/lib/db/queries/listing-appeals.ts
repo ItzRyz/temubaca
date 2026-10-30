@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError } from "@/lib/api/errors";
 
 import { db } from "../client";
 import { bookListings, books, listingAppeals, userProfiles, verifications } from "../schema";
+import { managesListing } from "./listing-access";
 
 export type AppealFile = { path: string; name: string; type: string; size: number };
 
@@ -17,9 +18,10 @@ function isUniqueViolation(error: unknown) {
 /** Owner appeal; only for their own listing while an admin keeps it hidden. */
 export async function createListingAppeal(ownerId: string, listingId: string, input: { reason: string; details: string }, file: AppealFile | null) {
     return db.transaction(async (tx) => {
-        const [listing] = await tx.select({ ownerId: bookListings.ownerId, hiddenAt: bookListings.hiddenAt })
+        const [listing] = await tx.select({ ownerId: bookListings.ownerId, communityId: bookListings.communityId, hiddenAt: bookListings.hiddenAt })
             .from(bookListings).where(eq(bookListings.id, listingId)).for("update");
-        if (!listing || listing.ownerId !== ownerId) throw new NotFoundError("Listing tidak ditemukan.");
+        // A community's copy may be appealed by any of its managers.
+        if (!listing || !(await managesListing(tx, ownerId, listing))) throw new NotFoundError("Listing tidak ditemukan.");
         if (!listing.hiddenAt) throw new ConflictError("Listing ini tidak sedang disembunyikan.");
         try {
             const [appeal] = await tx.insert(listingAppeals).values({
@@ -107,7 +109,7 @@ export function listPendingAppeals(limit = 50) {
 }
 
 export async function findAppealFile(appealId: string) {
-    const [row] = await db.select({ filePath: listingAppeals.filePath, fileName: listingAppeals.fileName, ownerId: bookListings.ownerId })
+    const [row] = await db.select({ filePath: listingAppeals.filePath, fileName: listingAppeals.fileName, ownerId: bookListings.ownerId, communityId: bookListings.communityId })
         .from(listingAppeals).innerJoin(bookListings, eq(bookListings.id, listingAppeals.listingId))
         .where(and(eq(listingAppeals.id, appealId)));
     return row ?? null;

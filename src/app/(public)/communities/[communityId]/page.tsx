@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, BookOpen, CalendarDays, ChevronRight, Info, MapPin, ShieldCheck, ShoppingBag, UsersRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, BookOpen, CalendarDays, ChevronRight, Info, Library, MapPin, ShieldCheck, ShoppingBag, UsersRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,6 +13,7 @@ import { instagramFollowersLabel, instagramNeedsRefresh } from "@/features/commu
 import { fetchInstagramFollowers, isInstagramConfigured } from "@/lib/external/instagram";
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
+import { listPublicCommunityBookListings } from "@/lib/db/queries/books";
 import { findPublicPin } from "@/lib/db/queries/places";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
@@ -47,6 +48,7 @@ const tabs = [
     { key: "tentang", label: "Tentang", icon: BookOpen },
     { key: "acara", label: "Acara", icon: CalendarDays },
     { key: "merchandise", label: "Merchandise", icon: ShoppingBag },
+    { key: "koleksi", label: "Koleksi Buku", icon: Library },
 ] as const;
 type Tab = (typeof tabs)[number]["key"];
 
@@ -89,15 +91,16 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
     const requested = (await searchParams).tab;
     const tab: Tab = tabs.some((item) => item.key === requested) ? requested as Tab : "tentang";
 
-    const [upcoming, past, merchandise, approvedAt, user, pin] = await Promise.all([
+    const [upcoming, past, merchandise, approvedAt, user, pin, collection] = await Promise.all([
         listUpcomingPublicEvents({ communityId: community.id, limit: 20 }),
         tab === "acara" ? listPastPublicEvents(community.id) : Promise.resolve([]),
         listPublicMerchandise({ communityId: community.id, limit: 30 }),
         lastCommunityApproval(community.id),
         getCurrentUser(),
         findPublicPin({ communityId: community.id }),
+        listPublicCommunityBookListings(community.id),
     ]);
-    const counts: Record<Tab, number | undefined> = { tentang: undefined, acara: upcoming.length, merchandise: merchandise.length };
+    const counts: Record<Tab, number | undefined> = { tentang: undefined, acara: upcoming.length, merchandise: merchandise.length, koleksi: collection.length };
     const hrefFor = (key: Tab) => (key === "tentang" ? `/communities/${community.id}` : `/communities/${community.id}?tab=${key}`);
     const signedIn = user !== null;
     const canManage = user ? Boolean((await getCommunityAccess(user.id, community.id))?.role) : false;
@@ -333,6 +336,39 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                         )}
                     </section>
                 </div>
+            )}
+
+            {tab === "koleksi" && (
+                <section aria-labelledby="collection-title" className="mt-6">
+                    <h2 id="collection-title" className="font-heading text-[28px] font-semibold text-primary">Koleksi Buku</h2>
+                    <p className="text-sm text-muted-foreground">Buku milik {community.name} yang bisa dipinjam. Buka bukunya untuk mengajukan pinjam; serah terima dilakukan pengurus di titik temu publik.</p>
+                    {collection.length > 0 ? (
+                        <ul className="mt-4 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+                            {collection.map((listing) => (
+                                <li key={listing.id} className="flex gap-3 rounded-2xl border border-border bg-card p-4">
+                                    <span aria-hidden="true" className="flex h-24 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-primary text-primary-foreground">
+                                        {listing.book.coverUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={listing.book.coverUrl} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
+                                        ) : <BookOpen className="size-5 opacity-70" />}
+                                    </span>
+                                    <div className="flex min-w-0 flex-1 flex-col">
+                                        <h3 className="line-clamp-2 font-heading text-base font-semibold"><Link href={`/books/${listing.book.id}#cara-membaca`} className="hover:underline">{listing.book.title}</Link></h3>
+                                        <p className="truncate text-xs text-muted-foreground">{listing.book.authors.join(", ") || "Penulis belum tercatat"}</p>
+                                        <p className={cn("mt-2 w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold", listing.availability === "AVAILABLE" ? "bg-[#c9ecd6] text-primary" : "bg-[#fbe7c6] text-[#7a4b00]")}>
+                                            {listing.availability === "AVAILABLE" ? "Bisa dipinjam" : "Sedang dipesan"}
+                                        </p>
+                                        <Link href={`/books/${listing.book.id}#cara-membaca`} className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-semibold text-primary hover:underline">
+                                            {listing.availability === "AVAILABLE" ? "Ajukan Pinjam" : "Lihat Buku"} <ArrowRight aria-hidden="true" className="size-3.5" /><span className="sr-only">: {listing.book.title}</span>
+                                        </Link>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-4 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Komunitas ini belum menambahkan buku ke koleksinya.</p>
+                    )}
+                </section>
             )}
 
             {tab === "merchandise" && (

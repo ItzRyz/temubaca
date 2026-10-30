@@ -226,8 +226,10 @@ export const bookListings = pgTable('book_listings', {
     // Peta Literasi places among the meeting points in `publicLocation` (TB-027); typed points have none.
     meetingPlaceIds: uuid().array().notNull().default(sql`'{}'::uuid[]`),
     hiddenAt: nowDate(), hiddenReason: text(), hiddenById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    // A community's collection (30 Okt 2026): any manager lends it; ownerId is the manager who added it.
+    communityId: uuid().references(() => communities.id, { onDelete: 'restrict', onUpdate: 'cascade' }),
     createdAt: createdAt(), updatedAt: updatedAt(),
-}, t => [index('book_listings_owner_id_idx').on(t.ownerId), index('book_listings_book_id_idx').on(t.bookId), index('book_listings_availability_idx').on(t.availability), enumCheck(t.condition, bookConditionValues), enumCheck(t.availability, listingAvailabilityValues)]).enableRLS();
+}, t => [index('book_listings_owner_id_idx').on(t.ownerId), index('book_listings_community_id_idx').on(t.communityId), index('book_listings_book_id_idx').on(t.bookId), index('book_listings_availability_idx').on(t.availability), enumCheck(t.condition, bookConditionValues), enumCheck(t.availability, listingAvailabilityValues)]).enableRLS();
 
 /** Owner appeal against an admin hiding their listing (Figma 301:2608); one open appeal per listing. */
 export const listingAppeals = pgTable('listing_appeals', {
@@ -406,7 +408,7 @@ export const booksRelations = relations(books, ({ many }) => ({ bookmarks: many(
 export const bookSyncLogsRelations = relations(bookSyncLogs, ({ one }) => ({ book: one(books, { fields: [bookSyncLogs.bookId], references: [books.id] }) }));
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({ user: one(userProfiles, { fields: [bookmarks.userId], references: [userProfiles.id] }), book: one(books, { fields: [bookmarks.bookId], references: [books.id] }) }));
 export const userInterestsRelations = relations(userInterests, ({ one }) => ({ user: one(userProfiles, { fields: [userInterests.userId], references: [userProfiles.id] }) }));
-export const bookListingsRelations = relations(bookListings, ({ one, many }) => ({ ownerUser: one(userProfiles, { fields: [bookListings.ownerId], references: [userProfiles.id] }), book: one(books, { fields: [bookListings.bookId], references: [books.id] }), requests: many(borrowRequests) }));
+export const bookListingsRelations = relations(bookListings, ({ one, many }) => ({ ownerUser: one(userProfiles, { fields: [bookListings.ownerId], references: [userProfiles.id] }), book: one(books, { fields: [bookListings.bookId], references: [books.id] }), requests: many(borrowRequests), community: one(communities, { fields: [bookListings.communityId], references: [communities.id] }) }));
 export const borrowRequestsRelations = relations(borrowRequests, ({ one, many }) => ({ listing: one(bookListings, { fields: [borrowRequests.listingId], references: [bookListings.id] }), requester: one(userProfiles, { fields: [borrowRequests.requesterId], references: [userProfiles.id] }), borrowing: one(borrowings), events: many(borrowEvents) }));
 export const borrowEventsRelations = relations(borrowEvents, ({ one }) => ({ request: one(borrowRequests, { fields: [borrowEvents.requestId], references: [borrowRequests.id] }) }));
 export const bookAccessesRelations = relations(bookAccesses, ({ one }) => ({ library: one(libraries, { fields: [bookAccesses.libraryId], references: [libraries.id] }), book: one(books, { fields: [bookAccesses.bookId], references: [books.id] }) }));

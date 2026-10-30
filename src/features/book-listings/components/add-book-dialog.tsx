@@ -30,7 +30,8 @@ async function postJson<T>(url: string, body: unknown) {
 /** Figma "Tambah Buku" (152:807) and its manual variant (159:833): pick or enter a book, then listing details. */
 type PlaceSuggestion = { id: string; name: string; regionCode: string | null };
 
-export function AddBookDialog() {
+/** `communityId` adds the copy to that community's collection instead of the reader's own (30 Okt 2026). */
+export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
     const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
     const titleId = useId();
@@ -204,13 +205,13 @@ export function AddBookDialog() {
             const bookId = await resolveBookId();
             const details = composeListingDetails({ meetingPoints, loanDays, conditionNote, guarantee });
             const meetingPlaceIds = meetingPoints.flatMap((point) => (mapPlaces[point] ? [mapPlaces[point]] : []));
-            const result = await postJson("/api/book-listings", { bookId, condition, availability: offered ? "AVAILABLE" : "UNAVAILABLE", ...details, meetingPlaceIds });
+            const result = await postJson("/api/book-listings", { bookId, condition, availability: offered ? "AVAILABLE" : "UNAVAILABLE", ...details, meetingPlaceIds, ...(communityId ? { communityId } : {}) });
             if (!result.ok) {
                 setError(result.status === 429 ? "Terlalu banyak perubahan. Coba lagi sebentar." : result.error?.message ?? "Listing belum dapat disimpan.");
                 return;
             }
             close();
-            notify.success("Buku ditambahkan ke koleksimu.");
+            notify.success(communityId ? "Buku ditambahkan ke koleksi komunitas." : "Buku ditambahkan ke koleksimu.");
             router.refresh();
         } catch (reason) {
             setError(reason instanceof Error ? reason.message : "Koneksi terputus. Coba lagi.");

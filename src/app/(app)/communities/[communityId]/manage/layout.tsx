@@ -37,7 +37,7 @@ export default async function ManageCommunityLayout({ children, params }: Layout
                     </span>
                     <h1 className="mt-2 font-heading text-[32px] leading-tight font-semibold text-primary">Kelola Komunitas</h1>
                     <p className="mt-1 text-muted-foreground">
-                        {role === "owner" ? "Perbarui profil publik, kelola acara dan merchandise, serta ajukan pembaruan verifikasi." : `Anda pengurus ${community.name}: kelola acara dan merchandise komunitas.`}
+                        {role === "owner" ? "Perbarui profil publik, kelola acara, merchandise, dan koleksi buku, serta ajukan pembaruan verifikasi." : `Anda pengurus ${community.name}: kelola acara, merchandise, dan koleksi buku komunitas.`}
                     </p>
                 </div>
                 {status === "VERIFIED" && (

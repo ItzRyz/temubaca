@@ -323,6 +323,46 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Koleksi buku komunitas — 2026-10-30
+
+Permintaan pemilik repo: komunitas bisa punya koleksi buku dan meminjamkannya, sama seperti pengguna. Pemetaan DIY dibatalkan atas permintaan pemilik.
+
+- **Keputusan pemilik:**
+  - koleksi dikelola **semua pengurus** (pemilik + pengurus aktif) komunitas terverifikasi;
+  - konsekuensi sengketa di pihak pemilik buku jatuh ke **pengurus yang terakhir menangani** pinjaman itu, yaitu pelaku terakhir di pihak komunitas pada `borrow_events`; bila tidak ada, pengurus yang menambahkan buku.
+- **Data:** migrasi `0025_community_collection` menambah `book_listings.communityId`.
+- **Aturan:** `src/lib/db/queries/listing-access.ts`:
+  - `listingVisible`: publik bila pemilik pribadi aktif, atau komunitas `VERIFIED`;
+  - `listingManagedBy` / `managesListing`: siapa yang bertindak sebagai pemilik.
+- **Dipakai di:**
+  - katalog, filter "Ada salinan warga", bookmark, halaman buku;
+  - ubah/hapus listing, banding listing tersembunyi;
+  - alur pinjam: `lockLoan`, `createBorrowRequest` (pengurus tidak bisa meminjam dari komunitasnya sendiri), sanksi sengketa.
+- **Pinjaman:** `listLoansForUser` dan `listLoansForCommunity` berbagi satu loader. Untuk listing komunitas:
+  - peminjam melihat nama komunitas sebagai pemilik;
+  - riwayat di sisi komunitas menulis langkah pengurus lain sebagai "Anda".
+- **"Buku Saya" dan "Pinjam & pinjamkan" pribadi** hanya berisi salinan pribadi. Kartu listing dipindah ke komponen bersama `ManagedListingItem`.
+- **Kelola Komunitas:**
+  - menu **Koleksi Buku** (`manage/collection`: tambah lewat `AddBookDialog communityId`, ubah, tawarkan, hapus, banding);
+  - menu **Peminjaman** (`manage/loans`, `LoansPanel` dengan `basePath`), dengan titik merah bila ada yang perlu tindakan;
+  - "Komunitas saya" menandai komunitas dengan peminjaman perlu tindakan, dan menu akun bertitik.
+- **Publik:**
+  - tab **Koleksi Buku** di profil komunitas;
+  - kartu **Komunitas** (logo + nama, tautan ke koleksi) di halaman buku, dengan "Koleksi komunitas Anda" untuk pengurus;
+  - tombol lapor mengarah ke komunitas.
+- **Admin:** sengketa, katalog listing, dan laporan menyebut nama komunitas.
+- **Diuji:**
+  - `bun run check` lulus (301 tes);
+  - integrasi `community-collection.test.ts`:
+    - koleksi terpisah dari buku pribadi;
+    - semua pengurus mengelola, orang luar ditolak;
+    - pengurus tidak bisa meminjam dari komunitasnya;
+    - pinjam ditangani pengurus mana pun;
+    - sanksi ke pengurus yang menangani;
+    - komunitas ditangguhkan hilang dari publik dan tidak bisa dikelola;
+  - browser lokal: menu kelola (Koleksi 1, Peminjaman bertitik), "Terima Permintaan" di Peminjaman, titik di menu akun dan "Komunitas saya";
+  - kartu Komunitas untuk pengurus dan pembaca (375 px), tab Koleksi publik, dan pembaca melihat nama komunitas di "Saya pinjam".
+
 ## SEO lengkap dan ikon appicon — 2026-10-29
 
 Permintaan pemilik repo. Domain kanonis: `NEXT_PUBLIC_APP_URL` (`https://temubaca.vercel.app`).

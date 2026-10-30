@@ -18,7 +18,7 @@ Respons sukses JSON memakai `{ "success": true, "data": ..., "meta"?: ... }`. Er
 | `PUT` | `/api/bookmarks/[bookId]` | Wajib login | Menyimpan bookmark secara idempotent |
 | `DELETE` | `/api/bookmarks/[bookId]` | Wajib login | Menghapus bookmark milik pengguna |
 | `GET` | `/api/book-listings` | Wajib login | Listing milik pengguna |
-| `POST` | `/api/book-listings` | Wajib login | Membuat listing untuk buku yang sudah ada. `meetingPlaceIds?` (maks. 3 UUID) menandai titik temu yang dipilih dari Peta Literasi (TB-027); id yang bukan perpustakaan/titik temu publik yang tampil di peta ditolak `400` |
+| `POST` | `/api/book-listings` | Wajib login | Membuat listing untuk buku yang sudah ada. `meetingPlaceIds?` (maks. 3 UUID) menandai titik temu yang dipilih dari Peta Literasi (TB-027); id yang bukan perpustakaan/titik temu publik yang tampil di peta ditolak `400`. `communityId?` menambah buku ke koleksi komunitas itu; hanya pemilik/pengurus aktif komunitas terverifikasi (`403`/`404` selain itu). `PATCH`/`DELETE` `/api/book-listings/[listingId]` dan banding listing juga terbuka untuk semua pengurus bila listing milik komunitas |
 | `PATCH` | `/api/book-listings/[listingId]` | Pemilik listing | Mengubah kondisi, ketersediaan, lokasi publik, `meetingPlaceIds`, atau aturan. Mengubah lokasi publik saja membuang tempat peta yang namanya tidak lagi ada di daftar titik temu |
 | `DELETE` | `/api/book-listings/[listingId]` | Pemilik listing | Menghapus listing permanen; `409` bila `RESERVED` atau punya riwayat permintaan pinjam |
 | `GET` | `/api/books/external?q=` | Publik | Mencari Open Library/Google Books sesuai urutan di Pengaturan (min. 2 karakter); hasil di-cache 10 menit, ditandai `localBookId` bila sudah ada di katalog; 30 per menit per IP |

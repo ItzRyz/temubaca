@@ -10,30 +10,27 @@ import {
     merchandiseListings,
     events,
 } from "@/lib/db/schema";
+import { managesListing } from "@/lib/db/queries/listing-access";
 
+/** The listing's owner, or for a community's copy, any manager of that community (30 Okt 2026). */
 export async function isBookListingOwner(
     userId: string,
     listingId: string,
 ): Promise<boolean> {
     const listing =
         await db.query.bookListings.findFirst({
-            where: and(
-                eq(
-                    bookListings.id,
-                    listingId,
-                ),
-                eq(
-                    bookListings.ownerId,
-                    userId,
-                ),
+            where: eq(
+                bookListings.id,
+                listingId,
             ),
 
             columns: {
-                id: true,
+                ownerId: true,
+                communityId: true,
             },
         });
 
-    return listing !== undefined;
+    return listing !== undefined && managesListing(db, userId, listing);
 }
 
 export async function isCommunityOwner(

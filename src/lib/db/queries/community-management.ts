@@ -17,6 +17,7 @@ import type { CommunityApplicationInput, CommunityProfileInput } from "@/lib/val
 
 import { db } from "../client";
 import {
+    bookListings,
     communities,
     communityInvites,
     communityMemberships,
@@ -307,11 +308,12 @@ export async function removeCommunityManager(communityId: string, userId: string
 
 /** Counts for the manage menu badges. */
 export async function countCommunityContent(communityId: string) {
-    const [[eventRow], [merchRow]] = await Promise.all([
+    const [[eventRow], [merchRow], [bookRow]] = await Promise.all([
         db.select({ total: sql<number>`count(*)::int` }).from(events).where(and(eq(events.communityId, communityId), ne(events.publicationStatus, "ARCHIVED"))),
         db.select({ total: sql<number>`count(*)::int` }).from(merchandiseListings).where(and(eq(merchandiseListings.communityId, communityId), ne(merchandiseListings.status, "ARCHIVED"))),
+        db.select({ total: sql<number>`count(*)::int` }).from(bookListings).where(eq(bookListings.communityId, communityId)),
     ]);
-    return { events: eventRow?.total ?? 0, merchandise: merchRow?.total ?? 0 };
+    return { events: eventRow?.total ?? 0, merchandise: merchRow?.total ?? 0, collection: bookRow?.total ?? 0 };
 }
 
 export function getCommunityContacts(communityId: string) {
