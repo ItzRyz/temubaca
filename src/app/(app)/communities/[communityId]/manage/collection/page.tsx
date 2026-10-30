@@ -5,6 +5,7 @@ import { AddBookDialog } from "@/features/book-listings/components/add-book-dial
 import { ManagedListingItem } from "@/features/book-listings/components/managed-listing-item";
 import { loadManageContext } from "@/features/community-management/server";
 import { listCommunityBookListings } from "@/lib/db/queries/books";
+import { listingLoanStates } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
 
 export const metadata: Metadata = { title: "Koleksi buku komunitas" };
@@ -22,7 +23,10 @@ export default async function ManageCollectionPage({ params }: PageProps<"/commu
 
     const now = new Date();
     const listings = await listCommunityBookListings(communityId);
-    const appeals = await latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id));
+    const [appeals, loanStates] = await Promise.all([
+        latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id)),
+        listingLoanStates(listings.filter((listing) => listing.availability === "RESERVED").map((listing) => listing.id)),
+    ]);
     const offered = listings.filter((listing) => listing.availability === "AVAILABLE" && !listing.hiddenAt).length;
 
     return (
@@ -38,7 +42,7 @@ export default async function ManageCollectionPage({ params }: PageProps<"/commu
             </div>
             {listings.length > 0 ? (
                 <ul className="flex list-none flex-col gap-4 p-0">
-                    {listings.map((listing) => <ManagedListingItem key={listing.id} listing={listing} appeal={appeals.get(listing.id)} now={now} />)}
+                    {listings.map((listing) => <ManagedListingItem key={listing.id} listing={listing} appeal={appeals.get(listing.id)} now={now} loanState={loanStates.get(listing.id)} />)}
                 </ul>
             ) : (
                 <div className="rounded-2xl border border-dashed border-border p-8 text-center">

@@ -18,6 +18,7 @@ import { ConflictError } from "@/lib/api/errors";
 
 import { db } from "../client";
 import {
+    borrowerReviews,
     adminAuditLogs,
     appSettings,
     bookAccesses,
@@ -138,6 +139,9 @@ export async function purgeAccount(userId: string, now = new Date()) {
 
         await tx.delete(bookmarks).where(eq(bookmarks.userId, userId));
         await tx.delete(userInterests).where(eq(userInterests.userId, userId));
+        // Reviews about this borrower go with the account; reviews they wrote stay without their name (30 Okt 2026).
+        await tx.delete(borrowerReviews).where(eq(borrowerReviews.requesterId, userId));
+        await tx.update(borrowerReviews).set({ reviewerId: null }).where(eq(borrowerReviews.reviewerId, userId));
 
         // Copies with loan history stay (hidden, stripped of location and notes) so borrowers keep their record.
         const withHistory = tx.select({ id: borrowRequests.listingId }).from(borrowRequests);
@@ -286,7 +290,7 @@ export async function countPendingDeletions() {
 export async function exportUserData(userId: string) {
     const counterpart = alias(userProfiles, "counterpart");
     const listingOwner = alias(userProfiles, "listing_owner");
-    const [profile, interests, saved, listings, loans, memberships, sentReports, libraryRequests] = await Promise.all([
+    const [profile, interests, saved, listings, loans, memberships, sentReports, libraryRequests, reviews] = await Promise.all([
         db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, regionCode: true, createdAt: true, deletionScheduledFor: true } }),
         db.select({ subject: userInterests.subject }).from(userInterests).where(eq(userInterests.userId, userId)),
         db.select({ title: books.title, savedAt: bookmarks.createdAt }).from(bookmarks).innerJoin(books, eq(books.id, bookmarks.bookId)).where(eq(bookmarks.userId, userId)),
@@ -324,6 +328,21 @@ export async function exportUserData(userId: string) {
         db.select({ library: libraries.name, title: books.title, status: bookAccesses.status, message: bookAccesses.message, responseNote: bookAccesses.responseNote, expiresAt: bookAccesses.expiresAt, createdAt: bookAccesses.createdAt })
             .from(bookAccesses).innerJoin(libraries, eq(libraries.id, bookAccesses.libraryId)).innerJoin(books, eq(books.id, bookAccesses.bookId))
             .where(eq(bookAccesses.requesterId, userId)).orderBy(desc(bookAccesses.createdAt)),
+        db.select({
+            title: books.title,
+            // Qualified: borrow_requests has a "requesterId" too.
+            about: sql<string>`case when "borrower_reviews"."requesterId" = ${userId} then 'saya' else 'peminjam' end`,
+            rating: borrowerReviews.rating,
+            comment: borrowerReviews.comment,
+            createdAt: borrowerReviews.createdAt,
+        })
+            .from(borrowerReviews)
+            .innerJoin(borrowings, eq(borrowings.id, borrowerReviews.borrowingId))
+            .innerJoin(borrowRequests, eq(borrowRequests.id, borrowings.requestId))
+            .innerJoin(bookListings, eq(bookListings.id, borrowRequests.listingId))
+            .innerJoin(books, eq(books.id, bookListings.bookId))
+            .where(or(eq(borrowerReviews.requesterId, userId), eq(borrowerReviews.reviewerId, userId)))
+            .orderBy(desc(borrowerReviews.createdAt)),
     ]);
     return {
         exportedAt: new Date().toISOString(),
@@ -336,5 +355,6 @@ export async function exportUserData(userId: string) {
         communities: memberships,
         reports: sentReports,
         libraryRequests,
+        reviews,
     };
 }

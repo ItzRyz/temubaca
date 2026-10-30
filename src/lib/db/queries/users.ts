@@ -173,6 +173,20 @@ export async function markTourSeen(userId: string) {
         .where(eq(userProfiles.id, userId));
 }
 
+/** Records that the reader opened their loans (`preferences.loansSeenAt`), which clears the "kabar baru" dot. */
+export async function markLoansSeen(userId: string, now = new Date()) {
+    await db.update(userProfiles)
+        .set({ preferences: sql`coalesce(${userProfiles.preferences}, '{}'::jsonb) || jsonb_build_object('loansSeenAt', ${now.toISOString()}::text)` })
+        .where(eq(userProfiles.id, userId));
+}
+
+/** When the reader last opened their loans; never opened counts the last 14 days as new. */
+export function loansSeenAt(preferences: unknown, now = new Date()) {
+    const value = preferences && typeof preferences === "object" && "loansSeenAt" in preferences ? (preferences as { loansSeenAt: unknown }).loansSeenAt : null;
+    const at = typeof value === "string" ? new Date(value) : null;
+    return at && !Number.isNaN(at.getTime()) ? at : new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+}
+
 /** Whether the account has seen "Panduan TemuBaca" (`preferences.tourSeenAt`). */
 export function hasSeenTour(preferences: unknown) {
     return Boolean(preferences && typeof preferences === "object" && "tourSeenAt" in preferences);

@@ -10,6 +10,7 @@ import { ChoiceOption, Field, FormAlert, Select, TextArea, TextInput } from "@/c
 import { sendLoanRequest } from "../client";
 import { dialogPrimaryButton, dialogSecondaryButton, LoanBookCard, LoanDialog } from "./loan-dialog";
 import { notify } from "@/lib/toast";
+import { meetingTimeFrom, wibDate } from "../meeting-time";
 
 const NOTE_MAX = 200;
 
@@ -31,7 +32,8 @@ export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName,
     const [pending, startTransition] = useTransition();
     const [meetingPoint, setMeetingPoint] = useState(meetingPoints[0] ?? "");
     const [loanDays, setLoanDays] = useState(String(loanChoices.includes(14) ? 14 : loanChoices[loanChoices.length - 1]));
-    const [preferredTime, setPreferredTime] = useState("");
+    const [preferredDate, setPreferredDate] = useState("");
+    const [preferredClock, setPreferredClock] = useState("");
     const [note, setNote] = useState("");
     const [agreed, setAgreed] = useState(false);
     const [error, setError] = useState("");
@@ -48,13 +50,19 @@ export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName,
             setError("Setujui etika bertukar sebelum mengirim permintaan.");
             return;
         }
+        const time = meetingTimeFrom(preferredDate || undefined, preferredClock || undefined);
+        if ("error" in time) {
+            setError(time.error);
+            return;
+        }
         setError("");
         startTransition(async () => {
             const result = await sendLoanRequest("/api/borrow-requests", "POST", {
                 listingId,
                 meetingPoint: meetingPoint || undefined,
                 loanDays: Number(loanDays),
-                preferredTime,
+                preferredDate: preferredDate || undefined,
+                preferredClock: preferredClock || undefined,
                 note,
                 agreed: true,
             });
@@ -147,12 +155,22 @@ export function BorrowRequestDialog({ listingId, bookTitle, bookMeta, ownerName,
                                     </Select>
                                 )}
                             </Field>
-                            <Field label={<>Waktu bertemu yang diinginkan <span className="font-normal text-muted-foreground">(opsional)</span></>} hint="Jadwal pasti disepakati setelah diterima.">
-                                {(control) => (
-                                    <TextInput {...control} value={preferredTime} maxLength={80} onChange={(event) => setPreferredTime(event.target.value)} placeholder="mis. Sabtu pagi, pukul 9.30" />
-                                )}
-                            </Field>
                         </div>
+                        <fieldset className="grid gap-2">
+                            <legend className="text-sm font-semibold">Waktu pertemuan yang diinginkan <span className="font-normal text-muted-foreground">(opsional, WIB)</span></legend>
+                            <div className="grid grid-cols-[1fr_auto] gap-3">
+                                <Field label="Tanggal" hint="Jadwal pasti disepakati setelah diterima.">
+                                    {(control) => (
+                                        <TextInput {...control} type="date" value={preferredDate} min={wibDate()} onChange={(event) => setPreferredDate(event.target.value)} />
+                                    )}
+                                </Field>
+                                <Field label="Jam">
+                                    {(control) => (
+                                        <TextInput {...control} type="time" step={900} value={preferredClock} onChange={(event) => setPreferredClock(event.target.value)} />
+                                    )}
+                                </Field>
+                            </div>
+                        </fieldset>
 
                         <Field
                             label={(

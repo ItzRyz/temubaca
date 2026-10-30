@@ -323,6 +323,68 @@ Audit kode lokal pada 2026-10-10, diperbarui 2026-10-18; diverifikasi ulang terh
 
 - **Tabel tambahan (28 Okt 2026, permintaan pemilik repo):** `libraries` (15 baris dari tempat LIBRARY kurasi, tanpa jam buka/situs karangan) dan `book_accesses` (satu per permintaan yang pernah diterima, statusnya mengikuti pinjaman) kini ikut di-seed. Kedua tabel belum dibaca halaman mana pun. Ditambahkan sebagai tabel tambahan dengan sidik jari sendiri, sehingga seed yang sudah ada (lokal dan production) mendapatkannya lewat `--apply` tanpa cleanup dan tanpa mengubah baris lama. Dua pemeriksaan SQL baru (`book-access-state`, `library-from-place`); 25/25 lulus di lokal. **Production 28 Okt 2026:** migrasi 0020 diterapkan (21 migrasi tercatat), commit `9ecf9ce` dan `029b04a` di-push dan deploy sukses, lalu seed production menambah 15 `libraries` dan 1.012 `book_accesses` (25/25 lulus, dataset lama identik). Seeder kini mengabaikan buku/tempat asli yang ditambahkan setelah seed dibuat (`referenceAsSeeded`), karena 2 buku asli baru sempat membuat run ditolak.
 
+## Revisi batch: notifikasi, ulasan, profil peminjam, waktu temu, agenda, "Dipesan", header, Settings — 2026-10-30
+
+Master prompt pemilik repo, 9 kelompok (A–I). Keputusan pemilik:
+- notifikasi memperbaiki sistem titik merah yang ada;
+- ulasan bintang 1–5 + teks, opsional;
+- profil peminjam hanya untuk pemberi pinjam terkait;
+- waktu temu memakai tanggal + jam WIB.
+
+Migrasi `0026_reviews_meeting_time` (aditif).
+
+- **A. Notifikasi (titik merah):**
+  - *Temuan:* peminjam tidak diberi tahu kabar yang tidak menuntut tindakan (permintaan ditolak/dibatalkan pemilik, perpanjangan dijawab, sengketa diputus, ulasan baru, pengajuan perpustakaan ditolak).
+  - *Perbaikan:*
+    - `countLoanUpdatesSince` menghitung kejadian oleh pihak lain sejak `preferences.loansSeenAt`, sehingga titik "Pinjam & pinjamkan" menyala;
+    - membuka "Saya pinjam" memanggil `markLoansSeen` (server action lewat `MarkLoansSeen`, tanpa efek samping di render), dan kartu bertanda "Baru";
+    - tautan menu mengarah ke `filter=action` bila ada tindakan, atau ke `view=pinjam` bila hanya kabar baru.
+  - Tanpa tabel notifikasi, email, atau push (keputusan pemilik).
+- **B. Bagian Profil:** tab profil komunitas tidak lagi `overflow-x-auto` di atas 768 px (`min-[769px]:overflow-visible`, boleh turun baris). Di 768 px ke bawah tetap bisa digeser.
+- **C. Ulasan saat konfirmasi pengembalian:**
+  - `ConfirmReturnDialog`: bintang dalam radiogroup yang bisa dipakai lewat keyboard, catatan ≤500 karakter, serta tombol "Tanpa ulasan" dan "Kirim ulasan & konfirmasi";
+  - server: `confirm_return` menerima `review` hanya dari pihak pemilik atau pengurus, disimpan di transaksi yang sama, satu per pinjaman (`409`);
+  - galat isian tampil di form, keberhasilan lewat toast.
+- **D. Profil peminjam:**
+  - nama dan avatar peminjam di kartu pinjaman (pihak pemilik) menautkan ke `/members/[id]`;
+  - badge "Cek riwayat & ulasan" muncul halus dan hilang setelah 5 detik; menghormati `prefers-reduced-motion`; hanya di Permintaan Baru;
+  - halaman: identitas publik (inisial, karena belum ada foto profil), buku dikembalikan (RETURNED, `count(distinct)`), riwayat, ulasan dengan rata-rata;
+  - akses `canViewBorrowerProfile`.
+- **E. Waktu pertemuan:**
+  - *Akar masalah:* `preferredTime` hanya ditampilkan saat menunggu serah terima.
+  - *Perbaikan:*
+    - form memakai input tanggal + jam (WIB);
+    - `meetingTimeFrom` memvalidasi di klien dan server;
+    - nilai disimpan sebagai `preferredAt` (+07:00, jam tidak bergeser);
+    - kartu Permintaan Baru dan Menunggu Serah Terima menampilkan "Waktu pertemuan yang diinginkan: Senin, 2 Nov 2026 · 09.30 WIB" (atau teks lama, atau "Belum ditentukan").
+- **F. Agenda Baca Terdekat:** ilustrasi `public/illustrations/agenda-baca.svg` (dibuat sendiri) dipakai bila acara tanpa gambar, dan menggantikan gambar yang gagal dimuat (`onError`, plus cek setelah hidrasi). Kotak tetap 190 px dengan `object-cover`, jadi layout tidak bergeser.
+- **G. "Dipesan":**
+  - *Temuan:* `RESERVED` dipasang saat permintaan **diterima** dan bertahan sampai buku kembali, sehingga label yang sama menutupi "menunggu serah terima" dan "sedang dipinjam". Permintaan yang masih menunggu tidak mengubah status.
+  - *Perbaikan:* `listingLoanStates` membedakan "Dipesan · Permintaan diterima, menunggu serah terima" dari "Sedang Dipinjam", di Buku Saya, Koleksi komunitas, dan tab Koleksi publik. Filter dan kartu statistik menjadi "Dipesan & Dipinjam".
+  - Nilai database tidak diubah.
+  - Pemesanan ganda tetap dicegah: lock `FOR UPDATE`, penolakan otomatis permintaan lain, dan `createBorrowRequest` hanya untuk salinan AVAILABLE.
+- **H. Separator:** judul situs, `alt` gambar bagikan, dan nama manifest memakai `|`: "TemuBaca | Temukan buku dan teman baca di sekitarmu".
+- **I. Settings admin:**
+  - komponen `settings-layout.tsx`: `SettingsSection` dengan keterangan "Bisa diubah" atau "Kebijakan tetap · DEC-xx", `StatusStrip` berisi angka nyata yang bisa diklik, `RuleList`, dan `SectionFooter`;
+  - nav kiri dengan satu baris fungsi tiap bagian;
+  - form Katalog tanpa kartu-dalam-kartu, dengan status "Ada perubahan yang belum disimpan". Simpan tetap lewat API dan jejak audit yang sama.
+- **Juga:** ulasan ikut purge akun dan ekspor data. `robots.ts` menutup `/members/`. Tes migrasi menghitung 29 tabel.
+- **Diuji:**
+  - `bun run check` lulus (312 tes): unit `meeting-time` dan integrasi `loan-reviews` (waktu temu, status Dipesan/Dipinjam, ulasan + rollback + ganda, akses profil, hitungan pengembalian, kabar baru);
+  - `bun run build`: kompilasi dan TypeScript lulus. Pengumpulan data halaman gagal karena env Upstash tidak ada di lokal; ini sudah terjadi sebelumnya dan bukan karena perubahan ini;
+  - browser lokal (akun E2E, data uji via SQL lalu dihapus):
+    - judul "TemuBaca | …";
+    - agenda: 3 kartu memakai ilustrasi, termasuk satu gambar rusak;
+    - waktu temu "Senin, 2 Nov 2026 · 09.30 WIB";
+    - badge ada pada detik 1 dan hilang pada detik 6, tautan profil benar;
+    - dialog ulasan: bintang wajib bila memilih kirim ulasan, error hilang setelah memilih;
+    - label "Sedang Dipinjam" dan filter "Dipesan & Dipinjam (1)";
+    - profil: 1 dikembalikan, ulasan 5/5;
+    - tab profil di 1280 px `overflow: visible` tanpa geser; di 375 px `auto`, lebar halaman 375;
+    - Settings di 1280 dan 375 px;
+    - titik kabar baru peminjam menyala, mengarah ke `view=pinjam`, dan hilang setelah dibuka.
+  - *Belum diuji di browser:* pengiriman dialog ulasan sampai tersimpan, karena API ber-rate-limit butuh Upstash yang tidak tersedia di lokal. Jalur server tercakup tes integrasi.
+
 ## Koleksi buku komunitas — 2026-10-30
 
 Permintaan pemilik repo: komunitas bisa punya koleksi buku dan meminjamkannya, sama seperti pengguna. Pemetaan DIY dibatalkan atas permintaan pemilik.

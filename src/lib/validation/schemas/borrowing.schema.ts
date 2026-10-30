@@ -6,6 +6,7 @@ import {
     bookAccessStatusValues,
 } from "@/lib/db/schema";
 import { borrowBlockDayOptions, EXTENSION_MAX_DAYS, problemReasons, rejectionReasons } from "@/features/borrowing/lifecycle";
+import { meetingTimeFrom } from "@/features/borrowing/meeting-time";
 
 import {
     requestIdParamSchema,
@@ -25,11 +26,19 @@ export const createBorrowRequestSchema = z
         listingId: z.uuid(),
         meetingPoint: optionalText(80, "Titik temu maksimal 80 karakter."),
         loanDays: z.coerce.number().int().min(1).max(60),
+        // Older clients sent free text; it is still accepted and shown as is.
         preferredTime: optionalText(80, "Waktu bertemu maksimal 80 karakter."),
+        // WIB date and time of the preferred meeting (30 Okt 2026); combined and checked by `meetingTimeFrom`.
+        preferredDate: optionalText(10, "Tanggal pertemuan tidak valid."),
+        preferredClock: optionalText(5, "Jam pertemuan tidak valid."),
         note: optionalText(200, "Pesan maksimal 200 karakter."),
         agreed: z.literal(true, { error: "Setujui etika bertukar sebelum mengirim permintaan." }),
     })
-    .strict();
+    .strict()
+    .superRefine((value, ctx) => {
+        const result = meetingTimeFrom(value.preferredDate, value.preferredClock);
+        if ("error" in result) ctx.addIssue({ code: "custom", path: ["preferredDate"], message: result.error });
+    });
 
 export const borrowRequestIdSchema = requestIdParamSchema;
 
@@ -56,7 +65,19 @@ export const borrowingIdSchema = z.object({ borrowingId: uuidSchema });
 const problemReasonValues = problemReasons.map((reason) => reason.value) as [string, ...string[]];
 
 export const borrowingActionSchema = z.discriminatedUnion("action", [
-    z.object({ action: z.literal("confirm_return") }).strict(),
+    z
+        .object({
+            action: z.literal("confirm_return"),
+            // The lender's optional review of the borrower (30 Okt 2026); only the owner's side may send one.
+            review: z
+                .object({
+                    rating: z.coerce.number().int().min(1, "Pilih 1–5 bintang.").max(5, "Pilih 1–5 bintang."),
+                    comment: optionalText(500, "Ulasan maksimal 500 karakter."),
+                })
+                .strict()
+                .optional(),
+        })
+        .strict(),
     z.object({ action: z.literal("remind") }).strict(),
     z
         .object({

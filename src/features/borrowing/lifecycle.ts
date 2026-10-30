@@ -32,6 +32,9 @@ export type LoanAction =
     | "approve" | "reject" | "cancel" | "confirm_handover" | "confirm_return" | "remind" | "report_problem"
     | "request_extension" | "approve_extension" | "reject_extension" | "add_dispute_info";
 
+/** Outcomes a borrower should hear about although nothing waits for them: the "kabar baru" dot (30 Okt 2026). */
+export const LOAN_UPDATE_EVENTS = ["REJECTED", "CANCELLED", "EXTENSION_APPROVED", "EXTENSION_REJECTED", "DISPUTE_RESOLVED"] as const;
+
 /** Toast after an action succeeds (29 Okt 2026). */
 export const loanActionDone: Record<LoanAction, string> = {
     approve: "Permintaan pinjam disetujui.",

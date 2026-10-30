@@ -3,9 +3,9 @@ import { Suspense } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
 import { listingsNeedAttention } from "@/lib/db/queries/books";
-import { countCommunityLoansNeedingAction, countLoansNeedingAction } from "@/lib/db/queries/borrowing";
+import { countCommunityLoansNeedingAction, countLoanUpdatesSince, countLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { countLibraryActions, listManagedLibraries } from "@/lib/db/queries/libraries";
-import { hasSeenTour } from "@/lib/db/queries/users";
+import { hasSeenTour, loansSeenAt } from "@/lib/db/queries/users";
 import { ProductTour } from "@/features/onboarding/components/product-tour";
 import { ProfileMenu } from "@/components/navigation/profile-menu";
 import { PublicNavigation } from "@/components/navigation/public-navigation";
@@ -18,11 +18,20 @@ function initialsOf(name: string) {
 
 export async function SiteHeader() {
     const user = await getCurrentUser();
-    const [listings, loans, library, managed, communityLoans] = user
-        ? await Promise.all([listingsNeedAttention(user.id), countLoansNeedingAction(user.id), countLibraryActions(user.id), listManagedLibraries(user.id), countCommunityLoansNeedingAction(user.id)])
-        : [false, 0, { toAnswer: 0, toCollect: 0 }, [], new Map<string, number>()];
+    const [listings, loans, library, managed, communityLoans, loanNews] = user
+        ? await Promise.all([listingsNeedAttention(user.id), countLoansNeedingAction(user.id), countLibraryActions(user.id), listManagedLibraries(user.id), countCommunityLoansNeedingAction(user.id), countLoanUpdatesSince(user.id, loansSeenAt(user.preferences))])
+        : [false, 0, { toAnswer: 0, toCollect: 0 }, [], new Map<string, number>(), 0];
+    const loansWaiting = loans + library.toCollect > 0;
     // Approved library requests to pick up sit with the reader's loans; requests to answer with the libraries they run.
-    const attention = { listings, loans: loans + library.toCollect > 0, libraries: library.toAnswer > 0, communities: communityLoans.size > 0, managesLibraries: managed.length > 0 };
+    const attention = {
+        listings,
+        loans: loansWaiting || loanNews > 0,
+        // Something to do opens "Perlu Tindakan"; only news opens what the reader borrows.
+        loansHref: loansWaiting ? "/my-listings?tab=peminjaman&filter=action" : loanNews > 0 ? "/my-listings?tab=peminjaman&view=pinjam" : "/my-listings?tab=peminjaman",
+        libraries: library.toAnswer > 0,
+        communities: communityLoans.size > 0,
+        managesLibraries: managed.length > 0,
+    };
 
     return (
         <header className="sticky top-0 z-40 bg-background/95 shadow-[0_1px_4px_rgba(0,0,0,0.04)] backdrop-blur-[6px]">

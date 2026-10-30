@@ -5,7 +5,7 @@ import { siteDescription } from "@/config/site";
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: `${appConfig.name} — Temukan buku dan teman baca`,
+        name: `${appConfig.name} | Temukan buku dan teman baca`,
         short_name: appConfig.name,
         description: siteDescription,
         start_url: "/",

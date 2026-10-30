@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-labelledby="t">
+  <title id="t">Ilustrasi kegiatan membaca bersama</title>
+  <rect width="640" height="360" fill="#e7efe8"/>
+  <circle cx="540" cy="70" r="120" fill="#c9ecd6"/>
+  <circle cx="90" cy="320" r="140" fill="#dbe7dd"/>
+  <rect x="0" y="282" width="640" height="78" fill="#d3e2d6"/>
+  <!-- bookshelf -->
+  <rect x="70" y="70" width="180" height="150" rx="10" fill="#faf7f0" stroke="#1b4d37" stroke-width="4"/>
+  <line x1="70" y1="145" x2="250" y2="145" stroke="#1b4d37" stroke-width="4"/>
+  <rect x="86" y="88" width="16" height="52" rx="2" fill="#1b4d37"/>
+  <rect x="106" y="94" width="14" height="46" rx="2" fill="#e07a5f"/>
+  <rect x="124" y="84" width="18" height="56" rx="2" fill="#3d7a5c"/>
+  <rect x="146" y="98" width="14" height="42" rx="2" fill="#e8a33d"/>
+  <rect x="164" y="90" width="16" height="50" rx="2" fill="#1b4d37"/>
+  <rect x="86" y="160" width="18" height="54" rx="2" fill="#e8a33d"/>
+  <rect x="108" y="166" width="14" height="48" rx="2" fill="#1b4d37"/>
+  <rect x="126" y="158" width="16" height="56" rx="2" fill="#e07a5f"/>
+  <rect x="146" y="170" width="38" height="12" rx="2" fill="#3d7a5c" transform="rotate(-12 165 176)"/>
+  <!-- reader left -->
+  <circle cx="330" cy="150" r="26" fill="#f4c7a8"/>
+  <path d="M304 146c0-22 14-34 28-34s26 10 26 30c-10-8-30-8-54 4z" fill="#1f2924"/>
+  <path d="M286 282c0-58 18-98 44-98s44 40 44 98z" fill="#3d7a5c"/>
+  <!-- reader right -->
+  <circle cx="470" cy="160" r="24" fill="#d9a07b"/>
+  <path d="M446 158c-2-24 12-36 26-36 16 0 26 14 24 34-8-10-28-12-50 2z" fill="#3a2a22"/>
+  <path d="M428 282c0-54 18-90 42-90s42 36 42 90z" fill="#e07a5f"/>
+  <!-- open books -->
+  <path d="M300 230l30 10 30-10v34l-30 10-30-10z" fill="#faf7f0" stroke="#1b4d37" stroke-width="3" stroke-linejoin="round"/>
+  <line x1="330" y1="240" x2="330" y2="274" stroke="#1b4d37" stroke-width="3"/>
+  <path d="M442 236l28 9 28-9v32l-28 9-28-9z" fill="#faf7f0" stroke="#1b4d37" stroke-width="3" stroke-linejoin="round"/>
+  <line x1="470" y1="245" x2="470" y2="277" stroke="#1b4d37" stroke-width="3"/>
+  <!-- speech dots -->
+  <circle cx="392" cy="116" r="6" fill="#1b4d37"/>
+  <circle cx="410" cy="106" r="6" fill="#1b4d37" opacity=".7"/>
+  <circle cx="428" cy="100" r="6" fill="#1b4d37" opacity=".45"/>
+</svg>

@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarDays, CheckCircle2, Clock, ExternalLink, Hourglass, Inbox, MapPin, Search, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, BookOpen, CalendarClock, CalendarDays, CheckCircle2, Clock, ExternalLink, Hourglass, Inbox, MapPin, Search, ShieldCheck, XCircle } from "lucide-react";
 import Link from "next/link";
 
 import { googleMapsUrl } from "@/features/places/places";
@@ -6,11 +6,13 @@ import type { LoanItem } from "@/lib/db/queries/borrowing";
 import { timeAgo } from "@/lib/format/relative-time";
 import { cn } from "@/lib/utils";
 
-import { allowedActions, disputeConsequenceLabels, disputeDeadline, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
+import { allowedActions, disputeConsequenceLabels, disputeDeadline, LOAN_UPDATE_EVENTS, loanEventLabels, loanGroup, overdueDays, type LoanGroup, type LoanState } from "../lifecycle";
 
 /** States in which the two still meet, to hand the book over or return it (TB-027). */
 const MEETING_STATES: LoanState[] = ["AWAITING_HANDOVER", "ACTIVE", "OVERDUE", "DISPUTED"];
 import { LoanActions } from "./loan-actions";
+import { meetingTimeLabel } from "../meeting-time";
+import { ProfileHintBadge } from "./profile-hint-badge";
 
 /** "perpustakaan" lists the reader's requests to libraries (TB-023); it has its own panel. */
 export type LoanView = "pinjamkan" | "pinjam" | "perpustakaan";
@@ -31,7 +33,7 @@ function badgeFor(loan: LoanItem, now: Date): { label: string; className: string
         case "PENDING":
             return { label: loan.role === "owner" ? "Permintaan Baru" : "Menunggu Jawaban", className: "bg-[#fbecc4] text-[#5c3d00]", icon: Hourglass, when: `Diajukan ${timeAgo(loan.requestedAt, now)}` };
         case "AWAITING_HANDOVER":
-            return { label: "Menunggu Serah Terima", className: "bg-[#dfe6f5] text-[#24365c]", icon: Inbox, when: loan.preferredTime ? `Usulan waktu: ${loan.preferredTime}` : `Diterima ${timeAgo(loan.respondedAt, now)}` };
+            return { label: "Menunggu Serah Terima", className: "bg-[#dfe6f5] text-[#24365c]", icon: Inbox, when: `Diterima ${timeAgo(loan.respondedAt, now)}` };
         case "ACTIVE":
             return { label: "Sedang Dipinjam", className: "bg-[#ffdbd1] text-[#5c1a0a]", icon: ArrowLeftRight, when: `Dipinjam sejak ${loan.handedOverAt ? dateFormatter.format(loan.handedOverAt) : "-"}` };
         case "OVERDUE":
@@ -91,7 +93,13 @@ function ExtensionNotice({ loan }: { loan: LoanItem }) {
     );
 }
 
-function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
+/** A borrower's loan with an answer they have not seen yet (see `countLoanUpdatesSince`). */
+function hasNews(loan: LoanItem, since: Date | undefined) {
+    return Boolean(since) && loan.role === "requester" && loan.events.some((event) =>
+        event.by !== "you" && (LOAN_UPDATE_EVENTS as readonly string[]).includes(event.type) && event.createdAt > since!);
+}
+
+function LoanCard({ loan, now, newSince }: { loan: LoanItem; now: Date; newSince?: Date }) {
     const badge = badgeFor(loan, now);
     const BadgeIcon = badge.icon;
     const actions = allowedActions(loan.snapshot, loan.role, now);
@@ -113,19 +121,40 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
                         <span className={cn("inline-flex items-center gap-1 rounded px-2 py-0.5 font-semibold", badge.className)}>
                             <BadgeIcon aria-hidden="true" className="size-3.5" /> {badge.label}
                         </span>
+                        {hasNews(loan, newSince) && <span className="rounded-full bg-destructive px-2 py-0.5 text-[11px] font-semibold text-white">Baru</span>}
                         {badge.when}
                     </p>
                     <h3 className="mt-1.5 font-heading text-lg font-semibold">
                         <Link href={`/books/${loan.book.id}`} className="hover:underline">{loan.book.title}</Link>
                     </h3>
                     <p className="text-sm text-muted-foreground">{authors}</p>
-                    <p className="mt-2 flex items-center gap-2 text-sm">
-                        {loan.role === "requester" && <span className="text-xs text-muted-foreground">Pemilik</span>}
-                        <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-full bg-[#e7efe8] text-[10px] font-semibold text-primary">
-                            {loan.otherParty.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
-                        </span>
-                        <span className="font-semibold">{loan.otherParty.displayName}</span>
-                    </p>
+                    {loan.role === "owner" ? (
+                        // The borrower's returns and lenders' reviews, to help decide (30 Okt 2026).
+                        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                            <Link href={`/members/${loan.otherParty.id}`} className="flex items-center gap-2 rounded-md hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                                <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-full bg-[#e7efe8] text-[10px] font-semibold text-primary">
+                                    {loan.otherParty.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
+                                </span>
+                                <span className="font-semibold">{loan.otherParty.displayName}</span>
+                                <span className="sr-only">: lihat riwayat pengembalian dan ulasan</span>
+                            </Link>
+                            {loan.state === "PENDING" && <ProfileHintBadge />}
+                        </p>
+                    ) : (
+                        <p className="mt-2 flex items-center gap-2 text-sm">
+                            <span className="text-xs text-muted-foreground">Pemilik</span>
+                            <span aria-hidden="true" className="flex size-6 items-center justify-center rounded-full bg-[#e7efe8] text-[10px] font-semibold text-primary">
+                                {loan.otherParty.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")}
+                            </span>
+                            <span className="font-semibold">{loan.otherParty.displayName}</span>
+                        </p>
+                    )}
+                    {(loan.state === "PENDING" || loan.state === "AWAITING_HANDOVER") && (
+                        <p className="mt-2 flex items-start gap-1.5 text-sm">
+                            <CalendarClock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+                            <span><span className="text-muted-foreground">Waktu pertemuan yang diinginkan:</span> <span className="font-semibold">{meetingTimeLabel(loan)}</span></span>
+                        </p>
+                    )}
 
                     {loan.state === "PENDING" && loan.role === "owner" && loan.note && (
                         <p className="mt-3 rounded-lg bg-[#f1efe6] px-3 py-2.5 text-sm italic">“{loan.note}”</p>
@@ -227,7 +256,7 @@ function LoanCard({ loan, now }: { loan: LoanItem; now: Date }) {
     );
 }
 
-function Section({ title, loans, now }: { title: string; loans: LoanItem[]; now: Date }) {
+function Section({ title, loans, now, newSince }: { title: string; loans: LoanItem[]; now: Date; newSince?: Date }) {
     if (loans.length === 0) return null;
     return (
         <section className="mt-8" aria-label={title}>
@@ -235,7 +264,7 @@ function Section({ title, loans, now }: { title: string; loans: LoanItem[]; now:
                 {title} <span className="font-sans text-xs font-normal text-muted-foreground">{loans.length} item</span>
             </h2>
             <ul className="mt-3 flex list-none flex-col gap-3 p-0">
-                {loans.map((loan) => <LoanCard key={loan.requestId} loan={loan} now={now} />)}
+                {loans.map((loan) => <LoanCard key={loan.requestId} loan={loan} now={now} newSince={newSince} />)}
             </ul>
         </section>
     );
@@ -246,7 +275,7 @@ function Section({ title, loans, now }: { title: string; loans: LoanItem[]; now:
  * `basePath` shows the panel elsewhere than "Buku Saya" (a community's loans, 30 Okt 2026): links and the
  * search stay on that page, and the switch between lending and borrowing is left out.
  */
-export function LoansPanel({ loans, view, filter, query, now, basePath }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date; basePath?: string }) {
+export function LoansPanel({ loans, view, filter, query, now, basePath, newSince }: { loans: LoanItem[]; view: LoanView; filter: LoanFilter; query: string; now: Date; basePath?: string; newSince?: Date }) {
     const role = view === "pinjamkan" ? "owner" : "requester";
     const needle = query.toLocaleLowerCase("id-ID");
     const mine = loans
@@ -319,10 +348,10 @@ export function LoansPanel({ loans, view, filter, query, now, basePath }: { loan
                 </section>
             ) : (
                 <>
-                    <Section title="Perlu Tindakan" loans={inGroup("action")} now={now} />
-                    <Section title="Menunggu Jawaban Pemilik" loans={inGroup("waiting")} now={now} />
-                    <Section title={view === "pinjamkan" ? "Sedang Berjalan" : "Sedang Saya Pinjam"} loans={inGroup("ongoing")} now={now} />
-                    <Section title="Riwayat Terbaru" loans={history} now={now} />
+                    <Section title="Perlu Tindakan" loans={inGroup("action")} now={now} newSince={newSince} />
+                    <Section title="Menunggu Jawaban Pemilik" loans={inGroup("waiting")} now={now} newSince={newSince} />
+                    <Section title={view === "pinjamkan" ? "Sedang Berjalan" : "Sedang Saya Pinjam"} loans={inGroup("ongoing")} now={now} newSince={newSince} />
+                    <Section title="Riwayat Terbaru" loans={history} now={now} newSince={newSince} />
                 </>
             )}
         </>

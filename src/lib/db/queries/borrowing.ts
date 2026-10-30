@@ -9,6 +9,7 @@ import {
     dueDateFrom,
     guaranteeFromRules,
     loanDayChoices,
+    LOAN_UPDATE_EVENTS,
     loanGroup,
     loanState,
     maxLoanDaysFromRules,
@@ -25,6 +26,8 @@ import type { AskDisputePartyInput, BorrowingActionInput, BorrowRequestActionInp
 
 import { db } from "../client";
 import {
+    bookAccesses,
+    borrowerReviews,
     adminAuditLogs,
     places,
     bookListings,
@@ -37,6 +40,7 @@ import {
 } from "../schema";
 import { setUserSuspensionIn } from "./admin-users";
 import { managedCommunityIdsSql, managesListing } from "./listing-access";
+import { meetingTimeFrom } from "@/features/borrowing/meeting-time";
 import { meetingPlaceNames } from "./places";
 
 const requesterProfile = alias(userProfiles, "requester_profile");
@@ -127,6 +131,10 @@ export async function createBorrowRequest(requesterId: string, input: CreateBorr
                     meetingPlaceId,
                     loanDays: input.loanDays,
                     preferredTime: input.preferredTime ?? null,
+                    preferredAt: (() => {
+                        const result = meetingTimeFrom(input.preferredDate, input.preferredClock);
+                        return "at" in result ? result.at : null;
+                    })(),
                     guarantee: guaranteeFromRules(listing.borrowingRules),
                 })
                 .returning({ id: borrowRequests.id });
@@ -249,7 +257,7 @@ export async function actOnBorrowRequest(requestId: string, userId: string, inpu
 export async function actOnBorrowing(borrowingId: string, userId: string, input: BorrowingActionInput) {
     return db.transaction(async (tx) => {
         const now = new Date();
-        const { request, role, listingId, borrowing } = await lockLoan(tx, { borrowingId }, userId);
+        const { request, role, listingId, communityId, borrowing } = await lockLoan(tx, { borrowingId }, userId);
         if (!borrowing) throw new NotFoundError("Pinjaman tidak ditemukan.");
         assertAllowed(snapshotOf(request, borrowing), role, input.action, now);
 
@@ -258,6 +266,15 @@ export async function actOnBorrowing(borrowingId: string, userId: string, input:
                 const ownerAt = role === "owner" ? now : borrowing.ownerReturnAt;
                 const requesterAt = role === "requester" ? now : borrowing.requesterReturnAt;
                 await logEvent(tx, request.id, userId, "RETURN_CONFIRMED", role === "owner" ? "Pemilik" : "Peminjam");
+                // In the same transaction as the confirmation: both are saved, or neither.
+                if (input.review) {
+                    if (role !== "owner") throw new ForbiddenError("Hanya pemilik buku yang dapat memberi ulasan untuk peminjam.");
+                    const [review] = await tx.insert(borrowerReviews)
+                        .values({ borrowingId: borrowing.id, requesterId: request.requesterId, reviewerId: userId, communityId, rating: input.review.rating, comment: input.review.comment ?? null })
+                        .onConflictDoNothing({ target: borrowerReviews.borrowingId })
+                        .returning({ id: borrowerReviews.id });
+                    if (!review) throw new ConflictError("Ulasan untuk pinjaman ini sudah ada.");
+                }
                 if (!ownerAt || !requesterAt) {
                     await tx.update(borrowings).set({ ownerReturnAt: ownerAt, requesterReturnAt: requesterAt, updatedAt: now }).where(eq(borrowings.id, borrowing.id));
                     return { status: loanState({ ...snapshotOf(request, borrowing) }, now) };
@@ -444,6 +461,7 @@ export type LoanItem = {
     meetingPlace: { id: string; latitude: number; longitude: number } | null;
     loanDays: number;
     preferredTime: string | null;
+    preferredAt: Date | null;
     note: string | null;
     rejectionReason: string | null;
     responseNote: string | null;
@@ -541,6 +559,7 @@ async function loadLoans(scope: LoanScope, now: Date): Promise<LoanItem[]> {
             meetingPlace,
             loanDays: request.loanDays,
             preferredTime: request.preferredTime,
+            preferredAt: request.preferredAt,
             note: request.note,
             rejectionReason: request.rejectionReason,
             responseNote: request.responseNote,
@@ -593,6 +612,53 @@ export function listLoansForCommunity(communityId: string, userId: string, now =
  * How many of the user's loans are under "Perlu Tindakan" (`loanGroup`), for the dot on the account menu.
  * Reads only the snapshot columns; the rule itself stays in `loanGroup`.
  */
+/**
+ * News for the reader since `since`: answers to their requests and loans made by someone else, reviews
+ * about them, and refused library requests. Feeds the dot on "Pinjam & pinjamkan" until they open it.
+ */
+export type ListingLoanState = "AWAITING_HANDOVER" | "BORROWED";
+
+export async function countLoanUpdatesSince(userId: string, since: Date) {
+    const sinceIso = since.toISOString();
+    const [[events], [reviews], [library]] = await Promise.all([
+        db.select({ total: sql<number>`count(*)::int` }).from(borrowEvents)
+            .innerJoin(borrowRequests, eq(borrowRequests.id, borrowEvents.requestId))
+            .where(and(
+                eq(borrowRequests.requesterId, userId),
+                inArray(borrowEvents.type, [...LOAN_UPDATE_EVENTS]),
+                sql`${borrowEvents.actorId} is distinct from ${userId}`,
+                sql`${borrowEvents.createdAt} > ${sinceIso}::timestamptz`,
+            )),
+        db.select({ total: sql<number>`count(*)::int` }).from(borrowerReviews)
+            .where(and(eq(borrowerReviews.requesterId, userId), sql`${borrowerReviews.createdAt} > ${sinceIso}::timestamptz`)),
+        db.select({ total: sql<number>`count(*)::int` }).from(bookAccesses)
+            .where(and(eq(bookAccesses.requesterId, userId), eq(bookAccesses.status, "REJECTED"), sql`${bookAccesses.respondedAt} > ${sinceIso}::timestamptz`)),
+    ]);
+    return (events?.total ?? 0) + (reviews?.total ?? 0) + (library?.total ?? 0);
+}
+
+/**
+ * What a RESERVED copy is waiting on (30 Okt 2026): an accepted request before handover, or a copy out on
+ * loan. "Dipesan" alone covered both; the collection lists now say which.
+ */
+export async function listingLoanStates(listingIds: string[]) {
+    if (listingIds.length === 0) return new Map<string, ListingLoanState>();
+    const rows = await db.select({ listingId: borrowRequests.listingId, borrowingStatus: borrowings.status })
+        .from(borrowRequests)
+        .leftJoin(borrowings, eq(borrowings.requestId, borrowRequests.id))
+        .where(and(
+            inArray(borrowRequests.listingId, listingIds),
+            // Accepted and not handed over yet, or handed over and not settled.
+            or(and(eq(borrowRequests.status, "APPROVED"), isNull(borrowings.id)), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"])),
+        ));
+    const states = new Map<string, ListingLoanState>();
+    for (const row of rows) {
+        const state: ListingLoanState = row.borrowingStatus ? "BORROWED" : "AWAITING_HANDOVER";
+        if (states.get(row.listingId) !== "BORROWED") states.set(row.listingId, state);
+    }
+    return states;
+}
+
 const openLoan = or(inArray(borrowRequests.status, ["PENDING", "APPROVED"]), inArray(borrowings.status, ["ACTIVE", "OVERDUE", "DISPUTED"]));
 
 export async function countLoansNeedingAction(userId: string, now = new Date()) {

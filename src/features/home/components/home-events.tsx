@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, MapPin, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin } from "lucide-react";
 import Link from "next/link";
 
 import { EventImage } from "@/features/communities/components/event-image";
@@ -46,13 +46,7 @@ export function HomeEvents({
                     <ul className="grid list-none grid-cols-1 gap-6 p-0 md:grid-cols-3">
                         {events.map((event) => (
                             <li key={event.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_4px_16px_rgba(31,41,36,0.06)]">
-                                {event.imagePath ? (
-                                    <EventImage path={event.imagePath} className="h-[190px] aspect-auto" />
-                                ) : (
-                                    <div aria-hidden="true" className="flex h-[190px] items-center justify-center bg-secondary/60 text-primary/60">
-                                        <UsersRound className="size-12" />
-                                    </div>
-                                )}
+                                <EventImage path={event.imagePath} className="h-[190px] aspect-auto" />
                                 <div className="flex flex-1 flex-col p-5">
                                     {event.startsAt && (
                                         <p className="flex items-center gap-1 text-xs font-semibold uppercase text-[#161d19]">

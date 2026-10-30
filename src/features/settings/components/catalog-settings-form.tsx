@@ -11,7 +11,7 @@ import { notify } from "@/lib/toast";
 
 function Row({ label, description, labelId, children }: { label: string; description: string; labelId: string; children: ReactNode }) {
     return (
-        <div className="flex flex-col gap-3 border-t border-border py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 py-4 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p id={labelId} className="text-sm font-semibold">{label}</p>
                 <p className="text-xs text-muted-foreground">{description}</p>
@@ -62,9 +62,8 @@ export function CatalogSettingsForm({ initial }: { initial: CatalogSettings }) {
 
     return (
         <>
-            <section aria-labelledby="catalog-settings-title" className="rounded-xl border border-border bg-card px-6 pt-6 pb-2">
-                <h2 id="catalog-settings-title" className="font-heading text-xl font-semibold">Katalog Buku</h2>
-                <p className="mt-1 mb-4 text-sm text-muted-foreground">Sumber data buku dan aturan pembaruan data tersimpan.</p>
+            {/* Inside the "Katalog Buku" settings section (redesign 30 Okt 2026), so no card or heading of its own. */}
+            <div className="divide-y divide-border">
 
                 <Row label="Provider utama" description="Dicoba lebih dulu saat mencocokkan dan melengkapi rekaman buku." labelId={ids.primary}>
                     <Select aria-labelledby={ids.primary} value={values.primaryProvider} onChange={(event) => set("primaryProvider", event.target.value as CatalogSettings["primaryProvider"])} className={selectClass}>
@@ -83,10 +82,11 @@ export function CatalogSettingsForm({ initial }: { initial: CatalogSettings }) {
                 <Row label="Tampilkan atribusi provider" description="Sumber data tampil pada detail buku sesuai ketentuan provider." labelId={ids.attribution}>
                     <Switch checked={values.showAttribution} onCheckedChange={(value) => set("showAttribution", value)} aria-labelledby={ids.attribution} />
                 </Row>
-            </section>
+            </div>
 
             <FormAlert className="mt-4" tone={message?.tone === "error" ? "error" : "success"}>{message?.text}</FormAlert>
-            <div className="mt-4 flex justify-end gap-3">
+            <div className="mt-4 flex flex-col-reverse gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-end">
+                <p role="status" className="text-xs text-muted-foreground sm:mr-auto">{dirty ? "Ada perubahan yang belum disimpan." : "Tidak ada perubahan."}</p>
                 <button type="button" onClick={() => { setValues(initial); setMessage(null); }} disabled={!dirty || pending}
                     className="h-11 rounded-lg border border-border bg-card px-5 text-sm font-semibold hover:bg-muted disabled:opacity-50">
                     Batalkan

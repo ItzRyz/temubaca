@@ -10,8 +10,10 @@ import { LibraryAccessPanel } from "@/features/libraries/components/library-acce
 import { listAccessRequestsForUser } from "@/lib/db/queries/libraries";
 import { loanGroup } from "@/features/borrowing/lifecycle";
 import { getCurrentUser } from "@/lib/auth";
+import { MarkLoansSeen } from "@/features/borrowing/components/mark-loans-seen";
+import { loansSeenAt } from "@/lib/db/queries/users";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
-import { listLoansForUser } from "@/lib/db/queries/borrowing";
+import { listingLoanStates, listLoansForUser } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
 import { listingsNeedAttention, listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
@@ -25,7 +27,7 @@ type MyListingsPageProps = {
 const filters = [
     { value: "all", label: "Semua" },
     { value: "AVAILABLE", label: "Tersedia" },
-    { value: "RESERVED", label: "Dipesan" },
+    { value: "RESERVED", label: "Dipesan & Dipinjam" },
     { value: "UNAVAILABLE", label: "Tidak Ditawarkan" },
     { value: "HIDDEN", label: "Disembunyikan" },
 ] as const;
@@ -62,7 +64,10 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
         tab === "peminjaman" && loanView === "perpustakaan" ? listAccessRequestsForUser(user.id) : Promise.resolve([]),
         listingsNeedAttention(user.id),
     ]);
-    const appeals = await latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id));
+    const [appeals, loanStates] = await Promise.all([
+        latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id)),
+        listingLoanStates(listings.filter((listing) => listing.availability === "RESERVED").map((listing) => listing.id)),
+    ]);
     const loansNeedingAction = loans.filter((loan) => loanGroup(loan.snapshot, loan.role, now) === "action").length;
     const statusOf = (listing: (typeof listings)[number]) => (listing.hiddenAt ? "HIDDEN" : listing.availability);
     const counts: Record<Filter, number> = {
@@ -108,7 +113,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     ] : [
         { icon: BookOpen, value: counts.all, unit: "Buku", label: "Buku Terdaftar", tone: "bg-[#e7efe8] text-primary" },
         { icon: HandHeart, value: counts.AVAILABLE, unit: "Buku", label: "Tersedia", tone: "bg-[#c9ecd6] text-primary" },
-        { icon: ArrowLeftRight, value: counts.RESERVED, unit: "Dipesan", label: "Sedang Dipesan", tone: "bg-[#fbe7c6] text-[#7a4b00]" },
+        { icon: ArrowLeftRight, value: counts.RESERVED, unit: "Buku", label: "Dipesan & Dipinjam", tone: "bg-[#fbe7c6] text-[#7a4b00]" },
         { icon: Lock, value: counts.UNAVAILABLE, unit: "Arsip", label: "Disimpan Pribadi", tone: "bg-[#f1f0ea] text-foreground" },
     ];
 
@@ -152,7 +157,13 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
             {tab === "peminjaman" ? (
                 loanView === "perpustakaan"
                     ? <LibraryAccessPanel requests={accessRequests} now={now} />
-                    : <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} />
+                    : (
+                        <>
+                            {/* What the reader borrows: answers newer than their last visit are marked, then the dot clears. */}
+                            {loanView === "pinjam" && <MarkLoansSeen />}
+                            <LoansPanel loans={loans} view={loanView} filter={loanFilter} query={query} now={now} newSince={loanView === "pinjam" ? loansSeenAt(user.preferences, now) : undefined} />
+                        </>
+                    )
             ) : (
                 <>
                     <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-card p-3 lg:flex-row lg:items-center lg:justify-between">
@@ -188,7 +199,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
 
                     {visible.length > 0 ? (
                         <ul className="mt-4 flex list-none flex-col gap-4 p-0">
-                            {visible.map((listing) => <ManagedListingItem key={listing.id} listing={listing} appeal={appeals.get(listing.id)} now={now} />)}
+                            {visible.map((listing) => <ManagedListingItem key={listing.id} listing={listing} appeal={appeals.get(listing.id)} now={now} loanState={loanStates.get(listing.id)} />)}
                         </ul>
                     ) : (
                         <section className="mt-4 rounded-xl border border-dashed border-border p-8 text-center">

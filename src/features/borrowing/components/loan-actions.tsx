@@ -9,6 +9,7 @@ import { FormAlert } from "@/components/ui/form";
 import { sendLoanRequest } from "../client";
 import { loanActionDone, type LoanAction, type LoanRole } from "../lifecycle";
 import { RejectExtensionDialog, RequestExtensionDialog } from "./extension-dialogs";
+import { ConfirmReturnDialog } from "./confirm-return-dialog";
 import { RejectRequestDialog } from "./reject-request-dialog";
 import { AddDisputeInfoDialog, ReportProblemDialog } from "./report-problem-dialog";
 import { notify } from "@/lib/toast";
@@ -76,11 +77,13 @@ export function LoanActions({ role, requestId, borrowingId, actions, bookTitle, 
                     <Check aria-hidden="true" className="size-4" /> Konfirmasi Serah Terima
                 </button>
             )}
-            {can("confirm_return") && (
-                <button type="button" disabled={pending} onClick={() => run("confirm_return")} className={role === "owner" ? outline : primary}>
-                    <RotateCcw aria-hidden="true" className="size-4" /> {role === "owner" ? "Konfirmasi Pengembalian" : "Kembalikan Buku"}
+            {can("confirm_return") && (role === "owner" && borrowingId ? (
+                <ConfirmReturnDialog borrowingId={borrowingId} bookTitle={bookTitle} borrowerName={otherName} summary={summary} triggerClassName={outline} />
+            ) : (
+                <button type="button" disabled={pending} onClick={() => run("confirm_return")} className={primary}>
+                    <RotateCcw aria-hidden="true" className="size-4" /> Kembalikan Buku
                 </button>
-            )}
+            ))}
             {can("remind") && (
                 <button type="button" disabled={pending} onClick={() => run("remind")} className={primary}>
                     <Bell aria-hidden="true" className="size-4" /> Kirim Pengingat

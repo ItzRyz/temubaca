@@ -19,7 +19,9 @@ const conditionLabels: Record<string, string> = {
 
 export const listingStatusBadge = {
     AVAILABLE: { label: "Tersedia", note: "Siap dipinjam kawan", className: "bg-[#c9ecd6] text-primary" },
-    RESERVED: { label: "Dipesan", note: "Sedang dipesan peminjam", className: "bg-[#fbe7c6] text-[#7a4b00]" },
+    // RESERVED from an accepted request until the copy is back (30 Okt 2026); the loan state says which part.
+    RESERVED: { label: "Dipesan", note: "Permintaan diterima, menunggu serah terima", className: "bg-[#fbe7c6] text-[#7a4b00]" },
+    BORROWED: { label: "Sedang Dipinjam", note: "Buku sedang dibawa peminjam sampai dikembalikan", className: "bg-[#ffdbd1] text-[#5c1a0a]" },
     UNAVAILABLE: { label: "Tidak Ditawarkan", note: "Disimpan sebagai arsip bacaan pribadi", className: "bg-[#f1f0ea] text-foreground/80" },
     HIDDEN: { label: "Disembunyikan Moderator", note: "Tidak muncul di halaman buku publik", className: "bg-destructive/10 text-destructive" },
 } as const;
@@ -44,12 +46,14 @@ export type ManagedListing = {
  * One copy its owner manages (status, appeal, availability, edit, delete): on "Buku Saya" and in a
  * community's collection (30 Okt 2026).
  */
-export function ManagedListingItem({ listing, appeal, now }: {
+export function ManagedListingItem({ listing, appeal, now, loanState }: {
     listing: ManagedListing;
     appeal?: { status: string; createdAt: Date; reviewNote: string | null };
     now: Date;
+    /** For a RESERVED copy: whether it waits for handover or is out on loan. */
+    loanState?: "AWAITING_HANDOVER" | "BORROWED";
 }) {
-    const status = listingStatusBadge[listing.hiddenAt ? "HIDDEN" : listing.availability];
+    const status = listingStatusBadge[listing.hiddenAt ? "HIDDEN" : listing.availability === "RESERVED" && loanState === "BORROWED" ? "BORROWED" : listing.availability];
     return (
         <li className="rounded-xl border border-border bg-card p-4">
             <div className="grid gap-4 sm:grid-cols-[64px_1fr] lg:grid-cols-[64px_1fr_240px_auto] lg:items-center">

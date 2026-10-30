@@ -14,6 +14,7 @@ import { fetchInstagramFollowers, isInstagramConfigured } from "@/lib/external/i
 import { listPastPublicEvents, listUpcomingPublicEvents } from "@/lib/db/queries/events";
 import { listPublicMerchandise } from "@/lib/db/queries/merchandise";
 import { listPublicCommunityBookListings } from "@/lib/db/queries/books";
+import { listingLoanStates } from "@/lib/db/queries/borrowing";
 import { findPublicPin } from "@/lib/db/queries/places";
 import { MerchandiseThumb } from "@/features/merchandise/components/merchandise-thumb";
 import { lastCommunityApproval } from "@/lib/db/queries/verifications";
@@ -100,6 +101,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
         findPublicPin({ communityId: community.id }),
         listPublicCommunityBookListings(community.id),
     ]);
+    const collectionLoans = tab === "koleksi" ? await listingLoanStates(collection.filter((listing) => listing.availability === "RESERVED").map((listing) => listing.id)) : new Map();
     const counts: Record<Tab, number | undefined> = { tentang: undefined, acara: upcoming.length, merchandise: merchandise.length, koleksi: collection.length };
     const hrefFor = (key: Tab) => (key === "tentang" ? `/communities/${community.id}` : `/communities/${community.id}?tab=${key}`);
     const signedIn = user !== null;
@@ -188,7 +190,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                 </div>
             </section>
 
-            <nav aria-label="Bagian profil" className="mt-6 flex gap-6 overflow-x-auto border-b border-border">
+            <nav aria-label="Bagian profil" className="mt-6 flex gap-6 overflow-x-auto border-b border-border min-[769px]:flex-wrap min-[769px]:overflow-visible">
                 {tabs.map(({ key, label, icon: Icon }) => (
                     <Link
                         key={key}
@@ -292,7 +294,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                             <ul className="mt-5 grid list-none gap-5 p-0 md:grid-cols-3">
                                 {upcoming.map((event) => (
                                     <li key={event.id} className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
-                                        {event.imagePath ? <EventImage path={event.imagePath} className="h-36 aspect-auto" /> : <div aria-hidden="true" className="flex h-36 items-center justify-center bg-secondary/60 text-primary/50"><CalendarDays className="size-10" /></div>}
+                                        <EventImage path={event.imagePath} className="h-36 aspect-auto" />
                                         <div className="flex flex-1 flex-col p-5">
                                             {event.startsAt && <p className="flex items-center gap-1 text-xs font-semibold text-foreground uppercase"><CalendarDays aria-hidden="true" className="size-3.5 text-destructive" /> {eventStamp.format(event.startsAt)} WIB</p>}
                                             <h3 className="mt-2 font-heading text-lg leading-6 font-semibold">{event.title}</h3>
@@ -356,7 +358,7 @@ export default async function CommunityProfilePage({ params, searchParams }: Com
                                         <h3 className="line-clamp-2 font-heading text-base font-semibold"><Link href={`/books/${listing.book.id}#cara-membaca`} className="hover:underline">{listing.book.title}</Link></h3>
                                         <p className="truncate text-xs text-muted-foreground">{listing.book.authors.join(", ") || "Penulis belum tercatat"}</p>
                                         <p className={cn("mt-2 w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold", listing.availability === "AVAILABLE" ? "bg-[#c9ecd6] text-primary" : "bg-[#fbe7c6] text-[#7a4b00]")}>
-                                            {listing.availability === "AVAILABLE" ? "Bisa dipinjam" : "Sedang dipesan"}
+                                            {listing.availability === "AVAILABLE" ? "Bisa dipinjam" : collectionLoans.get(listing.id) === "BORROWED" ? "Sedang dipinjam" : "Dipesan peminjam lain"}
                                         </p>
                                         <Link href={`/books/${listing.book.id}#cara-membaca`} className="mt-auto inline-flex items-center gap-1 pt-2 text-sm font-semibold text-primary hover:underline">
                                             {listing.availability === "AVAILABLE" ? "Ajukan Pinjam" : "Lihat Buku"} <ArrowRight aria-hidden="true" className="size-3.5" /><span className="sr-only">: {listing.book.title}</span>

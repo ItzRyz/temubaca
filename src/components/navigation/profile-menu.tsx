@@ -11,16 +11,16 @@ type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; a
 type MenuGroup = { title: string; items: MenuItem[] };
 
 /** What waits for this user, shown as red dots (owner's decision 29 Okt 2026: a dot, no count). */
-export type MenuAttention = { listings: boolean; loans: boolean; libraries: boolean; communities: boolean; managesLibraries: boolean };
+export type MenuAttention = { listings: boolean; loans: boolean; loansHref: string; libraries: boolean; communities: boolean; managesLibraries: boolean };
 
 /** Grouped so a new reader can tell the entries apart (owner's request 28 Okt 2026); each has a one-line hint. */
-function menuGroups({ isAdmin, managesLibraries }: { isAdmin: boolean; managesLibraries: boolean }): MenuGroup[] {
+function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean; managesLibraries: boolean; loansHref: string }): MenuGroup[] {
     return [
         {
             title: "Buku",
             items: [
                 { href: "/my-listings", label: "Koleksi saya", hint: "Buku yang kamu bagikan", icon: BookOpen, attention: "listings" },
-                { href: "/my-listings?tab=peminjaman", label: "Pinjam & pinjamkan", hint: "Permintaan dan pinjaman", icon: ArrowLeftRight, attention: "loans" },
+                { href: loansHref, label: "Pinjam & pinjamkan", hint: "Permintaan dan pinjaman", icon: ArrowLeftRight, attention: "loans" },
             ],
         },
         {
@@ -96,7 +96,7 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
     }
 
     const waiting = attention.listings || attention.loans || attention.libraries || attention.communities;
-    const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries });
+    const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries, loansHref: attention.loansHref });
 
     return (
         <div ref={rootRef} className="relative">

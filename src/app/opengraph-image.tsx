@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
 
-export const alt = "TemuBaca — Temukan buku dan teman baca di sekitarmu";
+export const alt = "TemuBaca | Temukan buku dan teman baca di sekitarmu";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

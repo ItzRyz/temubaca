@@ -177,6 +177,8 @@ export const borrowRequests = pgTable('borrow_requests', {
     status: enumText(borrowRequestStatusValues).notNull().default('PENDING'), note: text(),
     // Chosen from the owner's public meeting points; the loan period is capped by the listing rules.
     meetingPoint: text(), loanDays: integer().notNull().default(14), preferredTime: text(),
+    // Preferred meeting date and time (30 Okt 2026); `preferredTime` keeps the free text of older requests.
+    preferredAt: nowDate(),
     // The Peta Literasi place behind `meetingPoint`, when the owner picked it from the map (TB-027).
     meetingPlaceId: uuid().references(() => places.id, { onDelete: 'set null', onUpdate: 'cascade' }),
     rejectionReason: text(), responseNote: text(),
@@ -266,6 +268,24 @@ export const borrowings = pgTable('borrowings', {
     index('borrowings_status_due_at_idx').on(t.status, t.dueAt), enumCheck(t.status, borrowingStatusValues), enumCheck(t.extensionStatus, loanExtensionStatusValues), enumCheck(t.consequence, disputeConsequenceValues),
     check('borrowings_extension_days_check', sql`${t.extensionDays} between 1 and 14`),
     check('borrowings_consequence_days_check', sql`${t.consequenceDays} between 1 and 365`),
+]).enableRLS();
+
+/**
+ * A lender's review of the borrower, given when confirming the return (30 Okt 2026): one per loan, optional.
+ * `communityId` marks a review given for a community's collection; the reviewer is then one of its managers.
+ */
+export const borrowerReviews = pgTable('borrower_reviews', {
+    id: id(),
+    borrowingId: uuid().notNull().unique().references(() => borrowings.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    requesterId: uuid().notNull().references(() => userProfiles.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    reviewerId: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    communityId: uuid().references(() => communities.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+    rating: integer().notNull(), comment: text(),
+    createdAt: createdAt(),
+}, t => [
+    index('borrower_reviews_requester_idx').on(t.requesterId, t.createdAt),
+    check('borrower_reviews_rating_check', sql`${t.rating} between 1 and 5`),
+    check('borrower_reviews_comment_check', sql`char_length(${t.comment}) <= 500`),
 ]).enableRLS();
 
 export const communities = pgTable('communities', {

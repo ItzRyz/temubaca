@@ -4,7 +4,7 @@ import { appConfig } from "@/config/app";
 import { env } from "@/env";
 
 export const siteUrl = new URL(env.NEXT_PUBLIC_APP_URL);
-export const siteTitle = `${appConfig.name} — Temukan buku dan teman baca di sekitarmu`;
+export const siteTitle = `${appConfig.name} | Temukan buku dan teman baca di sekitarmu`;
 export const siteDescription =
     "Pinjam buku dari warga sekitar, temukan komunitas baca dan agendanya, lihat koleksi perpustakaan, dan jelajahi Peta Literasi di TemuBaca.";
 
