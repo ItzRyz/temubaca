@@ -142,3 +142,18 @@ export async function resolveReportTargets(targets: TargetRef[]) {
     for (const row of userRows) result.set(key("USER", row.id), { title: row.name, subtitle: "Akun pengguna", href: null });
     return result;
 }
+
+/** The reporter's own reports with their outcome, without the admin's internal note (Laporan saya, 30 Okt 2026). */
+export async function listReportsByReporter(reporterId: string) {
+    const rows = await db.select({ id: reports.id, targetType: reports.targetType, targetId: reports.targetId, reason: reports.reason, status: reports.status, createdAt: reports.createdAt, reviewedAt: reports.reviewedAt })
+        .from(reports).where(eq(reports.reporterId, reporterId)).orderBy(desc(reports.createdAt)).limit(100);
+    const targets = await resolveReportTargets(rows.map(({ targetType, targetId }) => ({ targetType, targetId })));
+    return rows.map((row) => ({ ...row, target: targets.get(`${row.targetType}:${row.targetId}`) ?? null }));
+}
+
+/** Reports of this reporter decided since `since`: the "Laporan saya" dot while confirmations are on. */
+export async function countReportDecisionsSince(reporterId: string, since: Date) {
+    const [row] = await db.select({ total: sql<number>`count(*)::int` }).from(reports)
+        .where(and(eq(reports.reporterId, reporterId), inArray(reports.status, ["RESOLVED", "REJECTED"]), sql`${reports.reviewedAt} > ${since.toISOString()}::timestamptz`));
+    return row?.total ?? 0;
+}

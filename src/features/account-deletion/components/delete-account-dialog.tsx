@@ -12,7 +12,10 @@ import { CONFIRM_WORD, DELETION_GRACE_DAYS } from "../rules";
 const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeZone: "Asia/Jakarta" });
 
 /** Figma "Dialog: Hapus Akun" (210:1145) with the DEC-11 grace period and blockers. */
-export function DeleteAccountDialog({ bookmarks, interests, listings, blockers, triggerClassName }: {
+export function DeleteAccountDialog({ bookmarks, interests, listings, blockers, triggerClassName, graceDays = DELETION_GRACE_DAYS, allowExport = true }: {
+    /** From Pengaturan → Retensi & Data (30 Okt 2026). */
+    graceDays?: number;
+    allowExport?: boolean;
     bookmarks: number;
     interests: number;
     listings: number;
@@ -57,7 +60,7 @@ export function DeleteAccountDialog({ bookmarks, interests, listings, blockers, 
                 </div>
                 <h2 id={titleId} className="mt-4 font-heading text-2xl font-semibold">Hapus akun dan data?</h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Akun langsung dinonaktifkan dan dihapus permanen setelah {DELETION_GRACE_DAYS} hari. Selama itu Anda bisa membatalkannya dengan masuk lagi. Yang akan dihapus:
+                    Akun langsung dinonaktifkan dan dihapus permanen setelah {graceDays} hari. Selama itu Anda bisa membatalkannya dengan masuk lagi. Yang akan dihapus:
                 </p>
                 <ul className="mt-3 flex list-disc flex-col gap-1.5 rounded-xl border border-border bg-card py-3 pr-4 pl-8 text-sm">
                     <li>Profil dan data akun Anda</li>
@@ -65,9 +68,11 @@ export function DeleteAccountDialog({ bookmarks, interests, listings, blockers, 
                     <li>{listings > 0 ? `${listings} buku yang Anda daftarkan untuk dipinjamkan` : "Buku yang Anda daftarkan untuk dipinjamkan"}</li>
                 </ul>
                 <p className="mt-2 text-xs leading-5 text-muted-foreground">Riwayat pinjam dan laporan yang menyangkut orang lain tetap disimpan dengan nama &quot;Akun dihapus&quot;.</p>
-                <a href="/api/me/export" download className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-                    <Download aria-hidden="true" className="size-4" /> Unduh salinan data saya dulu
-                </a>
+                {allowExport && (
+                    <a href="/api/me/export" download className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                        <Download aria-hidden="true" className="size-4" /> Unduh salinan data saya dulu
+                    </a>
+                )}
 
                 {blocked ? (
                     <div role="alert" className="mt-4 rounded-xl bg-[#fbecc4] p-4 text-sm text-[#5c3d00]">

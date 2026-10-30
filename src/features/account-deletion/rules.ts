@@ -21,8 +21,9 @@ export const OWNER_CLOSED_REASON = "Pemilik menutup akunnya";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function deletionDate(requestedAt: Date) {
-    return new Date(requestedAt.getTime() + DELETION_GRACE_DAYS * DAY_MS);
+/** `graceDays` comes from Pengaturan → Retensi & Data (30 Okt 2026); 14 days before it was configurable. */
+export function deletionDate(requestedAt: Date, graceDays = DELETION_GRACE_DAYS) {
+    return new Date(requestedAt.getTime() + graceDays * DAY_MS);
 }
 
 export function monthsBefore(now: Date, months: number) {

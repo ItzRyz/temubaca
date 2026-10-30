@@ -11,6 +11,7 @@ import { getDeletionOverview } from "@/lib/db/queries/account-deletion";
 import { DeleteAccountDialog } from "@/features/account-deletion/components/delete-account-dialog";
 import { listUserInterests } from "@/lib/db/queries/interests";
 import { primaryGenreLabel } from "@/features/books/genres";
+import { getSettings } from "@/lib/db/queries/settings";
 
 export const metadata: Metadata = { title: "Profil saya" };
 
@@ -33,13 +34,14 @@ export default async function ProfilePage() {
     const user = await getCurrentUser();
     if (!user) return redirectToLogin();
 
-    const [listingCount, bookmarkCount, saved, communities, interests, deletion] = await Promise.all([
+    const [listingCount, bookmarkCount, saved, communities, interests, deletion, retention] = await Promise.all([
         countUserBookListings(user.id),
         countUserBookmarks(user.id),
         listSavedBooks(user.id, 3),
         listUserCommunities(user.id),
         listUserInterests(user.id),
         getDeletionOverview(user.id),
+        getSettings("retention").then((result) => result.settings),
     ]);
 
     const stats = [
@@ -185,11 +187,12 @@ export default async function ProfilePage() {
                             ))}
                             <div className="py-3">
                                 <dt className="font-medium">Unduh atau hapus akun dan data</dt>
-                                <dd className="mt-0.5 text-xs text-muted-foreground">Salinan data berupa berkas JSON. Akun yang dihapus dinonaktifkan dulu selama 14 hari dan bisa dibatalkan.</dd>
+                                <dd className="mt-0.5 text-xs text-muted-foreground">{retention.allowDataExport ? "Salinan data berupa berkas JSON. " : ""}Akun yang dihapus dinonaktifkan dulu selama {retention.deletionGraceDays} hari dan bisa dibatalkan.</dd>
                                 <dd className="mt-3 flex flex-wrap gap-2">
-                                    <a href="/api/me/export" download className="inline-flex min-h-10 items-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">Unduh salinan data</a>
+                                    {retention.allowDataExport && <a href="/api/me/export" download className="inline-flex min-h-10 items-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">Unduh salinan data</a>}
                                     {!user.deletionRequestedAt && (
                                         <DeleteAccountDialog bookmarks={deletion.bookmarks} interests={deletion.interests} listings={deletion.listings} blockers={deletion.blockers}
+                                            graceDays={retention.deletionGraceDays} allowExport={retention.allowDataExport}
                                             triggerClassName="inline-flex min-h-10 items-center gap-2 rounded-lg border border-destructive px-4 text-sm font-semibold text-destructive hover:bg-destructive/5" />
                                     )}
                                 </dd>

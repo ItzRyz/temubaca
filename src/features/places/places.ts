@@ -23,9 +23,24 @@ export const placeTypeColors: Record<PlaceType, string> = {
     MEETING_POINT: "#a88445",
 };
 
-/** OSM tile policy: keep the URL configurable so the provider can change without a code change. */
-export const MAP_TILE_URL = process.env.NEXT_PUBLIC_MAP_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-export const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">kontributor OpenStreetMap</a>';
+
+/** Tile providers an admin can pick in Pengaturan → Peta & Lokasi (30 Okt 2026); both free, no API key. */
+export const tileProviderConfig = {
+    OSM: { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", attribution: OSM_ATTRIBUTION },
+    CARTO: {
+        url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        attribution: `${OSM_ATTRIBUTION} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
+    },
+} as const;
+
+export type MapTiles = { url: string; attribution: string };
+
+/** The tiles for the chosen provider; NEXT_PUBLIC_MAP_TILE_URL, when set, still wins (OSM tile policy). */
+export function mapTiles(provider: keyof typeof tileProviderConfig): MapTiles {
+    const override = process.env.NEXT_PUBLIC_MAP_TILE_URL;
+    return override ? { url: override, attribution: OSM_ATTRIBUTION } : tileProviderConfig[provider];
+}
 
 /** Matches the `places_coordinates_check` constraint: a generous box around Indonesia. */
 export const INDONESIA_BOUNDS = { south: -11.5, north: 6.5, west: 94.5, east: 141.5 } as const;

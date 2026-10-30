@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Merchandise komunitas" };
 
-const filters = { all: "Semua", AVAILABLE: "Tersedia", UNAVAILABLE: "Habis", HIDDEN: "Disembunyikan" } as const;
+const filters = { all: "Semua", AVAILABLE: "Tersedia", UNAVAILABLE: "Habis", PENDING_REVIEW: "Menunggu tinjauan", HIDDEN: "Disembunyikan" } as const;
 type Filter = keyof typeof filters;
 
 /** Figma "Kelola Merchandise" (308:2665) with the empty state of 309:2665. */
@@ -28,8 +28,8 @@ export default async function ManageMerchandisePage({ params, searchParams }: Pa
     }
 
     const items = await listMerchandiseForManage(communityId);
-    const stateOf = (item: (typeof items)[number]): Exclude<Filter, "all"> => (item.status !== "PUBLISHED" ? "HIDDEN" : item.availability === "AVAILABLE" ? "AVAILABLE" : "UNAVAILABLE");
-    const counts = { all: items.length, AVAILABLE: 0, UNAVAILABLE: 0, HIDDEN: 0 } as Record<Filter, number>;
+    const stateOf = (item: (typeof items)[number]): Exclude<Filter, "all"> => (item.status === "PENDING_REVIEW" ? "PENDING_REVIEW" : item.status !== "PUBLISHED" ? "HIDDEN" : item.availability === "AVAILABLE" ? "AVAILABLE" : "UNAVAILABLE");
+    const counts = { all: items.length, AVAILABLE: 0, UNAVAILABLE: 0, PENDING_REVIEW: 0, HIDDEN: 0 } as Record<Filter, number>;
     for (const item of items) counts[stateOf(item)] += 1;
     const visible = items.filter((item) => (filter === "all" || stateOf(item) === filter) && (!needle || item.title.toLocaleLowerCase("id-ID").includes(needle.toLocaleLowerCase("id-ID"))));
     const contact = community.whatsappNumber ? `WhatsApp ${maskWhatsapp(community.whatsappNumber)}` : community.instagramHandle ? `Instagram @${community.instagramHandle}` : community.contactEmail ? `surel ${community.contactEmail}` : null;
@@ -39,7 +39,7 @@ export default async function ManageMerchandisePage({ params, searchParams }: Pa
         if (needle) search.set("q", needle);
         return search.size ? `${base}?${search}` : base;
     };
-    const badge = { AVAILABLE: ["Tersedia", "bg-[#c9ecd6] text-primary"], UNAVAILABLE: ["Habis", "bg-[#e8ecf5] text-[#24365c]"], HIDDEN: ["Disembunyikan", "bg-[#ebe9e1] text-foreground/70"] } as const;
+    const badge = { AVAILABLE: ["Tersedia", "bg-[#c9ecd6] text-primary"], UNAVAILABLE: ["Habis", "bg-[#e8ecf5] text-[#24365c]"], PENDING_REVIEW: ["Menunggu tinjauan admin", "bg-[#fbecc4] text-[#5c3d00]"], HIDDEN: ["Disembunyikan", "bg-[#ebe9e1] text-foreground/70"] } as const;
 
     return (
         <div className="flex flex-col gap-4">
@@ -96,6 +96,7 @@ export default async function ManageMerchandisePage({ params, searchParams }: Pa
                                         <span className="font-heading text-lg font-semibold">{item.title}</span>
                                         <span className={cn("rounded-full px-2 py-0.5 text-xs font-semibold", badge[state][1])}>{badge[state][0]}</span>
                                     </p>
+                                    {item.moderationNote && item.status === "DRAFT" && <p className="mt-1 text-xs text-destructive">Ditolak admin: {item.moderationNote} Ubah, lalu tampilkan lagi untuk ditinjau ulang.</p>}
                                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                         {item.category && <span className="flex items-center gap-1"><Tag aria-hidden="true" className="size-3.5" /> {item.category}</span>}
                                         <span className="font-semibold text-foreground">{formatMerchandisePrice(item)}</span>

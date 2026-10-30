@@ -5,7 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
-import { INDONESIA_BOUNDS, INDONESIA_CENTER, MAP_ATTRIBUTION, MAP_TILE_URL, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
+import { INDONESIA_BOUNDS, INDONESIA_CENTER, placeTypeColors, placeTypeLabels, type PlaceType } from "../places";
+import { useMapTiles } from "./map-tiles";
 
 export type MapPlace = { id: string; type: PlaceType; name: string; latitude: number; longitude: number };
 
@@ -46,6 +47,7 @@ export default function LiteracyMap({ places, selectedId, focus, reader, route, 
     // Open on the places themselves (Jakarta–Tangerang today), not all of Indonesia. Taken once, at mount:
     // refitting on every filter change would make the map jump.
     const [initialBounds] = useState(() => boundsOf(places));
+    const tiles = useMapTiles();
     // Leaflet wants [latitude, longitude].
     const routePoints = useMemo(() => route?.map(([lng, lat]) => [lat, lng] as [number, number]) ?? null, [route]);
     return (
@@ -59,7 +61,7 @@ export default function LiteracyMap({ places, selectedId, focus, reader, route, 
             scrollWheelZoom={false}
             className="size-full"
         >
-            <TileLayer url={MAP_TILE_URL} attribution={MAP_ATTRIBUTION} maxZoom={19} />
+            <TileLayer url={tiles.url} attribution={tiles.attribution} maxZoom={19} />
             <FocusOn target={focus} />
             <FitRoute points={routePoints} />
             {routePoints && <Polyline positions={routePoints} pathOptions={{ color: "#1d4ed8", weight: 5, opacity: 0.85 }} />}

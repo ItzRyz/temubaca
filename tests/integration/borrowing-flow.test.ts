@@ -165,7 +165,7 @@ describe("loan extension", () => {
         await expect(borrowing.actOnBorrowing(borrowingId, OWNER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("Hanya peminjam");
         await expect(borrowing.actOnBorrowing(borrowingId, OWNER, { action: "approve_extension" })).rejects.toThrow("Tidak ada permintaan");
         await borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: "Belum selesai dibaca." });
-        await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("satu kali");
+        await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "request_extension", days: 7, note: undefined })).rejects.toThrow("menunggu jawaban");
         await expect(borrowing.actOnBorrowing(borrowingId, READER, { action: "approve_extension" })).rejects.toThrow("Hanya pemilik");
 
         const [pending] = (await borrowing.listLoansForUser(OWNER)).filter((item) => item.requestId === requestId);

@@ -190,6 +190,13 @@
       "when": 1793343212536,
       "tag": "0026_reviews_meeting_time",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1793352172465,
+      "tag": "0027_platform_settings",
+      "breakpoints": true
     }
   ]
 }

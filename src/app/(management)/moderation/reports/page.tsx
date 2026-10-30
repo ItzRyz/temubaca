@@ -11,6 +11,9 @@ import { availableCommunityDecisions } from "@/features/verification/community-r
 import { CommunityDecisionPanel } from "@/features/verification/components/community-decision-panel";
 import { CommunityEvidence } from "@/features/community-management/components/evidence-list";
 import { cn } from "@/lib/utils";
+import { ContentDecisionPanel } from "@/features/moderation/components/content-decision-panel";
+import { countPendingCommunityContent, listPendingCommunityContent } from "@/lib/db/queries/community-content";
+import { getSettings } from "@/lib/db/queries/settings";
 
 export const metadata: Metadata = { title: "Peninjauan pengajuan & laporan" };
 export const dynamic = "force-dynamic";
@@ -65,13 +68,15 @@ function single(value: string | string[] | undefined) {
 
 export default async function ModerationPage({ searchParams }: PageProps) {
     const params = await searchParams;
-    const tab = single(params.tab) === "communities" ? "communities" : "reports";
+    const requestedTab = single(params.tab);
+    const tab = requestedTab === "communities" || requestedTab === "content" ? requestedTab : "reports";
     const query = (single(params.q) ?? "").trim().slice(0, 100);
     const selected = single(params.item);
 
-    const [reportCounts, communityCounts] = await Promise.all([
+    const [reportCounts, communityCounts, pendingContent] = await Promise.all([
         Promise.all((["PENDING", "REVIEWING", "RESOLVED", "REJECTED"] as const).map((status) => countReportsByStatus(status))),
         Promise.all((["PENDING", "VERIFIED", "REJECTED", "SUSPENDED"] as const).map((status) => countCommunitiesByStatus(status))),
+        countPendingCommunityContent(),
     ]);
     const reportViewCounts: Record<ReportView, number> = { open: reportCounts[0] + reportCounts[1], resolved: reportCounts[2], rejected: reportCounts[3] };
     const communityViewCounts: Record<CommunityView, number> = { PENDING: communityCounts[0], VERIFIED: communityCounts[1], REJECTED: communityCounts[2], SUSPENDED: communityCounts[3] };
@@ -97,6 +102,7 @@ export default async function ModerationPage({ searchParams }: PageProps) {
                         {[
                             { value: "communities", label: `Verifikasi Komunitas (${communityViewCounts.PENDING})` },
                             { value: "reports", label: `Laporan Konten (${reportViewCounts.open})` },
+                            { value: "content", label: `Acara & Merchandise (${pendingContent})` },
                         ].map((item) => (
                             <Link
                                 key={item.value}
@@ -109,7 +115,7 @@ export default async function ModerationPage({ searchParams }: PageProps) {
                         ))}
                     </nav>
                     <div className="flex flex-wrap gap-2">
-                        {tab === "reports"
+                        {tab === "content" ? null : tab === "reports"
                             ? (Object.keys(reportViews) as ReportView[]).map((view) => {
                                 const active = (single(params.view) ?? "open") === view;
                                 return (
@@ -130,7 +136,7 @@ export default async function ModerationPage({ searchParams }: PageProps) {
                             })}
                     </div>
                 </div>
-                <form action="/moderation/reports" method="get" role="search" className="flex lg:w-72">
+                {tab !== "content" && <form action="/moderation/reports" method="get" role="search" className="flex lg:w-72">
                     {tab === "communities" && <input type="hidden" name="tab" value="communities" />}
                     {single(params.view) && <input type="hidden" name="view" value={single(params.view)} />}
                     <label className="flex h-11 w-full items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
@@ -138,10 +144,10 @@ export default async function ModerationPage({ searchParams }: PageProps) {
                         <span className="sr-only">Cari judul konten atau nama</span>
                         <input name="q" type="search" maxLength={100} defaultValue={query} placeholder="Cari judul konten/pemilik..." className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
                     </label>
-                </form>
+                </form>}
             </div>
 
-            {tab === "reports"
+            {tab === "content" ? <ContentTab /> : tab === "reports"
                 ? <ReportsTab view={(single(params.view) as ReportView) in reportViews ? single(params.view) as ReportView : "open"} query={query} selected={selected} hrefFor={hrefFor} />
                 : <CommunitiesTab view={(single(params.view) as CommunityView) in communityViews ? single(params.view) as CommunityView : "PENDING"} query={query} selected={selected} hrefFor={hrefFor} />}
         </main>
@@ -151,7 +157,10 @@ export default async function ModerationPage({ searchParams }: PageProps) {
 type TabProps<View> = { view: View; query: string; selected?: string; hrefFor: (next: Record<string, string | undefined>) => string };
 
 async function ReportsTab({ view, query, selected, hrefFor }: TabProps<ReportView>) {
-    const lists = await Promise.all(reportViews[view].statuses.map((status) => listReports({ status, limit: 100, offset: 0 })));
+    const [lists, { settings: moderation }] = await Promise.all([
+        Promise.all(reportViews[view].statuses.map((status) => listReports({ status, limit: 100, offset: 0 }))),
+        getSettings("moderation"),
+    ]);
     const reports = lists.flatMap((list) => list.items);
     const targets = await resolveReportTargets(reports.map(({ targetType, targetId }) => ({ targetType, targetId })));
 
@@ -234,11 +243,14 @@ async function ReportsTab({ view, query, selected, hrefFor }: TabProps<ReportVie
                                             <time dateTime={report.createdAt.toISOString()} className="shrink-0 text-xs text-muted-foreground">{dateTime.format(report.createdAt)}</time>
                                         </div>
                                         <p className="mt-1 text-sm whitespace-pre-wrap text-foreground/80">{report.details || "Tanpa keterangan tambahan."}</p>
+                                        {!moderation.hideReporterIdentity && <p className="mt-1 text-xs text-muted-foreground">Pelapor: {report.reporter?.displayName ?? "Akun dihapus"}</p>}
                                         {report.outcome && <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground">Catatan: {report.outcome}</p>}
                                     </li>
                                 ))}
                             </ul>
-                            <p className="mt-2 text-xs text-muted-foreground">Identitas pelapor tidak ditampilkan di panel ini.</p>
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                {moderation.hideReporterIdentity ? "Identitas pelapor disembunyikan (Pengaturan → Moderasi)." : "Identitas pelapor ditampilkan untuk admin saja; pemilik konten tidak pernah melihatnya."}
+                            </p>
                         </div>
                     </div>
                     <ReportDecisionPanel
@@ -335,5 +347,37 @@ async function CommunitiesTab({ view, query, selected, hrefFor }: TabProps<Commu
                 </section>
             )}
         </div>
+    );
+}
+
+/** Events and merchandise waiting while pre-publication review is on (Pengaturan → Moderasi, 30 Okt 2026). */
+async function ContentTab() {
+    const [{ events, merchandise }, { settings }] = await Promise.all([listPendingCommunityContent(), getSettings("moderation")]);
+    const items = [
+        ...events.map((event) => ({ type: "event" as const, id: event.id, title: event.title, communityId: event.communityId, communityName: event.communityName, submittedAt: event.submittedAt, detail: [event.startsAt ? dateTime.format(event.startsAt) : "Jadwal belum diisi", event.publicLocation].filter(Boolean).join(" · "), description: event.description })),
+        ...merchandise.map((item) => ({ type: "merchandise" as const, id: item.id, title: item.title, communityId: item.communityId, communityName: item.communityName, submittedAt: item.submittedAt, detail: item.priceAmount !== null ? `Rp ${Number(item.priceAmount).toLocaleString("id-ID")}` : item.priceNote ?? "Harga belum diisi", description: item.description })),
+    ].sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+    const off = !settings.reviewNewEvents && !settings.reviewNewMerchandise;
+    return (
+        <section aria-label="Acara dan merchandise menunggu tinjauan" className="mt-6">
+            {off && <p className="mb-4 rounded-lg bg-[#f1f0ea] px-4 py-3 text-sm text-muted-foreground">Tinjauan sebelum tayang sedang mati di Pengaturan → Moderasi; konten baru langsung tayang. Antrean di bawah berisi yang dikirim saat tinjauan masih menyala.</p>}
+            {items.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">Tidak ada acara atau merchandise yang menunggu tinjauan.</p>
+            ) : (
+                <ul className="flex list-none flex-col gap-3 p-0">
+                    {items.map((item) => (
+                        <li key={`${item.type}-${item.id}`} className="grid gap-4 rounded-xl border border-border bg-card p-4 lg:grid-cols-[1fr_320px]">
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold text-muted-foreground">{item.type === "event" ? "Acara" : "Merchandise"} · <Link href={`/communities/${item.communityId}`} className="hover:underline">{item.communityName}</Link> · dikirim {dateTime.format(item.submittedAt)}</p>
+                                <h2 className="mt-1 font-heading text-lg font-semibold">{item.title}</h2>
+                                <p className="text-sm text-muted-foreground">{item.detail}</p>
+                                {item.description && <p className="mt-2 line-clamp-4 text-sm leading-6 whitespace-pre-line text-foreground/85">{item.description}</p>}
+                            </div>
+                            <ContentDecisionPanel type={item.type} id={item.id} title={item.title} />
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </section>
     );
 }

@@ -58,9 +58,10 @@ export const libraryHoldingStatusValues = ['LISTED', 'AVAILABLE', 'ON_LOAN', 'UN
 export const communityStatusValues = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'] as const;
 export const membershipRoleValues = ['OWNER', 'MANAGER', 'MEMBER'] as const;
 export const membershipStatusValues = ['PENDING', 'ACTIVE', 'REJECTED', 'LEFT', 'REMOVED'] as const;
-export const publicationStatusValues = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
+// PENDING_REVIEW: waiting for an admin while pre-publication review is on (settings, 30 Okt 2026).
+export const publicationStatusValues = ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'ARCHIVED'] as const;
 export const eventLocationTypeValues = ['PHYSICAL', 'ONLINE'] as const;
-export const merchandiseStatusValues = ['DRAFT', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED'] as const;
+export const merchandiseStatusValues = ['DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED'] as const;
 export const reportStatusValues = ['PENDING', 'REVIEWING', 'RESOLVED', 'REJECTED'] as const;
 export const verificationStatusValues = ['PENDING', 'APPROVED', 'REJECTED', 'REVOKED'] as const;
 export const targetTypeValues = ['BOOK', 'BOOK_LISTING', 'COMMUNITY', 'EVENT', 'MERCHANDISE_LISTING', 'USER', 'BORROW_REQUEST', 'BORROWING', 'ORDER', 'PLACE', 'LIBRARY', 'OTHER'] as const;
@@ -68,7 +69,7 @@ export const orderStatusValues = ['PENDING', 'CONFIRMED', 'PROCESSING', 'COMPLET
 export const bookSyncStatusValues = ['SUCCESS', 'FAILED'] as const;
 // SCHEDULED: the daily cron refreshes records older than the admin's "usang" threshold (DEC-06).
 export const bookSyncTriggerValues = ['IMPORT', 'MANUAL', 'SCHEDULED'] as const;
-export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN', 'PLACE_CREATED', 'PLACE_UPDATED', 'PLACE_HIDDEN', 'PLACE_RESTORED', 'LIBRARY_CREATED', 'LIBRARY_UPDATED', 'LIBRARY_MANAGER_ADDED', 'LIBRARY_MANAGER_REMOVED', 'LIBRARY_HOLDING_CHANGED'] as const;
+export const adminAuditActionValues = ['USER_SUSPENDED', 'USER_REINSTATED', 'USER_ROLE_CHANGED', 'USER_EMAIL_REVEALED', 'SETTINGS_UPDATED', 'BORROWING_DISPUTE_RESOLVED', 'ACCOUNT_DELETED', 'RETENTION_RUN', 'PLACE_CREATED', 'PLACE_UPDATED', 'PLACE_HIDDEN', 'PLACE_RESTORED', 'LIBRARY_CREATED', 'LIBRARY_UPDATED', 'LIBRARY_MANAGER_ADDED', 'LIBRARY_MANAGER_REMOVED', 'LIBRARY_HOLDING_CHANGED', 'CONTENT_APPROVED', 'CONTENT_REJECTED'] as const;
 /** Peta Literasi (DEC-07). EVENT pins arrive in phase 2; book listings never appear on the map. */
 export const placeTypeValues = ['LIBRARY', 'COMMUNITY', 'EVENT', 'MEETING_POINT'] as const;
 
@@ -84,10 +85,15 @@ export const userProfiles = pgTable('user_profiles', {
     deletionRequestedAt: nowDate(), deletionScheduledFor: nowDate(), deletedAt: nowDate(), authDeletedAt: nowDate(),
     // Optional Kemendagri kab/kota code (R-11) for community recommendations; never shown to others.
     regionCode: text(),
+    // Optional kecamatan inside `regionCode` (Kemendagri NN.NN.NN, 30 Okt 2026).
+    districtCode: text(),
     // Set by a dispute decision; new borrow requests are refused until then.
     borrowBlockedUntil: nowDate(),
     createdAt: createdAt(), updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
-}, t => [check('user_profiles_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`)]).enableRLS();
+}, t => [
+    check('user_profiles_region_code_check', sql`${t.regionCode} ~ '^[0-9]{2}[.][0-9]{2}$'`),
+    check('user_profiles_district_code_check', sql`${t.districtCode} ~ '^[0-9]{2}[.][0-9]{2}[.][0-9]{2}$'`),
+]).enableRLS();
 
 /** Admin actions on accounts that are not verifications: suspension, role changes, revealing a full email. */
 export const adminAuditLogs = pgTable('admin_audit_logs', {
@@ -253,7 +259,8 @@ export const borrowings = pgTable('borrowings', {
     status: enumText(borrowingStatusValues).notNull().default('ACTIVE'), handedOverAt: nowDate(), dueAt: nowDate(), returnedAt: nowDate(),
     handoverProof: jsonb(), returnProof: jsonb(), note: text(),
     ownerReturnAt: nowDate(), requesterReturnAt: nowDate(), lastReminderAt: nowDate(),
-    extensionStatus: enumText(loanExtensionStatusValues), extensionDays: integer(), extensionNote: text(),
+    // The latest extension request; `extensionCount` counts every one asked (limit set in Pengaturan, 30 Okt 2026).
+    extensionStatus: enumText(loanExtensionStatusValues), extensionDays: integer(), extensionNote: text(), extensionCount: integer().notNull().default(0),
     extensionRequestedAt: nowDate(), extensionRespondedAt: nowDate(), extensionResponseNote: text(),
     disputedAt: nowDate(), disputeReason: text(), disputeDetails: text(),
     disputedById: uuid().references(() => userProfiles.id, { onDelete: 'set null', onUpdate: 'cascade' }),
@@ -344,7 +351,10 @@ export const events = pgTable('events', {
     locationType: enumText(eventLocationTypeValues).notNull().default('PHYSICAL'), venueName: text(),
     // Event image (29 Okt 2026), in the public community image bucket.
     imagePath: text(),
-    publicationStatus: enumText(publicationStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
+    publicationStatus: enumText(publicationStatusValues).notNull().default('DRAFT'),
+    // An admin's refusal while review is on (shown to the managers), and when it was decided.
+    moderationNote: text(), reviewedAt: nowDate(),
+    createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [index('events_community_publication_status_idx').on(t.communityId, t.publicationStatus), index('events_starts_at_idx').on(t.startsAt), enumCheck(t.publicationStatus, publicationStatusValues), enumCheck(t.locationType, eventLocationTypeValues)]).enableRLS();
 
 /**
@@ -378,7 +388,9 @@ export const merchandiseListings = pgTable('merchandise_listings', {
     // three photos in the public `merchandise-photos` bucket (paths `<communityId>/<uuid>.<ext>`).
     variants: text().array().notNull().default(sql`'{}'::text[]`), fulfillmentNote: text(),
     photoPaths: text().array().notNull().default(sql`'{}'::text[]`),
-    status: enumText(merchandiseStatusValues).notNull().default('DRAFT'), createdAt: createdAt(), updatedAt: updatedAt(),
+    status: enumText(merchandiseStatusValues).notNull().default('DRAFT'),
+    moderationNote: text(), reviewedAt: nowDate(),
+    createdAt: createdAt(), updatedAt: updatedAt(),
 }, t => [
     index('merchandise_listings_community_status_idx').on(t.communityId, t.status), index('merchandise_listings_availability_idx').on(t.availability), enumCheck(t.availability, listingAvailabilityValues), enumCheck(t.status, merchandiseStatusValues),
     check('merchandise_listings_photo_paths_check', sql`cardinality(${t.photoPaths}) <= 3`),

@@ -1,17 +1,17 @@
 "use client";
 
-import { ArrowLeftRight, Bookmark, BookOpen, CircleHelp, LayoutDashboard, Library, LogOut, ShieldCheck, Sparkles, UsersRound, type LucideIcon } from "lucide-react";
+import { ArrowLeftRight, Bookmark, BookOpen, CircleHelp, Flag, LayoutDashboard, Library, LogOut, ShieldCheck, Sparkles, UsersRound, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { openTour } from "@/features/onboarding/components/product-tour";
 
-type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "loans" | "communities"> };
+type MenuItem = { href: string; label: string; hint: string; icon: LucideIcon; attention?: keyof Pick<MenuAttention, "loans" | "communities" | "reports"> };
 type MenuGroup = { title: string; items: MenuItem[] };
 
 /** What waits for this user, shown as red dots (owner's decision 29 Okt 2026: a dot, no count). */
-export type MenuAttention = { loans: boolean; loansHref: string; communities: boolean; managesLibraries: boolean };
+export type MenuAttention = { loans: boolean; loansHref: string; communities: boolean; reports: boolean; managesLibraries: boolean };
 
 /** Grouped so a new reader can tell the entries apart (owner's request 28 Okt 2026); each has a one-line hint. */
 function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean; managesLibraries: boolean; loansHref: string }): MenuGroup[] {
@@ -28,6 +28,7 @@ function menuGroups({ isAdmin, managesLibraries, loansHref }: { isAdmin: boolean
             items: [
                 { href: "/recommendations", label: "Rekomendasi", hint: "Buku dan komunitas pilihan", icon: Sparkles },
                 { href: "/bookmarks", label: "Bookmark & minat", hint: "Buku tersimpan dan minat baca", icon: Bookmark },
+                { href: "/reports/mine", label: "Laporan saya", hint: "Status laporan yang kamu kirim", icon: Flag, attention: "reports" },
             ],
         },
         {
@@ -95,7 +96,7 @@ export function ProfileMenu({ initials, displayName, isAdmin, attention }: { ini
         list[next]?.focus();
     }
 
-    const waiting = attention.loans || attention.communities;
+    const waiting = attention.loans || attention.communities || attention.reports;
     const groups = menuGroups({ isAdmin, managesLibraries: attention.managesLibraries, loansHref: attention.loansHref });
 
     return (

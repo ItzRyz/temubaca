@@ -5,6 +5,7 @@ import { CuratedPlaceForm, emptyCuratedPlace, PlaceVisibilityControl } from "@/f
 import { placeTypeLabels } from "@/features/places/places";
 import { regionByCode } from "@/features/regions/regions";
 import { listPlacesForAdmin } from "@/lib/db/queries/places";
+import { MapTilesFromSettings } from "@/features/places/components/map-tiles-from-settings";
 
 export const metadata: Metadata = { title: "Data tempat" };
 export const dynamic = "force-dynamic";
@@ -39,19 +40,21 @@ export default async function AdminPlacesPage({ searchParams }: PageProps) {
                     <h2 id="place-form-title" className="font-heading text-xl font-semibold">{editing ? `Ubah ${editing.name}` : "Tambah tempat"}</h2>
                     {editing && <Link href="/admin/places" className="mt-1 inline-block text-sm font-semibold text-primary hover:underline">Batal mengubah</Link>}
                     <div className="mt-4">
-                        <CuratedPlaceForm
-                            key={editing?.id ?? "new"}
-                            placeId={editing?.id}
-                            initial={editing ? {
-                                type: editing.type as "LIBRARY" | "MEETING_POINT",
-                                name: editing.name,
-                                addressPublic: editing.addressPublic ?? "",
-                                regionCode: editing.regionCode ?? "",
-                                source: editing.source ?? "",
-                                latitude: String(editing.latitude),
-                                longitude: String(editing.longitude),
-                            } : emptyCuratedPlace}
-                        />
+                        <MapTilesFromSettings>
+                            <CuratedPlaceForm
+                                key={editing?.id ?? "new"}
+                                placeId={editing?.id}
+                                initial={editing ? {
+                                    type: editing.type as "LIBRARY" | "MEETING_POINT",
+                                    name: editing.name,
+                                    addressPublic: editing.addressPublic ?? "",
+                                    regionCode: editing.regionCode ?? "",
+                                    source: editing.source ?? "",
+                                    latitude: String(editing.latitude),
+                                    longitude: String(editing.longitude),
+                                } : emptyCuratedPlace}
+                            />
+                        </MapTilesFromSettings>
                     </div>
                 </section>
 

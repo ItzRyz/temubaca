@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
                 "/recommendations",
                 "/minat",
                 "/members/",
+                "/reports/",
                 "/my-listings",
                 "/my-libraries",
                 "/communities/mine",

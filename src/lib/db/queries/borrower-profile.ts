@@ -28,7 +28,7 @@ export async function canViewBorrowerProfile(viewer: { id: string; role: string 
  * and lenders' reviews. Never email, phone or address. Null for an unknown or deleted account.
  */
 export async function getBorrowerProfile(userId: string) {
-    const [profile] = await db.select({ id: userProfiles.id, displayName: userProfiles.displayName, regionCode: userProfiles.regionCode, createdAt: userProfiles.createdAt })
+    const [profile] = await db.select({ id: userProfiles.id, displayName: userProfiles.displayName, regionCode: userProfiles.regionCode, districtCode: userProfiles.districtCode, createdAt: userProfiles.createdAt })
         .from(userProfiles).where(and(eq(userProfiles.id, userId), isNull(userProfiles.deletedAt)));
     if (!profile) return null;
 

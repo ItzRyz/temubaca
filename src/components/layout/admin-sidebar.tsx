@@ -13,15 +13,15 @@ function initialsOf(name: string) {
 }
 
 /** Admin portal navigation (Figma "Peninjauan" 143:807). Items without a page yet are shown as unavailable. */
-export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number; disputes: number; appeals: number } }) {
+export function AdminSidebar({ displayName, pending }: { displayName: string; pending: { reports: number; communities: number; content: number; disputes: number; appeals: number } }) {
     const pathname = usePathname();
     const items: NavItem[] = [
         {
             href: "/moderation/reports",
             label: "Peninjauan",
             icon: CircleCheck,
-            badge: pending.reports + pending.communities,
-            badgeDetail: `${pending.reports} laporan dan ${pending.communities} pengajuan komunitas menunggu`,
+            badge: pending.reports + pending.communities + pending.content,
+            badgeDetail: `${pending.reports} laporan, ${pending.communities} pengajuan komunitas, dan ${pending.content} acara/merchandise menunggu`,
         },
         {
             href: "/admin/loans",

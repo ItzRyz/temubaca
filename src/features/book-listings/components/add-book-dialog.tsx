@@ -30,8 +30,11 @@ async function postJson<T>(url: string, body: unknown) {
 /** Figma "Tambah Buku" (152:807) and its manual variant (159:833): pick or enter a book, then listing details. */
 type PlaceSuggestion = { id: string; name: string; regionCode: string | null };
 
-/** `communityId` adds the copy to that community's collection instead of the reader's own (30 Okt 2026). */
-export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
+/**
+ * `communityId` adds the copy to that community's collection instead of the reader's own (30 Okt 2026).
+ * `defaultLoanDays` and `mapOnlyMeetingPoints` follow Pengaturan → Aturan Pinjam.
+ */
+export function AddBookDialog({ communityId, defaultLoanDays = 14, mapOnlyMeetingPoints = false }: { communityId?: string; defaultLoanDays?: (typeof loanDayOptions)[number]; mapOnlyMeetingPoints?: boolean } = {}) {
     const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
     const titleId = useId();
@@ -56,7 +59,7 @@ export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
     // Meeting point name -> Peta Literasi place id, for points picked from the map (TB-027).
     const [mapPlaces, setMapPlaces] = useState<Record<string, string>>({});
     const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
-    const [loanDays, setLoanDays] = useState<(typeof loanDayOptions)[number]>(14);
+    const [loanDays, setLoanDays] = useState<(typeof loanDayOptions)[number]>(defaultLoanDays);
     const [offered, setOffered] = useState(true);
     const [pending, setPending] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
     function reset() {
         setStep(1); setManual(false); setQuery(""); setLocalResults([]); setExternalResults([]); setChoice(null);
         setManualBook({ title: "", author: "", publishedAt: "", publisher: "", isbn: "", category: "" }); setManualErrors({});
-        setCondition("LIKE_NEW"); setConditionNote(""); setPointDraft(""); setMeetingPoints([]); setMapPlaces({}); setPlaceSuggestions([]); setLoanDays(14); setOffered(true); setError(null);
+        setCondition("LIKE_NEW"); setConditionNote(""); setPointDraft(""); setMeetingPoints([]); setMapPlaces({}); setPlaceSuggestions([]); setLoanDays(defaultLoanDays); setOffered(true); setError(null);
     }
 
     function open() {
@@ -163,7 +166,10 @@ export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
     function onPointKey(event: KeyboardEvent<HTMLInputElement>) {
         if (event.key === "Enter") {
             event.preventDefault();
-            addPoint();
+            // Only Peta Literasi places may be added while typed places are off.
+            if (mapOnlyMeetingPoints) {
+                if (placeSuggestions[0]) addMapPlace(placeSuggestions[0]);
+            } else addPoint();
         }
     }
 
@@ -358,9 +364,9 @@ export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
                                         <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input px-3 focus-within:ring-2 focus-within:ring-ring">
                                             <MapPin aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
                                             <input id={pointInputId} value={pointDraft} onChange={(event) => setPointDraft(event.target.value)} onKeyDown={onPointKey} maxLength={80} disabled={meetingPoints.length >= MAX_MEETING_POINTS}
-                                                aria-describedby={`${pointInputId}-hint`} placeholder="Tempat umum, mis. stasiun, taman, kafe" className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+                                                aria-describedby={`${pointInputId}-hint`} placeholder={mapOnlyMeetingPoints ? "Cari perpustakaan atau titik temu di Peta Literasi" : "Tempat umum, mis. stasiun, taman, kafe"} className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
                                         </label>
-                                        <button type="button" onClick={addPoint} disabled={!pointDraft.trim() || meetingPoints.length >= MAX_MEETING_POINTS} className="h-11 shrink-0 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50">Tambah</button>
+                                        {!mapOnlyMeetingPoints && <button type="button" onClick={addPoint} disabled={!pointDraft.trim() || meetingPoints.length >= MAX_MEETING_POINTS} className="h-11 shrink-0 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50">Tambah</button>}
                                     </div>
                                     {pointDraft.trim().length >= 2 && placeSuggestions.length > 0 && meetingPoints.length < MAX_MEETING_POINTS && (
                                         <ul aria-label="Saran dari Peta Literasi" className="flex list-none flex-col overflow-hidden rounded-lg border border-border p-0">
@@ -389,7 +395,9 @@ export function AddBookDialog({ communityId }: { communityId?: string } = {}) {
                                         </ul>
                                     )}
                                     <p id={`${pointInputId}-hint`} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                                        <ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /> Pilih tempat umum yang ramai, maksimal {MAX_MEETING_POINTS}; ketik untuk melihat saran dari Peta Literasi. Alamat rumah Anda tidak pernah ditampilkan.
+                                        <ShieldCheck aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" /> {mapOnlyMeetingPoints
+                                            ? <>Pilih maksimal {MAX_MEETING_POINTS} tempat dari Peta Literasi (perpustakaan atau titik temu publik yang dikurasi). Alamat rumah Anda tidak pernah ditampilkan.</>
+                                            : <>Pilih tempat umum yang ramai, maksimal {MAX_MEETING_POINTS}; ketik untuk melihat saran dari Peta Literasi. Alamat rumah Anda tidak pernah ditampilkan.</>}
                                     </p>
                                 </div>
                                 <div className="grid gap-4 sm:grid-cols-2">

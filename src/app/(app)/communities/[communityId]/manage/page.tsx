@@ -9,6 +9,7 @@ import { CommunityPlaceForm } from "@/features/places/components/community-place
 import { listCommunitySubmissions } from "@/lib/db/queries/community-management";
 import { findCommunityPlace } from "@/lib/db/queries/places";
 import { lastCommunityApproval, listCommunityVerifications } from "@/lib/db/queries/verifications";
+import { MapTilesFromSettings } from "@/features/places/components/map-tiles-from-settings";
 
 export const metadata: Metadata = { title: "Kelola komunitas" };
 
@@ -37,7 +38,11 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
             {justApplied && (
                 <p role="status" className="flex gap-3 rounded-xl bg-[#e7efe8] p-4 text-sm">
                     <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <span><span className="block font-semibold">Pengajuan terkirim</span>Tim TemuBaca akan meninjau bukti aktivitas. Profil belum tampil untuk umum sampai disetujui; Anda tetap bisa merapikannya di sini.</span>
+                    {status === "VERIFIED" ? (
+                        <span><span className="block font-semibold">Komunitas terdaftar</span>Profil langsung tampil untuk umum. Anda bisa mulai menambah acara, merchandise, dan koleksi buku.</span>
+                    ) : (
+                        <span><span className="block font-semibold">Pengajuan terkirim</span>Tim TemuBaca akan meninjau bukti aktivitas. Profil belum tampil untuk umum sampai disetujui; Anda tetap bisa merapikannya di sini.</span>
+                    )}
                 </p>
             )}
 
@@ -67,11 +72,13 @@ export default async function ManageCommunityProfilePage({ params, searchParams 
             )}
 
             {can.editProfile && (
-                <CommunityPlaceForm
-                    communityId={communityId}
-                    verified={status === "VERIFIED"}
-                    saved={place ? { ...place, hidden: Boolean(place.hiddenAt) } : null}
-                />
+                <MapTilesFromSettings>
+                    <CommunityPlaceForm
+                        communityId={communityId}
+                        verified={status === "VERIFIED"}
+                        saved={place ? { ...place, hidden: Boolean(place.hiddenAt) } : null}
+                    />
+                </MapTilesFromSettings>
             )}
 
             <section aria-labelledby="verification-title" className="rounded-2xl border border-border bg-card p-5 sm:p-6">

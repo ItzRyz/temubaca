@@ -15,11 +15,12 @@ const day = new Intl.DateTimeFormat("id-ID", { day: "numeric", timeZone: "Asia/J
 const weekday = new Intl.DateTimeFormat("id-ID", { weekday: "long", timeZone: "Asia/Jakarta" });
 const time = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" });
 
-const filters = { all: "Semua", PUBLISHED: "Terbit", DRAFT: "Draf", DONE: "Selesai", ARCHIVED: "Arsip" } as const;
+const filters = { all: "Semua", PUBLISHED: "Terbit", PENDING_REVIEW: "Menunggu tinjauan", DRAFT: "Draf", DONE: "Selesai", ARCHIVED: "Arsip" } as const;
 type Filter = keyof typeof filters;
 const badge: Record<EventDisplayStatus, { label: string; className: string }> = {
     PUBLISHED: { label: "Terbit", className: "bg-[#c9ecd6] text-primary" },
     DRAFT: { label: "Draf", className: "bg-[#ebe9e1] text-foreground/80" },
+    PENDING_REVIEW: { label: "Menunggu tinjauan admin", className: "bg-[#fbecc4] text-[#5c3d00]" },
     DONE: { label: "Selesai", className: "bg-[#ebe9e1] text-foreground/70" },
     ARCHIVED: { label: "Diarsipkan", className: "bg-[#ebe9e1] text-foreground/70" },
 };
@@ -121,6 +122,9 @@ export default async function ManageEventsPage({ params, searchParams }: PagePro
                                         )}
                                     </p>
                                 </div>
+                                {event.moderationNote && status === "DRAFT" && (
+                                    <p className="text-xs text-destructive sm:basis-full sm:order-last">Ditolak admin: {event.moderationNote} Ubah, lalu terbitkan lagi untuk ditinjau ulang.</p>
+                                )}
                                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                                     {status === "DRAFT" && missing.length > 0 ? (
                                         <Link href={`${base}/${event.id}`} className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Lengkapi</Link>

@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { regionByCode } from "@/features/regions/regions";
+import { memberAreaLabel } from "@/features/regions/districts";
+import { getSettings } from "@/lib/db/queries/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { redirectToLogin } from "@/lib/auth/login-redirect";
 import { canViewBorrowerProfile, getBorrowerProfile } from "@/lib/db/queries/borrower-profile";
@@ -39,10 +40,11 @@ export default async function BorrowerProfilePage({ params }: PageProps<"/member
     const viewer = await getCurrentUser();
     if (!viewer) return redirectToLogin();
     if (!(await canViewBorrowerProfile(viewer, userId))) notFound();
-    const data = await getBorrowerProfile(userId);
+    const [data, { settings: map }] = await Promise.all([getBorrowerProfile(userId), getSettings("map")]);
     if (!data) notFound();
     const { profile, returnedCount, returns, reviews, average } = data;
-    const region = regionByCode(profile.regionCode);
+    // As precise as Pengaturan → Peta & Lokasi allows: kecamatan, kab/kota, or province.
+    const area = memberAreaLabel(profile, map.locationPrecision);
 
     return (
         <main className="mx-auto w-full max-w-[960px] px-4 py-8 sm:px-6 sm:py-10">
@@ -56,7 +58,7 @@ export default async function BorrowerProfilePage({ params }: PageProps<"/member
                     <h1 id="borrower-name" className="truncate font-heading text-2xl font-semibold text-primary">{profile.displayName}</h1>
                     <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1"><CalendarDays aria-hidden="true" className="size-4" /> Bergabung {monthYear.format(profile.createdAt)}</span>
-                        {region && <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-4" /> {region.name}</span>}
+                        {area && <span className="flex items-center gap-1"><MapPin aria-hidden="true" className="size-4" /> {area}</span>}
                     </p>
                 </div>
                 <dl className="grid grid-cols-2 gap-6 sm:text-right">

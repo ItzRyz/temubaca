@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { requireApiRateLimit, UnauthorizedError, withApiHandler } from "@/lib/api";
+import { ForbiddenError, requireApiRateLimit, UnauthorizedError, withApiHandler } from "@/lib/api";
+import { getSettings } from "@/lib/db/queries/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { exportUserData } from "@/lib/db/queries/account-deletion";
 import { createUserRateLimitKey } from "@/lib/rate-limit";
@@ -9,6 +10,8 @@ import { createUserRateLimitKey } from "@/lib/rate-limit";
 export const GET = withApiHandler(async () => {
     const user = await getCurrentUser();
     if (!user) throw new UnauthorizedError();
+    // Pengaturan → Retensi & Data can switch the download off (30 Okt 2026).
+    if (!(await getSettings("retention")).settings.allowDataExport) throw new ForbiddenError("Unduh data sedang dinonaktifkan admin. Hubungi pengelola TemuBaca bila Anda memerlukan salinan data.");
     await requireApiRateLimit({ key: createUserRateLimitKey("data-export", user.id), limit: 3, windowSeconds: 3600 });
     const data = await exportUserData(user.id);
     const stamp = new Date().toISOString().slice(0, 10);

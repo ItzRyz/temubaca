@@ -25,6 +25,7 @@ import { ValidationError } from "@/lib/api/errors";
 import { db } from "../client";
 import { listingManagedBy, listingVisible } from "./listing-access";
 import { meetingPlaceNames } from "./places";
+import { getSettings } from "./settings";
 
 import {
     books,
@@ -463,6 +464,17 @@ async function linkedMeetingPlaces(publicLocation: string | null | undefined, pl
     return ids.filter((id) => points.includes(names.get(id) ?? ""));
 }
 
+/**
+ * With "titik temu hanya dari daftar aman" on (Pengaturan → Aturan Pinjam, 30 Okt 2026), every meeting
+ * point must be a Peta Literasi place; typed places are refused.
+ */
+async function assertMeetingPointsAllowed(publicLocation: string | null | undefined, linkedIds: string[]) {
+    if (!(await getSettings("borrowing")).settings.meetingPointsFromMapOnly) return;
+    if (meetingPointsOf(publicLocation).length > linkedIds.length) {
+        throw new ValidationError("Titik temu harus dipilih dari Peta Literasi (perpustakaan atau titik temu publik).");
+    }
+}
+
 export async function createBookListing(input: {
     ownerId: string;
     bookId: string;
@@ -481,6 +493,8 @@ export async function createBookListing(input: {
     borrowingRules?: string;
     communityId?: string;
 }) {
+    const meetingPlaceIds = await linkedMeetingPlaces(input.publicLocation, input.meetingPlaceIds ?? [], true);
+    await assertMeetingPointsAllowed(input.publicLocation, meetingPlaceIds);
     const [listing] = await db
         .insert(bookListings)
         .values({
@@ -492,8 +506,7 @@ export async function createBookListing(input: {
                 input.availability ?? "AVAILABLE",
             publicLocation:
                 input.publicLocation,
-            meetingPlaceIds:
-                await linkedMeetingPlaces(input.publicLocation, input.meetingPlaceIds ?? [], true),
+            meetingPlaceIds,
             borrowingRules:
                 input.borrowingRules,
         })
@@ -538,6 +551,7 @@ export async function updateBookListing(
             input.meetingPlaceIds ?? current.meetingPlaceIds,
             input.meetingPlaceIds !== undefined,
         );
+        if (input.publicLocation !== undefined) await assertMeetingPointsAllowed(input.publicLocation, meetingPlaceIds);
     }
 
     const [listing] = await db

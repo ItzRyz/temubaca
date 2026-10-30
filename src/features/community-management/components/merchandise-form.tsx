@@ -72,7 +72,8 @@ export function MerchandiseForm({ communityId, itemId, initial, communityContact
                 setMessage(result.message);
                 return;
             }
-            notify.success(itemId ? "Merchandise disimpan." : "Merchandise dibuat.");
+            const status = (result.data as { status?: string } | undefined)?.status;
+            notify.success(status === "PENDING_REVIEW" ? "Merchandise dikirim ke admin untuk ditinjau sebelum tayang." : itemId ? "Merchandise disimpan." : "Merchandise dibuat.");
             router.push(listHref);
             router.refresh();
         });

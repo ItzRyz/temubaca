@@ -16,7 +16,7 @@ export default async function SettingsPage() {
                 <h1 className="mt-3 font-heading text-4xl font-semibold tracking-tight">Pengaturan profil</h1>
                 <p className="mt-3 text-sm text-muted-foreground">Perbarui nama yang ditampilkan kepada pembaca lain dan wilayahmu untuk rekomendasi komunitas.</p>
             </header>
-            <ProfileSettingsForm displayName={user.displayName} regionCode={user.regionCode} />
+            <ProfileSettingsForm displayName={user.displayName} regionCode={user.regionCode} districtCode={user.districtCode} />
         </main>
     );
 }

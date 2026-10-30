@@ -61,7 +61,7 @@ export function RequestExtensionDialog({ borrowingId, bookTitle, summary, dueAt,
                 title="Ajukan Perpanjangan"
                 subtitle="Pemilik buku akan menerima atau menolak permintaan ini."
                 onClose={() => dialogRef.current?.close()}
-                footerNote="Perpanjangan hanya dapat diajukan satu kali per pinjaman."
+                footerNote="Jumlah perpanjangan per pinjaman dibatasi; tombol Perpanjang hilang bila batasnya tercapai."
                 actions={(
                     <>
                         <button type="button" onClick={() => dialogRef.current?.close()} className={dialogSecondaryButton}>Batal</button>

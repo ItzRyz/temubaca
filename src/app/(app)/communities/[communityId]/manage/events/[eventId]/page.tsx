@@ -9,6 +9,7 @@ import { EventPlaceForm } from "@/features/places/components/community-place-for
 import { findManagedEvent } from "@/lib/db/queries/community-content";
 import { findEventPlace } from "@/lib/db/queries/places";
 import { uuidSchema } from "@/lib/validation/common";
+import { MapTilesFromSettings } from "@/features/places/components/map-tiles-from-settings";
 
 export const metadata: Metadata = { title: "Ubah acara" };
 
@@ -38,7 +39,8 @@ export default async function EditEventPage({ params }: PageProps<"/communities/
                     venueName: event.venueName ?? "",
                     publicLocation: event.publicLocation ?? "",
                     eventUrl: event.eventUrl ?? "",
-                    publicationStatus: event.publicationStatus === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+                    // Waiting for review counts as asking to publish; saving keeps it in the queue.
+                    publicationStatus: event.publicationStatus === "PUBLISHED" || event.publicationStatus === "PENDING_REVIEW" ? "PUBLISHED" : "DRAFT",
                 }}
             />
             <ImageUploadField endpoint={`/api/communities/${communityId}/events/${event.id}/image`} label="Gambar acara" hasImage={Boolean(event.imagePath)}
@@ -47,12 +49,14 @@ export default async function EditEventPage({ params }: PageProps<"/communities/
                 preview={event.imagePath ? <EventImage path={event.imagePath} className="max-w-md rounded-xl" /> : null} />
             {/* The venue pin (DEC-07 phase 2); switching the event to online removes it. */}
             {event.locationType === "PHYSICAL" ? (
-                <EventPlaceForm
-                    communityId={communityId}
-                    eventId={event.id}
-                    published={event.publicationStatus === "PUBLISHED"}
-                    saved={place ? { ...place, hidden: Boolean(place.hiddenAt) } : null}
-                />
+                <MapTilesFromSettings>
+                    <EventPlaceForm
+                        communityId={communityId}
+                        eventId={event.id}
+                        published={event.publicationStatus === "PUBLISHED"}
+                        saved={place ? { ...place, hidden: Boolean(place.hiddenAt) } : null}
+                    />
+                </MapTilesFromSettings>
             ) : (
                 <p className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">Acara daring tidak ditampilkan di Peta Literasi.</p>
             )}

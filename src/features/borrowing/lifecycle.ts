@@ -61,6 +61,9 @@ export type LoanSnapshot = {
     lastReminderAt: Date | null;
     /** null until the reader asks for an extension; one request per loan. */
     extensionStatus: string | null;
+    /** Extensions asked so far, and how many Pengaturan → Aturan Pinjam allows (30 Okt 2026; 1 before). */
+    extensionCount?: number;
+    maxExtensions?: number;
     /** Set while an admin waits for that party's answer in a dispute. */
     ownerReplyRequestedAt: Date | null;
     requesterReplyRequestedAt: Date | null;
@@ -163,7 +166,10 @@ export function actionBlocker(loan: LoanSnapshot, role: LoanRole, action: LoanAc
         case "request_extension":
             if (ownSide) return "Hanya peminjam yang dapat mengajukan perpanjangan.";
             if (state !== "ACTIVE") return "Perpanjangan hanya dapat diajukan sebelum tenggat.";
-            if (loan.extensionStatus) return "Perpanjangan hanya dapat diajukan satu kali.";
+            if (loan.extensionStatus === "PENDING") return "Permintaan perpanjangan sebelumnya masih menunggu jawaban pemilik.";
+            if ((loan.extensionCount ?? (loan.extensionStatus ? 1 : 0)) >= (loan.maxExtensions ?? 1)) {
+                return (loan.maxExtensions ?? 1) === 1 ? "Perpanjangan hanya dapat diajukan satu kali." : `Perpanjangan hanya dapat diajukan ${loan.maxExtensions} kali.`;
+            }
             return loan.ownerReturnAt || loan.requesterReturnAt ? "Pengembalian sudah dikonfirmasi." : null;
         case "add_dispute_info":
             return state === "DISPUTED" ? null : "Keterangan hanya dapat ditambahkan selama sengketa ditinjau.";

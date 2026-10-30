@@ -66,11 +66,12 @@ export function maskWhatsapp(value: string) {
     return `${local.slice(0, 4)}-••••-${local.slice(-4)}`;
 }
 
-export type EventDisplayStatus = "DRAFT" | "PUBLISHED" | "DONE" | "ARCHIVED";
+export type EventDisplayStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "DONE" | "ARCHIVED";
 
 export function eventDisplayStatus(event: { publicationStatus: string; startsAt: Date | null; endsAt: Date | null }, now = new Date()): EventDisplayStatus {
     if (event.publicationStatus === "ARCHIVED") return "ARCHIVED";
     if (event.publicationStatus === "DRAFT") return "DRAFT";
+    if (event.publicationStatus === "PENDING_REVIEW") return "PENDING_REVIEW";
     const end = event.endsAt ?? event.startsAt;
     return end && end.getTime() < now.getTime() ? "DONE" : "PUBLISHED";
 }

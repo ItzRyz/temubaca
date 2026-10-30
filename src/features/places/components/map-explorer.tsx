@@ -56,7 +56,8 @@ function formatDuration(seconds: number) {
 }
 
 /** Peta Literasi (DEC-07, TB-026): filters and a list that work without the map, plus a Leaflet view. */
-export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; initialId?: string }) {
+/** `allowDeviceLocation` follows Pengaturan → Peta & Lokasi (30 Okt 2026); off hides "Gunakan lokasiku". */
+export function MapExplorer({ places, initialId, allowDeviceLocation = true }: { places: ExplorerPlace[]; initialId?: string; allowDeviceLocation?: boolean }) {
     // `/map?tempat=<id>` (from a community or event page) opens on that pin.
     const initial = places.find((place) => place.id === initialId) ?? null;
     const [types, setTypes] = useState<PlaceType[]>([...FILTER_TYPES]);
@@ -179,10 +180,16 @@ export function MapExplorer({ places, initialId }: { places: ExplorerPlace[]; in
                             {province && kabkotaOptions(province).map((option) => <option key={option.code} value={option.code}>{option.name}</option>)}
                         </select>
                     </div>
-                    <button type="button" onClick={locate} disabled={locating.status === "locating"} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
-                        <LocateFixed aria-hidden="true" className="size-4" /> {locating.status === "locating" ? "Mencari lokasimu…" : reader ? "Perbarui lokasiku" : "Gunakan lokasiku"}
-                    </button>
-                    <p className="text-xs text-muted-foreground">Lokasimu dipakai di perangkat ini untuk mengurutkan jarak. Saat kamu meminta rute, lokasimu dikirim sekali untuk menghitungnya, lalu tidak disimpan.</p>
+                    {allowDeviceLocation ? (
+                        <>
+                            <button type="button" onClick={locate} disabled={locating.status === "locating"} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-[#e7efe8] disabled:opacity-60">
+                                <LocateFixed aria-hidden="true" className="size-4" /> {locating.status === "locating" ? "Mencari lokasimu…" : reader ? "Perbarui lokasiku" : "Gunakan lokasiku"}
+                            </button>
+                            <p className="text-xs text-muted-foreground">Lokasimu dipakai di perangkat ini untuk mengurutkan jarak. Saat kamu meminta rute, lokasimu dikirim sekali untuk menghitungnya, lalu tidak disimpan.</p>
+                        </>
+                    ) : (
+                        <p className="text-xs text-muted-foreground">Cari tempat dengan filter wilayah dan nama. Untuk arah ke sana, buka tempatnya di Google Maps.</p>
+                    )}
                     {reader && (
                         <fieldset>
                             <legend className="text-xs font-semibold text-muted-foreground">Moda rute</legend>

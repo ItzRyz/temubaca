@@ -4,19 +4,18 @@ import { and, count, desc, eq, inArray, isNotNull, isNull, lt, lte, ne, notInArr
 import { alias } from "drizzle-orm/pg-core";
 
 import {
-    AUDIT_RETENTION_MONTHS,
     deletionBlockerMessages,
     deletionDate,
     DELETED_ACCOUNT_NAME,
     LOAN_HISTORY_RETENTION_MONTHS,
     monthsBefore,
     OWNER_CLOSED_REASON,
-    REPORT_DETAILS_RETENTION_MONTHS,
     type DeletionBlockers,
 } from "@/features/account-deletion/rules";
 import { ConflictError } from "@/lib/api/errors";
 
 import { db } from "../client";
+import { getSettings } from "./settings";
 import {
     borrowerReviews,
     adminAuditLogs,
@@ -82,8 +81,9 @@ export async function getDeletionOverview(userId: string) {
     };
 }
 
-/** Starts the 14-day grace period; waiting loan requests are closed so nobody waits on a leaving account. */
+/** Starts the grace period (Pengaturan → Retensi & Data); waiting loan requests are closed so nobody waits on a leaving account. */
 export async function requestAccountDeletion(userId: string, now = new Date()) {
+    const { deletionGraceDays } = (await getSettings("retention")).settings;
     return db.transaction(async (tx) => {
         const [profile] = await tx.select({ deletionRequestedAt: userProfiles.deletionRequestedAt, deletionScheduledFor: userProfiles.deletionScheduledFor })
             .from(userProfiles).where(eq(userProfiles.id, userId)).for("update");
@@ -110,7 +110,7 @@ export async function requestAccountDeletion(userId: string, now = new Date()) {
         await tx.update(bookAccesses).set({ status: "CANCELLED", updatedAt: now })
             .where(and(eq(bookAccesses.requesterId, userId), inArray(bookAccesses.status, ["PENDING", "APPROVED"])));
 
-        const scheduledFor = deletionDate(now);
+        const scheduledFor = deletionDate(now, deletionGraceDays);
         await tx.update(userProfiles).set({ deletionRequestedAt: now, deletionScheduledFor: scheduledFor, updatedAt: now }).where(eq(userProfiles.id, userId));
         return { scheduledFor };
     });
@@ -207,9 +207,11 @@ export async function markAuthDeleted(userId: string) {
 
 /** Time-based retention (DEC-11). Returns counts and evidence files to remove from storage. */
 export async function applyRetention(now = new Date()) {
+    // Periods set in Pengaturan → Retensi & Data (30 Okt 2026).
+    const { reportRetentionMonths, auditRetentionMonths } = (await getSettings("retention")).settings;
     return db.transaction(async (tx) => {
-        const reportCutoff = monthsBefore(now, REPORT_DETAILS_RETENTION_MONTHS);
-        const auditCutoff = monthsBefore(now, AUDIT_RETENTION_MONTHS);
+        const reportCutoff = monthsBefore(now, reportRetentionMonths);
+        const auditCutoff = monthsBefore(now, auditRetentionMonths);
         const loanCutoff = monthsBefore(now, LOAN_HISTORY_RETENTION_MONTHS);
 
         const purgedReports = await tx.update(reports)
@@ -291,7 +293,7 @@ export async function exportUserData(userId: string) {
     const counterpart = alias(userProfiles, "counterpart");
     const listingOwner = alias(userProfiles, "listing_owner");
     const [profile, interests, saved, listings, loans, memberships, sentReports, libraryRequests, reviews] = await Promise.all([
-        db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, regionCode: true, createdAt: true, deletionScheduledFor: true } }),
+        db.query.userProfiles.findFirst({ where: eq(userProfiles.id, userId), columns: { displayName: true, role: true, regionCode: true, districtCode: true, createdAt: true, deletionScheduledFor: true } }),
         db.select({ subject: userInterests.subject }).from(userInterests).where(eq(userInterests.userId, userId)),
         db.select({ title: books.title, savedAt: bookmarks.createdAt }).from(bookmarks).innerJoin(books, eq(books.id, bookmarks.bookId)).where(eq(bookmarks.userId, userId)),
         db.select({ title: books.title, condition: bookListings.condition, availability: bookListings.availability, publicLocation: bookListings.publicLocation, borrowingRules: bookListings.borrowingRules, createdAt: bookListings.createdAt })

@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { countCommunityLoansNeedingAction, countLoanUpdatesSince, countLoansNeedingAction } from "@/lib/db/queries/borrowing";
 import { listManagedLibraries } from "@/lib/db/queries/libraries";
-import { hasSeenTour, loansSeenAt } from "@/lib/db/queries/users";
+import { hasSeenTour, loansSeenAt, reportsSeenAt } from "@/lib/db/queries/users";
+import { countReportDecisionsSince } from "@/lib/db/queries/reports";
+import { getSettings } from "@/lib/db/queries/settings";
 import { ProductTour } from "@/features/onboarding/components/product-tour";
 import { ProfileMenu } from "@/components/navigation/profile-menu";
 import { PublicNavigation } from "@/components/navigation/public-navigation";
@@ -17,9 +19,15 @@ function initialsOf(name: string) {
 
 export async function SiteHeader() {
     const user = await getCurrentUser();
-    const [loans, managed, communityLoans, loanNews] = user
-        ? await Promise.all([countLoansNeedingAction(user.id), listManagedLibraries(user.id), countCommunityLoansNeedingAction(user.id), countLoanUpdatesSince(user.id, loansSeenAt(user.preferences))])
-        : [0, [], new Map<string, number>(), 0];
+    const [loans, managed, communityLoans, loanNews, moderation] = await Promise.all([
+        user ? countLoansNeedingAction(user.id) : 0,
+        user ? listManagedLibraries(user.id) : [],
+        user ? countCommunityLoansNeedingAction(user.id) : new Map<string, number>(),
+        user ? countLoanUpdatesSince(user.id, loansSeenAt(user.preferences)) : 0,
+        getSettings("moderation"),
+    ]);
+    // Decided reports light "Laporan saya" while confirmations to reporters are on (Pengaturan, 30 Okt 2026).
+    const reportNews = user && moderation.settings.notifyReporters ? await countReportDecisionsSince(user.id, reportsSeenAt(user.preferences)) : 0;
     const loansWaiting = loans > 0;
     // Library requests closed on 30 Okt 2026, so libraries no longer add to the dots.
     const attention = {
@@ -27,6 +35,7 @@ export async function SiteHeader() {
         // Something to do opens "Perlu Tindakan"; only news opens what the reader borrows.
         loansHref: loansWaiting ? "/my-listings?tab=peminjaman&filter=action" : loanNews > 0 ? "/my-listings?tab=peminjaman&view=pinjam" : "/my-listings?tab=peminjaman",
         communities: communityLoans.size > 0,
+        reports: reportNews > 0,
         managesLibraries: managed.length > 0,
     };
 

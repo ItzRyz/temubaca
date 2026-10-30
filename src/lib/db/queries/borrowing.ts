@@ -41,6 +41,7 @@ import { setUserSuspensionIn } from "./admin-users";
 import { managedCommunityIdsSql, managesListing } from "./listing-access";
 import { meetingTimeFrom } from "@/features/borrowing/meeting-time";
 import { meetingPlaceNames } from "./places";
+import { getSettings } from "./settings";
 
 const requesterProfile = alias(userProfiles, "requester_profile");
 const ownerProfile = alias(userProfiles, "owner_profile");
@@ -174,8 +175,10 @@ async function lockLoan(tx: Tx, where: { requestId: string } | { borrowingId: st
     return { ...row, role };
 }
 
-function snapshotOf(request: typeof borrowRequests.$inferSelect, borrowing: typeof borrowings.$inferSelect | null): LoanSnapshot {
+function snapshotOf(request: typeof borrowRequests.$inferSelect, borrowing: typeof borrowings.$inferSelect | null, maxExtensions = 1): LoanSnapshot {
     return {
+        extensionCount: borrowing?.extensionCount ?? 0,
+        maxExtensions,
         requestStatus: request.status,
         borrowingStatus: borrowing?.status ?? null,
         dueAt: borrowing?.dueAt ?? null,
@@ -254,11 +257,12 @@ export async function actOnBorrowRequest(requestId: string, userId: string, inpu
 }
 
 export async function actOnBorrowing(borrowingId: string, userId: string, input: BorrowingActionInput) {
+    const { maxExtensions } = (await getSettings("borrowing")).settings;
     return db.transaction(async (tx) => {
         const now = new Date();
         const { request, role, listingId, communityId, borrowing } = await lockLoan(tx, { borrowingId }, userId);
         if (!borrowing) throw new NotFoundError("Pinjaman tidak ditemukan.");
-        assertAllowed(snapshotOf(request, borrowing), role, input.action, now);
+        assertAllowed(snapshotOf(request, borrowing, maxExtensions), role, input.action, now);
 
         switch (input.action) {
             case "confirm_return": {
@@ -311,7 +315,7 @@ export async function actOnBorrowing(borrowingId: string, userId: string, input:
             case "request_extension": {
                 await tx
                     .update(borrowings)
-                    .set({ extensionStatus: "PENDING", extensionDays: input.days, extensionNote: input.note ?? null, extensionRequestedAt: now, updatedAt: now })
+                    .set({ extensionStatus: "PENDING", extensionDays: input.days, extensionNote: input.note ?? null, extensionResponseNote: null, extensionRespondedAt: null, extensionRequestedAt: now, extensionCount: borrowing.extensionCount + 1, updatedAt: now })
                     .where(eq(borrowings.id, borrowing.id));
                 await logEvent(tx, request.id, userId, "EXTENSION_REQUESTED", `${input.days} hari`);
                 return { status: loanState(snapshotOf(request, borrowing), now), extensionStatus: "PENDING" as const };
@@ -493,6 +497,7 @@ type LoanScope = { kind: "user"; userId: string } | { kind: "community"; communi
  */
 async function loadLoans(scope: LoanScope, now: Date): Promise<LoanItem[]> {
     const viewerId = scope.userId;
+    const { maxExtensions } = (await getSettings("borrowing")).settings;
     const rows = await db
         .select({
             request: borrowRequests,
@@ -529,7 +534,7 @@ async function loadLoans(scope: LoanScope, now: Date): Promise<LoanItem[]> {
 
     return rows.map(({ request, borrowing, listingId, ownerId, communityId, communityName, book, requesterName, ownerName, meetingPlace }) => {
         const role: LoanRole = scope.kind === "community" || (ownerId === viewerId && communityId === null) ? "owner" : "requester";
-        const snapshot = snapshotOf(request, borrowing);
+        const snapshot = snapshotOf(request, borrowing, maxExtensions);
         const events = eventsByRequest.get(request.id) ?? [];
         const asked = role === "owner" ? snapshot.ownerReplyRequestedAt : snapshot.requesterReplyRequestedAt;
         // On a community's side, any non-admin event not by the borrower was the community's own doing.

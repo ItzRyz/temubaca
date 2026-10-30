@@ -136,6 +136,7 @@ export async function updateUserProfile(
         displayName?: string;
         preferences?: Record<string, unknown>;
         regionCode?: string | null;
+        districtCode?: string | null;
     },
 ) {
     const [user] = await db
@@ -159,6 +160,12 @@ export async function updateUserProfile(
                 }
                 : {}),
 
+            ...(input.districtCode !== undefined
+                ? {
+                    districtCode: input.districtCode,
+                }
+                : {}),
+
             updatedAt: new Date(),
         })
         .where(eq(userProfiles.id, userId))
@@ -173,19 +180,28 @@ export async function markTourSeen(userId: string) {
         .where(eq(userProfiles.id, userId));
 }
 
-/** Records that the reader opened their loans (`preferences.loansSeenAt`), which clears the "kabar baru" dot. */
-export async function markLoansSeen(userId: string, now = new Date()) {
+type SeenKey = "loansSeenAt" | "reportsSeenAt";
+
+/** Records that the reader opened a page with news (`preferences.<key>`), which clears its dot. */
+async function markSeen(userId: string, key: SeenKey, now: Date) {
     await db.update(userProfiles)
-        .set({ preferences: sql`coalesce(${userProfiles.preferences}, '{}'::jsonb) || jsonb_build_object('loansSeenAt', ${now.toISOString()}::text)` })
+        .set({ preferences: sql`coalesce(${userProfiles.preferences}, '{}'::jsonb) || jsonb_build_object(${key}::text, ${now.toISOString()}::text)` })
         .where(eq(userProfiles.id, userId));
 }
 
-/** When the reader last opened their loans; never opened counts the last 14 days as new. */
-export function loansSeenAt(preferences: unknown, now = new Date()) {
-    const value = preferences && typeof preferences === "object" && "loansSeenAt" in preferences ? (preferences as { loansSeenAt: unknown }).loansSeenAt : null;
+/** When the reader last opened that page; never opened counts the last 14 days as new. */
+function seenAt(preferences: unknown, key: SeenKey, now: Date) {
+    const value = preferences && typeof preferences === "object" && key in preferences ? (preferences as Record<string, unknown>)[key] : null;
     const at = typeof value === "string" ? new Date(value) : null;
     return at && !Number.isNaN(at.getTime()) ? at : new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 }
+
+/** Opening "Saya pinjam" clears the "kabar baru" dot. */
+export const markLoansSeen = (userId: string, now = new Date()) => markSeen(userId, "loansSeenAt", now);
+export const loansSeenAt = (preferences: unknown, now = new Date()) => seenAt(preferences, "loansSeenAt", now);
+/** Opening "Laporan saya" clears the decision dot (30 Okt 2026). */
+export const markReportsSeen = (userId: string, now = new Date()) => markSeen(userId, "reportsSeenAt", now);
+export const reportsSeenAt = (preferences: unknown, now = new Date()) => seenAt(preferences, "reportsSeenAt", now);
 
 /** Whether the account has seen "Panduan TemuBaca" (`preferences.tourSeenAt`). */
 export function hasSeenTour(preferences: unknown) {

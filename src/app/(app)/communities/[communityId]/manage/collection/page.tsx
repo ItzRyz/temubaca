@@ -7,6 +7,7 @@ import { loadManageContext } from "@/features/community-management/server";
 import { listCommunityBookListings } from "@/lib/db/queries/books";
 import { listingLoanStates } from "@/lib/db/queries/borrowing";
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
+import { getSettings } from "@/lib/db/queries/settings";
 
 export const metadata: Metadata = { title: "Koleksi buku komunitas" };
 
@@ -22,6 +23,7 @@ export default async function ManageCollectionPage({ params }: PageProps<"/commu
     }
 
     const now = new Date();
+    const { settings: borrowingRules } = await getSettings("borrowing");
     const listings = await listCommunityBookListings(communityId);
     const [appeals, loanStates] = await Promise.all([
         latestAppealsForListings(listings.filter((listing) => listing.hiddenAt).map((listing) => listing.id)),
@@ -38,7 +40,7 @@ export default async function ManageCollectionPage({ params }: PageProps<"/commu
                         {listings.length} buku, {offered} ditawarkan untuk dipinjam. Semua pengurus dapat mengelola koleksi dan menanggapi permintaan pinjam di menu Peminjaman.
                     </p>
                 </div>
-                <AddBookDialog communityId={communityId} />
+                <AddBookDialog defaultLoanDays={borrowingRules.defaultLoanDays} mapOnlyMeetingPoints={borrowingRules.meetingPointsFromMapOnly} communityId={communityId} />
             </div>
             {listings.length > 0 ? (
                 <ul className="flex list-none flex-col gap-4 p-0">

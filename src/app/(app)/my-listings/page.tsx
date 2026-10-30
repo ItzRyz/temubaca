@@ -14,6 +14,7 @@ import { countLoanUpdatesSince, listingLoanStates, listLoansForUser } from "@/li
 import { latestAppealsForListings } from "@/lib/db/queries/listing-appeals";
 import { listUserBookListings } from "@/lib/db/queries/books";
 import { cn } from "@/lib/utils";
+import { getSettings } from "@/lib/db/queries/settings";
 
 export const metadata: Metadata = { title: "Buku saya" };
 
@@ -55,6 +56,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
     const loanFilters: LoanFilter[] = ["all", "action", "ongoing", "history"];
     const loanFilter = loanFilters.find((value) => value === params.filter) ?? "all";
     const now = new Date();
+    const { settings: borrowingRules } = await getSettings("borrowing");
 
     const [listings, loans, loanNews] = await Promise.all([
         listUserBookListings(user.id),
@@ -119,7 +121,7 @@ export default async function MyListingsPage({ searchParams }: MyListingsPagePro
                         Kelola koleksi buku fisik yang kamu bagikan dengan kawan pembaca di titik temu publik yang disepakati.
                     </p>
                 </div>
-                <AddBookDialog />
+                <AddBookDialog defaultLoanDays={borrowingRules.defaultLoanDays} mapOnlyMeetingPoints={borrowingRules.meetingPointsFromMapOnly} />
             </header>
 
             <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

@@ -10,6 +10,7 @@ import { countCommunitiesByStatus } from "@/lib/db/queries/communities";
 import { countReportsByStatus } from "@/lib/db/queries/reports";
 import { countOpenBorrowingDisputes } from "@/lib/db/queries/borrowing";
 import { countPendingAppeals } from "@/lib/db/queries/listing-appeals";
+import { countPendingCommunityContent } from "@/lib/db/queries/community-content";
 
 export const metadata: Metadata = privateMetadata;
 
@@ -18,18 +19,19 @@ export default async function ManagementLayout({ children }: LayoutProps<"/">) {
     if (!user) return redirectToLogin();
     if (user.role !== "ADMIN") notFound();
 
-    const [pendingReports, reviewingReports, pendingCommunities, openDisputes, pendingAppeals] = await Promise.all([
+    const [pendingReports, reviewingReports, pendingCommunities, openDisputes, pendingAppeals, pendingContent] = await Promise.all([
         countReportsByStatus("PENDING"),
         countReportsByStatus("REVIEWING"),
         countCommunitiesByStatus("PENDING"),
         countOpenBorrowingDisputes(),
         countPendingAppeals(),
+        countPendingCommunityContent(),
     ]);
 
     return (
         <div className="flex min-h-screen flex-col bg-background lg:flex-row">
             <SkipLink />
-            <AdminSidebar displayName={user.displayName} pending={{ reports: pendingReports + reviewingReports, communities: pendingCommunities, disputes: openDisputes, appeals: pendingAppeals }} />
+            <AdminSidebar displayName={user.displayName} pending={{ reports: pendingReports + reviewingReports, communities: pendingCommunities, content: pendingContent, disputes: openDisputes, appeals: pendingAppeals }} />
             <div id={MAIN_CONTENT_ID} tabIndex={-1} className="min-w-0 flex-1 outline-none">{children}</div>
         </div>
     );

@@ -36,7 +36,7 @@ export default async function EditMerchandisePage({ params }: PageProps<"/commun
                 variants: item.variants.join(", "),
                 fulfillmentNote: item.fulfillmentNote ?? "",
                 photoPaths: item.photoPaths,
-                visible: item.status === "PUBLISHED",
+                visible: item.status === "PUBLISHED" || item.status === "PENDING_REVIEW",
             }}
         />
     );

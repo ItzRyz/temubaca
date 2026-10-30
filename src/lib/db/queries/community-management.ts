@@ -16,6 +16,7 @@ import { removeCommunityImages } from "@/lib/supabase/storage";
 import type { CommunityApplicationInput, CommunityProfileInput } from "@/lib/validation/schemas/community-management.schema";
 
 import { db } from "../client";
+import { getSettings } from "./settings";
 import {
     bookListings,
     communities,
@@ -60,6 +61,8 @@ export async function listManagedCommunities(userId: string) {
 }
 
 export async function createCommunityApplication(ownerId: string, input: CommunityApplicationInput, file: EvidenceFile | null) {
+    // With review off in Pengaturan → Moderasi (30 Okt 2026), a new community is verified on the spot.
+    const autoApprove = !(await getSettings("moderation")).settings.reviewNewCommunities;
     return db.transaction(async (tx) => {
         // Serialise applications per account so the pending limit cannot be raced.
         await tx.select({ id: userProfiles.id }).from(userProfiles).where(eq(userProfiles.id, ownerId)).for("update");
@@ -79,9 +82,9 @@ export async function createCommunityApplication(ownerId: string, input: Communi
                 contactEmail: input.contactEmail,
                 instagramHandle: input.instagramHandle,
                 whatsappNumber: input.whatsappNumber,
-                status: "PENDING",
+                status: autoApprove ? "VERIFIED" : "PENDING",
             })
-            .returning({ id: communities.id });
+            .returning({ id: communities.id, status: communities.status });
         await tx.insert(communityMemberships).values({ userId: ownerId, communityId: community.id, role: "OWNER", status: "ACTIVE" });
         await tx.insert(communitySubmissions).values({
             communityId: community.id,
@@ -92,7 +95,16 @@ export async function createCommunityApplication(ownerId: string, input: Communi
             fileName: file?.name ?? null,
             fileType: file?.type ?? null,
             fileSize: file?.size ?? null,
+            ...(autoApprove ? { status: "APPROVED" as const } : {}),
         });
+        if (autoApprove) {
+            const now = new Date();
+            // The evidence is still kept; the trail says no admin looked at it.
+            await tx.insert(verifications).values({
+                targetType: "COMMUNITY", targetId: community.id, status: "APPROVED", reviewerId: null,
+                note: "Disetujui otomatis: tinjauan komunitas baru dimatikan di Pengaturan.", reviewedAt: now, createdAt: now, updatedAt: now,
+            });
+        }
         return community;
     });
 }

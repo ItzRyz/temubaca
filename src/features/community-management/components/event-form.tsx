@@ -53,7 +53,10 @@ export function EventForm({ communityId, eventId, initial }: { communityId: stri
                 setMessage(result.message);
                 return;
             }
-            notify.success(eventId ? "Acara disimpan." : "Acara dibuat. Gambar acara bisa dipasang dari halaman ubah acara.");
+            const status = (result.data as { publicationStatus?: string } | undefined)?.publicationStatus;
+            notify.success(status === "PENDING_REVIEW"
+                ? "Acara dikirim ke admin untuk ditinjau sebelum tayang."
+                : eventId ? "Acara disimpan." : "Acara dibuat. Gambar acara bisa dipasang dari halaman ubah acara.");
             router.push(listHref);
             router.refresh();
         });

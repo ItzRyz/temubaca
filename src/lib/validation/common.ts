@@ -104,6 +104,13 @@ export const profileUpdateSchema =
                     (value) => (value === "" ? null : value),
                     z.string().refine(isKnownKabkota, "Pilih kabupaten/kota dari daftar.").nullable(),
                 ).optional(),
+
+            // Optional kecamatan (30 Okt 2026); that it lies in `regionCode` is checked on the server.
+            districtCode:
+                z.preprocess(
+                    (value) => (value === "" ? null : value),
+                    z.string().regex(/^\d{2}\.\d{2}\.\d{2}$/, "Pilih kecamatan dari daftar.").nullable(),
+                ).optional(),
         })
         .strict();
 

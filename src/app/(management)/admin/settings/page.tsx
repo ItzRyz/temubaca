@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { GUARANTEE_MAX_LENGTH, loanDayOptions } from "@/features/book-listings/listing-draft";
-import { borrowBlockDayOptions, DISPUTE_REVIEW_HOURS, EXTENSION_MAX_DAYS, problemReasons, rejectionReasons, REMINDER_COOLDOWN_HOURS } from "@/features/borrowing/lifecycle";
+import { GUARANTEE_MAX_LENGTH } from "@/features/book-listings/listing-draft";
+import { borrowBlockDayOptions, DISPUTE_REVIEW_HOURS, EXTENSION_MAX_DAYS, problemReasons, REMINDER_COOLDOWN_HOURS } from "@/features/borrowing/lifecycle";
 import { EVIDENCE_MAX_BYTES, MAX_PENDING_APPLICATIONS } from "@/features/community-management/rules";
-import { CatalogSettingsForm } from "@/features/settings/components/catalog-settings-form";
+import { SettingsForm } from "@/features/settings/components/settings-form";
+import type { SettingsSection as SettingsKey } from "@/features/settings/platform-settings";
 import { footerLinkClass, RuleList, SectionFooter, SettingsSection, StatusStrip } from "@/features/settings/components/settings-layout";
 import { RunRetentionButton } from "@/features/account-deletion/components/retention-panel";
-import { AUDIT_RETENTION_MONTHS, DELETION_GRACE_DAYS, LOAN_HISTORY_RETENTION_MONTHS, REPORT_DETAILS_RETENTION_MONTHS } from "@/features/account-deletion/rules";
+import { LOAN_HISTORY_RETENTION_MONTHS } from "@/features/account-deletion/rules";
 import { countPendingDeletions, getLastRetentionRun } from "@/lib/db/queries/account-deletion";
-import { MAP_TILE_URL, PLACE_TYPES, placeTypeLabels } from "@/features/places/places";
+import { PLACE_TYPES, placeTypeLabels } from "@/features/places/places";
 import { routeModeLabels, ROUTE_MODES } from "@/features/places/route";
 import { countUsers } from "@/lib/db/queries/admin-users";
 import { countOpenLoans } from "@/lib/db/queries/borrowing";
@@ -17,7 +18,8 @@ import { countHiddenListings } from "@/lib/db/queries/catalog-admin";
 import { countCommunitiesByStatus } from "@/lib/db/queries/communities";
 import { countPendingAppeals } from "@/lib/db/queries/listing-appeals";
 import { listPlacesForAdmin } from "@/lib/db/queries/places";
-import { getCatalogSettings } from "@/lib/db/queries/settings";
+import { countPendingCommunityContent } from "@/lib/db/queries/community-content";
+import { getSettings } from "@/lib/db/queries/settings";
 import { countReportsByStatus } from "@/lib/db/queries/reports";
 import { isMlServiceConfigured } from "@/lib/ml/client";
 import { RATE_LIMITS } from "@/lib/rate-limit/config";
@@ -28,7 +30,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-/** Sections from Figma 161:859, redesigned 30 Okt 2026. Only "Katalog Buku" is editable; the others show the rules in force and live numbers. */
+/** Sections from the "Pengaturan" design (30 Okt 2026): every section is editable, with its live numbers and the rules that stay fixed. */
 const sections = {
     catalog: { label: "Katalog Buku", hint: "Sumber data buku dan sinkronisasi", Content: CatalogSection },
     map: { label: "Peta & Lokasi", hint: "Peta Literasi, titik, dan rute", Content: MapSection },
@@ -50,7 +52,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         <main className="px-4 py-8 sm:px-8 sm:py-10">
             <header className="flex flex-col gap-1">
                 <h1 className="font-heading text-[28px] leading-tight font-semibold text-primary sm:text-[34px]">Pengaturan</h1>
-                <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">Hanya Katalog Buku yang bisa diubah dari sini dan tercatat di jejak audit. Bagian lain menampilkan aturan yang berlaku beserta keadaan platform saat ini.</p>
+                <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">Atur sumber data, aturan platform, dan kebijakan moderasi. Setiap perubahan berlaku untuk seluruh pengguna setelah disimpan dan tercatat di jejak audit.</p>
             </header>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[240px_1fr]">
@@ -79,34 +81,53 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
     );
 }
 
-/** Saved catalog settings; the only section an admin can change. */
-async function CatalogSection() {
-    const { settings, updatedAt, updatedByName } = await getCatalogSettings();
+/** The section's form with who changed it last; every section follows the same pattern. */
+async function EditableForm({ section }: { section: SettingsKey }) {
+    const { settings } = await getSettings(section);
     return (
-        <SettingsSection id="catalog" title="Katalog Buku" purpose="Menentukan dari mana data buku diambil saat pengguna mencari dan menambah buku, dan kapan data katalog disinkronkan."
-            source={{ kind: "editable", note: updatedAt ? `Terakhir diubah ${updatedByName ?? "admin"} · ${dateTime.format(updatedAt)}` : "Memakai pengaturan bawaan" }}>
-            <div className="px-5 py-5 sm:px-6">
-                <CatalogSettingsForm key={updatedAt?.toISOString() ?? "default"} initial={settings} />
-            </div>
+        <div className="px-5 py-5 sm:px-6">
+            <SettingsForm section={section} initial={settings as Record<string, string | number | boolean>} />
+        </div>
+    );
+}
+
+async function lastChange(section: SettingsKey) {
+    const { updatedAt, updatedByName } = await getSettings(section);
+    return updatedAt ? `Terakhir diubah ${updatedByName ?? "admin"} · ${dateTime.format(updatedAt)}` : "Memakai pengaturan bawaan";
+}
+
+/** Rules that stay fixed in code, folded under the form. */
+function FixedRules({ rules }: { rules: [string, string][] }) {
+    return (
+        <details className="group border-t border-border">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center px-5 text-sm font-semibold text-primary sm:px-6">
+                Aturan lain yang berlaku <span aria-hidden="true" className="ml-1 transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <RuleList rules={rules} />
+        </details>
+    );
+}
+
+async function CatalogSection() {
+    return (
+        <SettingsSection id="catalog" title="Katalog Buku" purpose="Sumber data buku dan aturan pembaruan data tersimpan." source={{ kind: "editable", note: await lastChange("catalog") }}>
+            <EditableForm section="catalog" />
         </SettingsSection>
     );
 }
 
-/** DEC-07 policy (fixed in code and env) plus what is on the Peta Literasi right now. */
+/** DEC-07 plus what is on the Peta Literasi right now. */
 async function MapSection() {
     const places = await listPlacesForAdmin();
-    const tileHost = MAP_TILE_URL.match(/^https?:\/\/([^/]+)/)?.[1] ?? MAP_TILE_URL;
     const routing = isMlServiceConfigured();
     const rules: [string, string][] = [
-        ["Peta", `Leaflet dengan tile ${tileHost}${tileHost === "tile.openstreetmap.org" ? ", beratribusi “© kontributor OpenStreetMap”. Kebijakan tile OSM hanya untuk trafik rendah; bila trafik naik, ganti provider lewat NEXT_PUBLIC_MAP_TILE_URL" : " (NEXT_PUBLIC_MAP_TILE_URL)"}. Daftar tempat tetap berfungsi tanpa peta.`],
         ["Pencarian alamat", "Tanpa geocoding. Pembaca menyaring jenis, provinsi atau kab/kota, dan nama tempat; titik dipasang dengan mengeklik peta atau mengisi koordinat."],
-        ["Lokasi pembaca", "Opsional. “Gunakan lokasiku” hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak; tidak dikirim ke server dan tidak disimpan."],
-        ["Rute", `${ROUTE_MODES.map((mode) => routeModeLabels[mode]).join(" dan ")} lewat ML Service, untuk DKI Jakarta daratan, Kota/Kab. Tangerang, dan Tangerang Selatan. Titik asal dikirim hanya saat pembaca menekan Rute, dipakai sekali, tidak disimpan dan tidak dicatat di log. Di luar cakupan, pembaca diarahkan ke Google Maps.`],
+        ["Lokasi perangkat", "Bila diizinkan, “Gunakan lokasiku” hanya dipakai di peramban untuk memusatkan peta dan mengurutkan jarak; tidak dikirim ke server dan tidak disimpan."],
+        ["Rute", `${ROUTE_MODES.map((mode) => routeModeLabels[mode]).join(" dan ")} lewat ML Service, untuk DKI Jakarta daratan, Kota/Kab. Tangerang, dan Tangerang Selatan. Di luar cakupan, pembaca diarahkan ke Google Maps.`],
         ["Titik di peta", "Perpustakaan dan titik temu publik dikurasi admin. Titik komunitas tampil selama komunitas terverifikasi; titik acara selama acara terbit, tatap muka, dan belum selesai. Listing buku warga tidak pernah tampil di peta."],
-        ["Wilayah", "Koordinat dibatasi ke kotak wilayah Indonesia, enam desimal."],
     ];
     return (
-        <SettingsSection id="map" title="Peta & Lokasi" purpose="Cara Peta Literasi menampilkan tempat, melindungi lokasi pembaca, dan menghitung rute." source={{ kind: "policy", decision: "DEC-07" }}>
+        <SettingsSection id="map" title="Peta & Lokasi" purpose="Penyedia peta dan cara lokasi ditampilkan." source={{ kind: "editable", note: await lastChange("map") }}>
             <StatusStrip label="Saat ini" items={[
                 ...PLACE_TYPES.map((type) => {
                     const ofType = places.filter((place) => place.type === type);
@@ -115,44 +136,45 @@ async function MapSection() {
                 { label: "Disembunyikan", value: places.filter((place) => place.hiddenAt).length, href: "/admin/places" },
                 { label: "Layanan rute", value: routing ? "Aktif" : "Mati" },
             ]} />
-            <RuleList rules={rules} />
+            <EditableForm section="map" />
+            <FixedRules rules={rules} />
             <SectionFooter>
                 <Link href="/admin/places" className={footerLinkClass}>Kelola Data Tempat</Link>
-                {!routing && <p className="text-xs text-muted-foreground">ML Service belum dikonfigurasi (RECOMMENDATION_API_URL); tombol Rute membuka Google Maps.</p>}
             </SectionFooter>
         </SettingsSection>
     );
 }
 
-/** What publishes without review, what an admin decides (DEC-04/05, DEC-11), and the queues right now. */
+/** DEC-04/05/11 plus the queues right now. */
 async function ModerationSection() {
-    const [pendingReports, reviewingReports, pendingCommunities, pendingAppeals, hiddenListings, users] = await Promise.all([
+    const [pendingReports, reviewingReports, pendingCommunities, pendingAppeals, hiddenListings, users, pendingContent] = await Promise.all([
         countReportsByStatus("PENDING"),
         countReportsByStatus("REVIEWING"),
         countCommunitiesByStatus("PENDING"),
         countPendingAppeals(),
         countHiddenListings(),
         countUsers(),
+        countPendingCommunityContent(),
     ]);
     const rules: [string, string][] = [
-        ["Tanpa tinjauan lebih dulu", "Listing buku warga, serta acara, merchandise, dan perubahan profil komunitas terverifikasi langsung tampil. Pengawasan lewat laporan pengguna."],
-        ["Pengajuan komunitas", `Menunggu persetujuan admin di Peninjauan. Bukti aktivitas berupa tautan wajib, berkas opsional (PDF/JPG/PNG, maks. ${EVIDENCE_MAX_BYTES / 1024 / 1024} MB). Satu akun maksimal ${MAX_PENDING_APPLICATIONS} pengajuan yang menunggu. Pembaruan verifikasi tidak menurunkan status.`],
-        ["Laporan", `Akun yang masuk dapat melaporkan buku, salinan, komunitas, acara, merchandise, atau akun lain dengan alasan tetap per jenis, maksimal ${RATE_LIMITS.REPORT.limit} laporan per ${RATE_LIMITS.REPORT.windowSeconds} detik. Detail laporan dihapus ${REPORT_DETAILS_RETENTION_MONTHS} bulan setelah diputus.`],
-        ["Tindakan admin", "Menyembunyikan listing atau titik peta, menangguhkan komunitas atau akun, selalu dengan alasan. Akun yang ditangguhkan tetap dapat masuk dan membaca, tetapi tidak dapat menulis, dan listingnya tidak tampil."],
-        ["Banding", "Pemilik listing yang disembunyikan dapat mengajukan satu banding yang ditinjau sekaligus. Banding yang diterima memulihkan listing."],
-        ["Jejak", "Keputusan atas komunitas, listing, dan banding tercatat di riwayat verifikasi; penangguhan akun, penyembunyian titik peta, ubah peran, dan ubah pengaturan tercatat di jejak audit. Semua keputusan dilakukan manual oleh admin, tanpa filter otomatis."],
+        ["Listing buku warga", "Langsung tampil; pengawasan lewat laporan pengguna."],
+        ["Pengajuan komunitas", `Bukti aktivitas berupa tautan wajib, berkas opsional (PDF/JPG/PNG, maks. ${EVIDENCE_MAX_BYTES / 1024 / 1024} MB). Satu akun maksimal ${MAX_PENDING_APPLICATIONS} pengajuan yang menunggu.`],
+        ["Laporan", `Akun yang masuk dapat melaporkan konten dengan alasan tetap per jenis, maksimal ${RATE_LIMITS.REPORT.limit} laporan per ${RATE_LIMITS.REPORT.windowSeconds} detik.`],
+        ["Tindakan admin", "Menyembunyikan listing atau titik peta, menangguhkan komunitas atau akun, selalu dengan alasan, dan tercatat di jejak audit."],
     ];
     return (
-        <SettingsSection id="moderation" title="Moderasi & Publikasi" purpose="Apa yang langsung tampil, apa yang diputus admin, dan bagaimana keputusan dicatat." source={{ kind: "policy", decision: "DEC-04, DEC-05, DEC-11" }}>
+        <SettingsSection id="moderation" title="Moderasi & Publikasi" purpose="Konten mana yang ditinjau sebelum tayang dan bagaimana laporan ditangani." source={{ kind: "editable", note: await lastChange("moderation") }}>
             <StatusStrip label="Antrean saat ini" items={[
                 { label: "Laporan menunggu", value: pendingReports, href: "/moderation/reports", alert: true },
                 { label: "Sedang ditinjau", value: reviewingReports, href: "/moderation/reports" },
-                { label: "Pengajuan komunitas", value: pendingCommunities, href: "/admin/communities", alert: true },
-                { label: "Banding listing", value: pendingAppeals, alert: true },
+                { label: "Pengajuan komunitas", value: pendingCommunities, href: "/moderation/reports?tab=communities", alert: true },
+                { label: "Acara & merchandise", value: pendingContent, href: "/moderation/reports?tab=content", alert: true },
+                { label: "Banding listing", value: pendingAppeals, href: "/admin/books?view=banding", alert: true },
                 { label: "Listing disembunyikan", value: hiddenListings, href: "/admin/books" },
                 { label: "Akun ditangguhkan", value: users.suspended, href: "/admin/users" },
             ]} />
-            <RuleList rules={rules} />
+            <EditableForm section="moderation" />
+            <FixedRules rules={rules} />
             <SectionFooter>
                 <Link href="/moderation/reports" className={footerLinkClass}>Buka Peninjauan</Link>
             </SectionFooter>
@@ -160,22 +182,20 @@ async function ModerationSection() {
     );
 }
 
-/** DEC-02 loan lifecycle (fixed in code) plus the loans open right now. */
+/** DEC-02 plus the loans open right now. */
 async function BorrowingSection() {
     const open = await countOpenLoans();
     const rules: [string, string][] = [
-        ["Lama pinjam", `${loanDayOptions.join("/")} hari, maksimal sesuai batas yang ditetapkan pemilik di listing. Tenggat dihitung dari serah terima.`],
-        ["Permintaan", `Peminjam memilih titik temu dari daftar pemilik (tempat umum atau titik di Peta Literasi), waktu bertemu opsional, dan pesan. Pemilik menerima, atau menolak dengan alasan tetap (${rejectionReasons.join(", ")}). Menerima satu permintaan memesan salinan dan menolak otomatis permintaan lain yang menunggu.`],
+        ["Batas lama pinjam", "Pemilik menetapkan batas di listing (1–60 hari); tenggat dihitung dari serah terima."],
         ["Pembatalan", "Peminjam dapat membatalkan selama permintaan belum ditanggapi. Setelah diterima, kedua pihak dapat membatalkan sebelum serah terima."],
-        ["Serah terima & pengembalian", "Masing-masing butuh konfirmasi kedua pihak. Pinjaman baru berjalan, atau selesai, setelah dua konfirmasi."],
-        ["Perpanjangan", `Satu kali, diajukan peminjam sebelum tenggat, paling lama ${EXTENSION_MAX_DAYS} hari dari tenggat lama. Pemilik menerima atau menolak.`],
-        ["Keterlambatan", `Ditampilkan “Terlambat N hari”. Pemilik dapat mengirim pengingat di aplikasi, sekali per ${REMINDER_COOLDOWN_HOURS} jam. Tanpa denda dan tanpa ganti rugi uang di platform.`],
-        ["Jaminan", `Opsional dari pemilik, bukan uang, maksimal ${GUARANTEE_MAX_LENGTH} karakter, cukup ditunjukkan saat serah terima. Disalin ke permintaan saat diajukan.`],
-        ["Sengketa", `Salah satu pihak melaporkan masalah (${problemReasons.map((reason) => reason.value).join(", ")}). Pinjaman terkunci sampai admin memutuskan Dikembalikan atau Hilang, dengan target ${DISPUTE_REVIEW_HOURS} jam. Selama ditinjau, kedua pihak dapat menambah keterangan dan admin dapat bertanya ke salah satu atau kedua pihak. Keputusan tercatat di riwayat pinjaman dan jejak audit.`],
-        ["Konsekuensi", `Dipilih admin per kasus untuk salah satu pihak: tanpa sanksi, peringatan, tidak dapat meminjam ${borrowBlockDayOptions.join("/")} hari, atau penangguhan akun.`],
+        ["Serah terima & pengembalian", "Masing-masing butuh konfirmasi kedua pihak. Saat mengonfirmasi pengembalian, pemilik dapat memberi ulasan untuk peminjam."],
+        ["Perpanjangan", `Diajukan peminjam sebelum tenggat, paling lama ${EXTENSION_MAX_DAYS} hari per pengajuan; batas jumlahnya diatur di atas.`],
+        ["Keterlambatan", `Pemilik dapat mengirim pengingat sekali per ${REMINDER_COOLDOWN_HOURS} jam. Tanpa denda atau ganti rugi uang di platform.`],
+        ["Jaminan", `Opsional dari pemilik, bukan uang, maksimal ${GUARANTEE_MAX_LENGTH} karakter.`],
+        ["Sengketa", `Salah satu pihak melaporkan masalah (${problemReasons.map((reason) => reason.value).join(", ")}). Admin memutuskan dengan target ${DISPUTE_REVIEW_HOURS} jam; konsekuensi: tanpa sanksi, peringatan, tidak dapat meminjam ${borrowBlockDayOptions.join("/")} hari, atau penangguhan akun.`],
     ];
     return (
-        <SettingsSection id="borrowing" title="Aturan Pinjam" purpose="Alur pinjam-meminjam dari permintaan sampai pengembalian, termasuk sengketa dan sanksinya." source={{ kind: "policy", decision: "DEC-02" }}>
+        <SettingsSection id="borrowing" title="Aturan Pinjam" purpose="Nilai bawaan untuk listing buku baru dan alur pinjam." source={{ kind: "editable", note: await lastChange("borrowing") }}>
             <StatusStrip label="Pinjaman berjalan" items={[
                 { label: "Menunggu pemilik", value: open.pending },
                 { label: "Menunggu serah terima", value: open.awaitingHandover },
@@ -184,7 +204,8 @@ async function BorrowingSection() {
                 { label: "Perpanjangan menunggu", value: open.extensionPending },
                 { label: "Sengketa terbuka", value: open.disputed, href: "/admin/loans", alert: true },
             ]} />
-            <RuleList rules={rules} />
+            <EditableForm section="borrowing" />
+            <FixedRules rules={rules} />
             <SectionFooter>
                 <Link href="/admin/loans" className={footerLinkClass}>Tinjau sengketa pinjam</Link>
             </SectionFooter>
@@ -192,20 +213,16 @@ async function BorrowingSection() {
     );
 }
 
-/** DEC-11 policy (fixed in code) plus the last run of the retention job. */
+/** DEC-11 plus the last run of the retention job. */
 async function RetentionSection() {
     const [lastRun, pendingDeletions] = await Promise.all([getLastRetentionRun(), countPendingDeletions()]);
     const rules: [string, string][] = [
-        ["Hapus akun", `Akun dinonaktifkan ${DELETION_GRACE_DAYS} hari dan dapat dibatalkan pengguna, lalu data pribadi dihapus dan riwayat bersama dianonimkan ("Akun dihapus"). Ditolak selama ada pinjaman berjalan/sengketa atau komunitas terverifikasi milik akun.`],
-        ["Detail laporan", `Dihapus ${REPORT_DETAILS_RETENTION_MONTHS} bulan setelah laporan diputus; alasan dan hasil tetap disimpan.`],
-        ["Jejak audit admin", `Dihapus setelah ${AUDIT_RETENTION_MONTHS} bulan.`],
-        ["Riwayat pinjam selesai", `Dihapus ${LOAN_HISTORY_RETENTION_MONTHS} bulan setelah pinjaman ditolak, dibatalkan, dikembalikan, atau dinyatakan hilang. Pengajuan ke perpustakaan yang selesai mengikuti batas yang sama.`],
-        ["Bukti verifikasi komunitas", `Dihapus ${AUDIT_RETENTION_MONTHS} bulan setelah ditinjau, termasuk berkasnya.`],
-        ["Ekspor data", "Pengguna dapat mengunduh salinan JSON datanya dari Profil atau Kendali Data Saya."],
+        ["Hapus akun", "Setelah masa tunggu, data pribadi dihapus dan riwayat bersama dianonimkan (\"Akun dihapus\"). Ditolak selama ada pinjaman berjalan/sengketa atau komunitas terverifikasi milik akun."],
+        ["Riwayat pinjam selesai", `Dihapus ${LOAN_HISTORY_RETENTION_MONTHS} bulan setelah pinjaman ditolak, dibatalkan, dikembalikan, atau dinyatakan hilang.`],
         ["Backup", "Mengikuti kebijakan bawaan Supabase; data yang sudah dihapus bisa tetap ada di backup sampai backup itu kedaluwarsa."],
     ];
     return (
-        <SettingsSection id="retention" title="Retensi & Data" purpose="Berapa lama data disimpan, kapan dihapus, dan tugas yang menjalankannya." source={{ kind: "policy", decision: "DEC-11" }}>
+        <SettingsSection id="retention" title="Retensi & Data" purpose="Berapa lama data disimpan dan bagaimana penghapusan akun diproses." source={{ kind: "editable", note: await lastChange("retention") }}>
             <StatusStrip label="Tugas retensi" items={[
                 { label: "Akun menunggu dihapus", value: pendingDeletions },
                 { label: "Terakhir dijalankan", value: lastRun ? dateTime.format(new Date(lastRun.ranAt)) : "Belum pernah" },
@@ -216,10 +233,11 @@ async function RetentionSection() {
                     { label: "Catatan audit dihapus", value: lastRun.auditEntries },
                 ] : []),
             ]} />
-            <RuleList rules={rules} />
+            <EditableForm section="retention" />
+            <FixedRules rules={rules} />
             <SectionFooter>
                 <RunRetentionButton />
-                <p className="text-xs text-muted-foreground">Belum terjadwal otomatis: penjadwal harian dapat memanggil POST /api/internal/retention dengan INTERNAL_API_SECRET setelah hosting diputuskan (DEC-01).</p>
+                <p className="text-xs text-muted-foreground">Berjalan otomatis setiap hari (Vercel Cron); tombol ini menjalankannya sekarang.</p>
             </SectionFooter>
         </SettingsSection>
     );
