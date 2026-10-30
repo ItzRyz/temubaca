@@ -33,10 +33,10 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 /** Sections from the "Pengaturan" design (30 Okt 2026): every section is editable, with its live numbers and the rules that stay fixed. */
 const sections = {
     catalog: { label: "Katalog Buku", hint: "Sumber data buku dan sinkronisasi", Content: CatalogSection },
-    map: { label: "Peta & Lokasi", hint: "Peta Literasi, titik, dan rute", Content: MapSection },
-    moderation: { label: "Moderasi & Publikasi", hint: "Laporan, verifikasi, dan banding", Content: ModerationSection },
-    borrowing: { label: "Aturan Pinjam", hint: "Alur pinjam, sengketa, dan sanksi", Content: BorrowingSection },
-    retention: { label: "Retensi & Data", hint: "Penghapusan akun dan masa simpan", Content: RetentionSection },
+    // map: { label: "Peta & Lokasi", hint: "Peta Literasi, titik, dan rute", Content: MapSection },
+    // moderation: { label: "Moderasi & Publikasi", hint: "Laporan, verifikasi, dan banding", Content: ModerationSection },
+    // borrowing: { label: "Aturan Pinjam", hint: "Alur pinjam, sengketa, dan sanksi", Content: BorrowingSection },
+    // retention: { label: "Retensi & Data", hint: "Penghapusan akun dan masa simpan", Content: RetentionSection },
 } as const;
 type Section = keyof typeof sections;
 
